@@ -72,6 +72,7 @@ struct PlanItem: Identifiable, Hashable, Codable, Sendable {
     var amountMinor: Int?
     var currency: String?
     var sourceID: UUID?
+    var sourceProposalID: UUID? = nil
     var isCompleted: Bool
 }
 
@@ -133,6 +134,12 @@ struct InboxSource: Identifiable, Hashable, Codable, Sendable {
     var errorMessage: String?
 }
 
+enum ProposalReviewStatus: String, CaseIterable, Codable, Sendable {
+    case proposed
+    case confirmed
+    case rejected
+}
+
 struct ActionProposal: Identifiable, Hashable, Codable, Sendable {
     let id: UUID
     let sourceID: UUID
@@ -148,6 +155,7 @@ struct ActionProposal: Identifiable, Hashable, Codable, Sendable {
     var currency: String?
     var isIncluded: Bool
     var requiresMemberResolution: Bool
+    var reviewStatus: ProposalReviewStatus = .proposed
 
     var isReadyToConfirm: Bool {
         !requiresMemberResolution || !memberIDs.isEmpty
