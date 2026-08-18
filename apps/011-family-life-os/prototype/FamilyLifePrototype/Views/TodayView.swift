@@ -21,12 +21,76 @@ struct TodayView: View {
             .map { $0 }
     }
 
+    private var tomorrowPreparationItems: [PlanItem] {
+        store.planItems
+            .filter { !$0.isCompleted }
+            .filter { $0.kind == .deadline || $0.kind == .preparation || $0.kind == .task }
+            .filter { item in
+                guard let date = item.dueAt ?? item.startsAt else { return false }
+                return Self.isFixtureTomorrow(date)
+            }
+            .sorted { ($0.dueAt ?? $0.startsAt ?? .distantFuture) < ($1.dueAt ?? $1.startsAt ?? .distantFuture) }
+    }
+
+    private var scheduleConflict: (PlanItem, PlanItem)? {
+        let scheduled = todayItems.filter { $0.startsAt != nil && $0.endsAt != nil }
+
+        for firstIndex in scheduled.indices {
+            for secondIndex in scheduled.indices where secondIndex > firstIndex {
+                let first = scheduled[firstIndex]
+                let second = scheduled[secondIndex]
+
+                guard
+                    let firstStart = first.startsAt,
+                    let firstEnd = first.endsAt,
+                    let secondStart = second.startsAt,
+                    let secondEnd = second.endsAt
+                else { continue }
+
+                let overlaps = firstStart < secondEnd && secondStart < firstEnd
+                let sharesMember = !first.memberIDs.isDisjoint(with: second.memberIDs)
+
+                if overlaps && sharesMember {
+                    return (first, second)
+                }
+            }
+        }
+
+        return nil
+    }
+
+    private var conflictingItemIDs: Set<UUID> {
+        guard let scheduleConflict else { return [] }
+        return [scheduleConflict.0.id, scheduleConflict.1.id]
+    }
+
+    private var attentionCount: Int {
+        attentionItems.count + (scheduleConflict == nil ? 0 : 1)
+    }
+
+    private var familyBriefText: String {
+        if let scheduleConflict {
+            let sharedIDs = scheduleConflict.0.memberIDs.intersection(scheduleConflict.1.memberIDs)
+            let names = store.members
+                .filter { sharedIDs.contains($0.id) }
+                .map(\.name)
+                .joined(separator: ", ")
+            return "\(names.isEmpty ? "Eine Person" : names) hat zwei überlappende Termine. Bitte prüft, wer welchen Termin übernimmt."
+        }
+
+        if todayItems.count <= 2 && attentionItems.isEmpty {
+            return "Heute ist alles im grünen Bereich. Es gibt nur wenige Termine und keine offenen Fristen."
+        }
+
+        return "Ab 15:30 wird es voller: Lina hat Zahnarzt, danach muss Ben vom Training abgeholt werden. Für morgen ist noch die Einverständniserklärung offen."
+    }
+
     var body: some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 24) {
                 header
 
-                if !attentionItems.isEmpty {
+                if attentionCount > 0 {
                     attentionSection
                 }
 
@@ -48,12 +112,22 @@ struct TodayView: View {
                         }
                     } else {
                         ForEach(todayItems) { item in
-                            AgendaRow(
-                                item: item,
-                                members: store.members,
-                                showsCompletion: item.kind == .task,
-                                onToggleCompletion: { store.toggleCompletion(item.id) }
-                            )
+                            VStack(alignment: .leading, spacing: 4) {
+                                AgendaRow(
+                                    item: item,
+                                    members: store.members,
+                                    showsCompletion: item.kind == .task,
+                                    onToggleCompletion: { store.toggleCompletion(item.id) }
+                                )
+
+                                if conflictingItemIDs.contains(item.id) {
+                                    Label("Terminüberschneidung", systemImage: "exclamationmark.triangle.fill")
+                                        .font(.caption.weight(.semibold))
+                                        .foregroundStyle(.orange)
+                                        .accessibilityLabel("Achtung, Terminüberschneidung")
+                                }
+                            }
+
                             if item.id != todayItems.last?.id {
                                 Divider().padding(.leading, 74)
                             }
@@ -61,7 +135,9 @@ struct TodayView: View {
                     }
                 }
 
-                prepareSection
+                if !tomorrowPreparationItems.isEmpty {
+                    prepareSection
+                }
             }
             .frame(maxWidth: 760, alignment: .leading)
             .frame(maxWidth: .infinity, alignment: .center)
@@ -100,9 +176,17 @@ struct TodayView: View {
 
     private var attentionSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            SectionHeader(title: "Braucht Aufmerksamkeit", trailing: "\(attentionItems.count)")
+            SectionHeader(title: "Braucht Aufmerksamkeit", trailing: "\(attentionCount)")
 
             VStack(spacing: 0) {
+                if let scheduleConflict {
+                    attentionConflictRow(scheduleConflict)
+
+                    if !attentionItems.isEmpty {
+                        Divider().padding(.leading, 54)
+                    }
+                }
+
                 ForEach(attentionItems) { item in
                     HStack(alignment: .top, spacing: 12) {
                         Image(systemName: item.kind.systemImage)
@@ -137,6 +221,29 @@ struct TodayView: View {
         .accessibilityIdentifier("today-attention")
     }
 
+    private func attentionConflictRow(_ conflict: (PlanItem, PlanItem)) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: "calendar.badge.exclamationmark")
+                .foregroundStyle(.orange)
+                .frame(width: 28, height: 28)
+                .background(.orange.opacity(0.12), in: Circle())
+                .accessibilityHidden(true)
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text("Zwei Termine überschneiden sich")
+                    .font(.subheadline.weight(.semibold))
+                Text("\(conflict.0.title) · \(conflict.1.title)")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Spacer(minLength: 0)
+        }
+        .padding(14)
+        .accessibilityElement(children: .combine)
+    }
+
     private var familyBrief: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 8) {
@@ -147,7 +254,7 @@ struct TodayView: View {
                     .font(.headline)
             }
 
-            Text("Ab 15:30 wird es voller: Lina hat Zahnarzt, danach muss Ben vom Training abgeholt werden. Für morgen ist noch die Einverständniserklärung offen.")
+            Text(familyBriefText)
                 .font(.body)
                 .foregroundStyle(.primary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -162,25 +269,34 @@ struct TodayView: View {
         VStack(alignment: .leading, spacing: 10) {
             SectionHeader(title: "Für morgen vorbereiten")
 
-            HStack(alignment: .top, spacing: 12) {
-                Image(systemName: "doc.text.fill")
-                    .foregroundStyle(.purple)
-                    .frame(width: 34, height: 34)
-                    .background(.purple.opacity(0.12), in: Circle())
-                    .accessibilityHidden(true)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Einverständniserklärung unterschreiben")
-                        .font(.subheadline.weight(.semibold))
-                        .fixedSize(horizontal: false, vertical: true)
-                    Text("Lina · morgen fällig")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+            VStack(spacing: 0) {
+                ForEach(tomorrowPreparationItems) { item in
+                    HStack(alignment: .top, spacing: 12) {
+                        Image(systemName: item.kind.systemImage)
+                            .foregroundStyle(item.kind.tint)
+                            .frame(width: 34, height: 34)
+                            .background(item.kind.tint.opacity(0.12), in: Circle())
+                            .accessibilityHidden(true)
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(item.title)
+                                .font(.subheadline.weight(.semibold))
+                                .fixedSize(horizontal: false, vertical: true)
+                            Text("morgen fällig")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        Spacer(minLength: 0)
+                    }
+                    .padding(14)
+                    .accessibilityElement(children: .combine)
+
+                    if item.id != tomorrowPreparationItems.last?.id {
+                        Divider().padding(.leading, 54)
+                    }
                 }
-                Spacer(minLength: 0)
             }
-            .padding(14)
             .background(.background, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-            .accessibilityElement(children: .combine)
         }
     }
 
@@ -189,11 +305,29 @@ struct TodayView: View {
         let components = calendar.dateComponents([.year, .month, .day], from: date)
         return components.year == 2026 && components.month == 8 && components.day == 18
     }
+
+    private static func isFixtureTomorrow(_ date: Date) -> Bool {
+        let calendar = Calendar(identifier: .gregorian)
+        let components = calendar.dateComponents([.year, .month, .day], from: date)
+        return components.year == 2026 && components.month == 8 && components.day == 19
+    }
 }
 
-#Preview("Heute – Light") {
+#Preview("Heute – Busy") {
     NavigationStack {
         TodayView(store: DemoStore())
+    }
+}
+
+#Preview("Heute – Calm") {
+    NavigationStack {
+        TodayView(store: DemoStore(scenario: .calmToday))
+    }
+}
+
+#Preview("Heute – Conflict") {
+    NavigationStack {
+        TodayView(store: DemoStore(scenario: .conflictToday))
     }
 }
 
