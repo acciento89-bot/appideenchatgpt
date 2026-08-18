@@ -197,7 +197,7 @@ private struct ProposalEditor: View {
                     Image(systemName: "chevron.up.chevron.down")
                         .font(.caption)
                 }
-                .foregroundStyle(proposal.isReadyToConfirm ? .primary : .orange)
+                .foregroundStyle(proposal.isReadyToConfirm ? Color.primary : Color.orange)
                 .padding(12)
                 .background(
                     proposal.isReadyToConfirm ? Color.secondary.opacity(0.08) : Color.orange.opacity(0.12),
