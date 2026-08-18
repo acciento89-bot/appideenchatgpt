@@ -41,7 +41,7 @@ Repository purpose: Persistent handoff/state repository for the full App Factory
 | 008 | BeforeAfter | Guided repeat photography with overlay/alignment, comparison, collage/video | Pro / Lifetime | QUEUED |
 | 009 | ScamLens | Analyze screenshots/messages for suspicious indicators and explain risk factors | Credits / Pro | QUEUED |
 | 010 | SwipeOrDie | Very fast portrait reaction/high-score game with short sessions | Ads + IAP | QUEUED |
-| 011 | Family Life OS (WORKING TITLE) | Family Inbox: photo/PDF/text/voice -> reviewed events, tasks, deadlines and preparation actions | Freemium + Family Pro subscription | FOUNDATION / VALIDATION — product + design system created |
+| 011 | Family Life OS (INTERNAL CODENAME) | Family Inbox: photo/PDF/text/voice -> reviewed events, tasks, deadlines, payments and preparation actions | Freemium + Family Pro subscription | FOUNDATION — UX LOCKED / ARCHITECTURE SELECTED |
 
 ## Current active app — #001
 
@@ -51,7 +51,7 @@ Repository purpose: Persistent handoff/state repository for the full App Factory
 
 The original concept was materially pivoted after current-market validation on 2026-08-18 showed that the category is already highly crowded with apps that provide receipt scanning, return deadlines, warranty tracking, local reminders, claim packs and/or refund follow-up.
 
-The new focused product thesis is:
+The focused product thesis is:
 
 > **Is this purchase actually worth keeping before the return window closes?**
 
@@ -94,19 +94,9 @@ Created in commit:
 
 ### Market validation findings — 2026-08-18
 
-The original receipt/return/warranty concept was found to have many close competitors. Examples found during the current check include:
+Original receipt/return/warranty concept competitors found include Belegio, Lyfe, Warranty Box, KeepSlip, ValueGuard, Reclaimo, Return & Refund Tracker, ReturnCue AI and Refundly.
 
-- Belegio: receipt scanning, AI extraction, warranty, return-window reminders, spending stats.
-- Lyfe: receipts, warranty and return windows with automatic extraction.
-- Warranty Box: return deadlines, warranties and receipts, local/private positioning.
-- KeepSlip: receipts, return windows, warranties, iCloud, widgets, Spotlight, export.
-- ValueGuard: purchase tracker, policies, returns, warranties and spending.
-- Reclaimo: return-window reminder product.
-- Return & Refund Tracker: return deadlines, refund states, warranty and proof storage.
-- ReturnCue AI: receipt/order import, return stages, drop-off proof and refund evidence.
-- Refundly: automated return/refund tracking.
-
-Adjacent cost-per-use products also exist, including CostPerUse, UseWorth and Skip or Buy. Presence+ also contains a clothing-specific Keep/Return flow with cost-per-wear.
+Adjacent cost-per-use products include CostPerUse, UseWorth and Skip or Buy. Presence+ also contains a clothing-specific Keep/Return flow with cost-per-wear.
 
 Therefore KeepMeter must not position itself as "another cost-per-use app" either. Its differentiation is the combined real-time decision loop:
 
@@ -210,8 +200,9 @@ This does NOT block product/spec work in the central repository. The app-specifi
 
 ## Candidate #011 — Family Life OS
 
-Status: FOUNDATION / VALIDATION
+Status: FOUNDATION / UX LOCKED / ARCHITECTURE SELECTED
 Current working branch: `agent/family-life-os-foundation`
+Current draft PR: `#2`
 Public name: NOT LOCKED
 Implementation repository: NOT CREATED YET
 
@@ -229,17 +220,41 @@ Primary loop:
 
 Family information can enter via photo, screenshot, PDF/document share, text, voice or manual input. The app converts the source into structured proposals such as events, tasks, deadlines, payment reminders and preparation actions. AI proposals are editable and must be confirmed before becoming canonical family data.
 
+### Naming / positioning guardrail — 2026-08-18
+
+`Family Life OS` is now an **internal codename/product thesis only**, not intended public positioning.
+
+Reason: current competitor **Famiqo** publicly uses `Family Life Operating System`, creating an immediate differentiation/collision problem for that phrase.
+
+Additional first-pass rejects:
+
+- Kinora — multiple current family/child products including a child organizer.
+- Familoop — current family-focused secure messaging product.
+- Kinbox — current unrelated software plus historical family/social-network exact-term usage creates needless collision risk.
+
+Final public name must pass App Store/web, EUIPO, DPMA and domain checks before lock.
+
 ### Canonical foundation docs
 
 - `apps/011-family-life-os/PRODUCT_SPEC.md`
 - `apps/011-family-life-os/DESIGN_SYSTEM.md`
+- `apps/011-family-life-os/UX_SCREEN_SPEC.md`
+- `apps/011-family-life-os/BRAND_DIRECTION.md`
+- `apps/011-family-life-os/TECH_ARCHITECTURE.md`
+- `apps/011-family-life-os/UI_FIXTURES.md`
 - `apps/011-family-life-os/PROJECT_STATE.md`
 
-Foundation commits on branch:
+### Foundation branch history / major pass commits
 
 - Product specification: `8fff64f7ad973debb6c0a808d963e799b2f17029`
 - Design system: `3de8df37bf3d6c2eff82eeabccbfffccd23b3cbf`
-- Project state: `011e6f5a4ebffb18bf5eb3ed236ce2ce8606c17c`
+- Initial project state: `011e6f5a4ebffb18bf5eb3ed236ce2ce8606c17c`
+- Initial master-state update: `42278032063a9f5a2b9fa3134a11190fe2ada3f8`
+- Core UX screen specification: `01353de30c0891f49f8e93d8dcf2349f71043a85`
+- Brand direction: `2016842f5f897e8eb83f22cc95ecb4fe1c868a6c`
+- Technical architecture: `a53a7802c8832e9ac603da3f2e40aa3c40a6c961`
+- Project-state architecture/UX update: `bbaf49292df86a42020a5b368eae2b25e67c6224`
+- UI fixture pack: `6eec4c2198713448b251600949d301697bb34f99`
 
 ### Market guardrail
 
@@ -256,6 +271,142 @@ Therefore #011 may NOT claim differentiation from any single one of these featur
 - all-in-one family organization
 
 The differentiation target is the quality and low-friction nature of the complete ingestion-to-action workflow.
+
+### UX locked for first prototype
+
+#### Primary navigation
+
+Four persistent destinations:
+
+1. Heute
+2. Inbox
+3. Plan
+4. Familie
+
+Capture is a global action, not a fifth tab. Settings/account is not a permanent top-level tab.
+
+#### Heute
+
+- no giant dashboard/calendar clone
+- conditional attention section only when needed
+- factual compact family brief based only on confirmed data
+- lightweight chronological timeline
+- conditional prepare-for-tomorrow actions
+- calm empty state when there is nothing urgent
+
+#### Inbox
+
+- raw incoming family information + processing state
+- simple Offen / Verarbeitet / Alle filters
+- statuses for upload, analysis, review, partial completion, complete and failure
+- original source remains available for provenance and recovery
+
+#### Import prüfen — signature screen
+
+This is the product's trust boundary and key differentiation surface.
+
+- source preview remains reachable throughout review
+- independent editable proposals
+- proposal kinds: Termin / Aufgabe / Frist / Zahlung / Vorbereitung
+- uncertain fields are marked directly and require resolution when necessary
+- user explicitly confirms proposals before canonical data is created
+- confirmed items retain source provenance
+
+#### Plan
+
+- Agenda-first MVP
+- member filtering
+- full calendar visualization may follow after the ingestion vertical slice is excellent
+
+#### Familie
+
+- household + members
+- role architecture: Owner / Adult / Child / Guest-Caregiver
+- child/guest isolation enforced server-side, not only in UI
+
+### Technical architecture selected
+
+Foundation stack:
+
+- native SwiftUI client
+- iOS/iPadOS 18+ deployment direction
+- iOS 26+ visual enhancements behind availability checks
+- Supabase backend
+- preferred Central EU / Frankfurt region
+- Postgres
+- Row Level Security for household isolation
+- Supabase Auth
+- private object Storage
+- Realtime where useful for collaboration/status
+- server/Edge Functions for AI orchestration and secrets
+- APNs-backed server notification flow
+- local cache/offline mutation queue where appropriate
+
+Rules:
+
+- canonical collaborative household data lives on backend
+- UI views do not execute raw backend queries directly
+- service-role/AI secrets never ship in the app
+- no public source-document bucket
+- no raw family documents in generic telemetry/logs
+- model output is structured/validated and produces proposals, not direct canonical writes
+- proposal confirmation must be transactional/idempotent
+
+### Initial relational model direction
+
+Core entities:
+
+- profiles
+- households
+- household_members
+- source_items
+- extraction_runs
+- action_proposals
+- plan_items
+- plan_item_assignees
+- reminders
+- household_invites
+
+A child/guest household member may exist without an authenticated user account so permissions do not need to be faked through adult accounts.
+
+### Brand / visual identity direction
+
+Brand personality:
+
+- calm
+- capable
+- warm
+- trustworthy
+- discreet
+- premium without luxury styling
+
+Avoid cartoon-family, robot/AI-sparkle and generic house/checkmark identity.
+
+Preferred app-icon concept direction:
+
+**Gather -> Order** — multiple rounded pieces converging into one organized form, representing loose family information becoming a shared plan.
+
+Final palette/name/icon artwork remains open until collision and visual testing are complete.
+
+### Locked UI fixture scenario
+
+First executable prototype uses a deterministic demo household and a school-letter scenario.
+
+Required end-to-end proof:
+
+1. Household + sample members exist.
+2. User opens Heute.
+3. User imports a school letter fixture.
+4. Inbox shows processing.
+5. Extraction returns four proposals: event, deadline/task, payment, preparation.
+6. Import prüfen requires resolving an ambiguous child assignment.
+7. User edits at least one proposed field.
+8. User confirms selected proposals.
+9. Confirmed items appear in Plan.
+10. Relevant items surface in Heute.
+11. Each item links back to the original source.
+
+Visual QA fixtures also cover calm day, schedule conflict, failed analysis, partial processing, offline queue, Dark Mode, iPad split layout and Dynamic Type accessibility sizes.
 
 ### Accepted foundation decisions
 
@@ -274,6 +425,7 @@ The differentiation target is the quality and low-friction nature of the complet
 - German/English localization architecture from first build.
 - Child/guest permission model architected from day one.
 - Apple-native design. On iOS 26+, Liquid Glass is reserved mainly for functional/navigation layers and important controls rather than decorative content cards.
+- Supabase/Postgres/RLS + private storage is the selected v1 backend direction.
 
 ### Deferred / rejected for MVP
 
@@ -286,28 +438,31 @@ The differentiation target is the quality and low-friction nature of the complet
 - automatic mailbox surveillance
 - autonomous real-world bookings/calls
 - medical-advice assistant
+- generic AI-chat-first UI
+- decorative Liquid Glass everywhere
 
-### First implementation slice
+### Current open decisions
 
-1. Household + sample members.
-2. Today UI.
-3. Inbox UI.
-4. Import text/image.
-5. Structured action proposals.
-6. Review Import UI.
-7. Confirm events/tasks.
-8. Reflect confirmed actions on Today.
+1. Final public brand/name and formal-enough EU trademark/domain clearance.
+2. Exact AI provider/model and structured extraction implementation.
+3. Exact subscription pricing and AI quota after cost modeling.
+4. Attachment retention defaults and privacy/legal review.
+5. Calendar sync/import scope.
+6. Child independent-login timing.
+7. Final app icon artwork and brand palette.
+8. App-specific implementation repository creation.
 
 ### Immediate next steps
 
-1. Perform brand/name shortlist + collision checks.
-2. Select backend architecture and EU hosting model.
-3. Lock minimum iOS/iPadOS target.
-4. Create the app-specific repository when implementation starts and repository creation is available.
-5. Scaffold SwiftUI project and real fixture-driven screens.
-6. Validate Today, Inbox and Review Import on iPhone/iPad, Dark Mode and Dynamic Type.
-7. Update `apps/011-family-life-os/PROJECT_STATE.md` and this master state after every major pass.
+1. Create first visual UI implementation/spec pass for Heute, Inbox and Import prüfen using locked fixtures.
+2. Create app-specific repository when implementation begins and repository creation is available.
+3. Scaffold SwiftUI app shell + domain/service boundaries.
+4. Implement fixture-driven Heute, Inbox and Import prüfen before real AI integration.
+5. Implement Supabase schema + RLS and a text-fixture ingestion path.
+6. Validate full vertical slice on iPhone/iPad, Dark Mode and Dynamic Type.
+7. Only after the core flow is excellent, expand Plan/calendar and additional family modules.
+8. Update `apps/011-family-life-os/PROJECT_STATE.md` and this master state after every major pass.
 
 ## Handoff rule for new chats
 
-When the user says to continue the App Factory, first inspect this repository and this file. Then inspect the active app's product/project-state file. If the user explicitly asks to continue Family Life OS, inspect `apps/011-family-life-os/PROJECT_STATE.md`, `PRODUCT_SPEC.md` and `DESIGN_SYSTEM.md` before continuing. Do not rely only on chat memory. Update this file after every major pass so it remains the authoritative cross-chat handoff state.
+When the user says to continue the App Factory, first inspect this repository and this file. Then inspect the active app's product/project-state file. If the user explicitly asks to continue Family Life OS, inspect `apps/011-family-life-os/PROJECT_STATE.md`, `PRODUCT_SPEC.md`, `DESIGN_SYSTEM.md`, `UX_SCREEN_SPEC.md`, `BRAND_DIRECTION.md`, `TECH_ARCHITECTURE.md` and `UI_FIXTURES.md` before continuing. Do not rely only on chat memory. Update this file after every major pass so it remains the authoritative cross-chat handoff state.
