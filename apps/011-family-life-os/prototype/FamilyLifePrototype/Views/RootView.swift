@@ -43,6 +43,17 @@ struct RootView: View {
         )
     }
 
+    private var showsRepositoryError: Binding<Bool> {
+        Binding(
+            get: { store.repositoryErrorMessage != nil },
+            set: { isPresented in
+                if !isPresented {
+                    store.repositoryErrorMessage = nil
+                }
+            }
+        )
+    }
+
     var body: some View {
         Group {
             if horizontalSizeClass == .regular {
@@ -55,6 +66,13 @@ struct RootView: View {
             NavigationStack {
                 ImportReviewView(store: store)
             }
+        }
+        .alert("Aktion fehlgeschlagen", isPresented: showsRepositoryError) {
+            Button("OK", role: .cancel) {
+                store.repositoryErrorMessage = nil
+            }
+        } message: {
+            Text(store.repositoryErrorMessage ?? "Unbekannter Fehler")
         }
     }
 
