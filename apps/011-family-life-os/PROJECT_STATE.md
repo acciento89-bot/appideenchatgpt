@@ -234,6 +234,7 @@ No major adjacent feature module should be allowed to hide a weak version of thi
 - UI fixture pack: `6eec4c2198713448b251600949d301697bb34f99`
 - central master-state UX/architecture checkpoint: `6944a0f0359283472c24cc60a1949c3e23139dac`
 - foundation state prepared for merge: `02cf167109d843978bfd5d14b92198559a7df9ed`
+- final pre-merge state: `1d654530eeb8f2e827f2036dacb412ff361d9d27`
 
 ## Open decisions
 
