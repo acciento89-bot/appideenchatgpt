@@ -143,7 +143,7 @@ Important architecture rules:
 
 ## UI fixture pack locked
 
-`UI_FIXTURES.md` now defines deterministic prototype content rather than lorem ipsum.
+`UI_FIXTURES.md` defines deterministic prototype content rather than lorem ipsum.
 
 Demo household: `Familie Berger` with two adults and two child profiles.
 
@@ -156,22 +156,7 @@ Signature fixture: a German school-letter import that produces exactly four prop
 
 The demo requires resolving an ambiguous child assignment and editing at least one proposed field before confirming, proving that the review workflow is genuinely interactive rather than a fake success screen.
 
-Visual QA fixture states include:
-
-- normal busy Today
-- calm Today
-- schedule conflict
-- mixed Inbox processing states
-- failed analysis
-- partial confirmation
-- unresolved Import Review
-- ready-to-confirm Import Review
-- Plan agenda
-- Family members
-- Dark Mode
-- iPad split layout
-- Dynamic Type accessibility size
-- offline pending upload
+Visual QA fixture states include normal busy Today, calm Today, schedule conflict, mixed Inbox states, failed analysis, partial confirmation, unresolved/ready Import Review, Plan agenda, Family members, Dark Mode, iPad split layout, Dynamic Type accessibility size and offline pending upload.
 
 ## Rejected / deferred directions
 
@@ -262,7 +247,7 @@ No major adjacent feature module should be allowed to hide a weak version of thi
 
 ## Immediate next steps
 
-1. Merge this completed foundation/UX/architecture documentation pass into main so the handoff is durable.
+1. Merge the completed foundation/UX/architecture documentation pass into main so the handoff is durable.
 2. Create first visual UI implementation/spec pass for Heute, Inbox and Import prüfen using locked fixtures.
 3. Create app-specific repository when implementation begins and repository creation is available.
 4. Scaffold SwiftUI app shell + domain/service boundaries.
