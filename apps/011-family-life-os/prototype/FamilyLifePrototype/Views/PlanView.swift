@@ -4,6 +4,14 @@ struct PlanView: View {
     @Bindable var store: DemoStore
     @State private var selectedMemberIDs: Set<UUID> = []
 
+    private struct DayGroup: Identifiable {
+        let date: Date
+        let title: String
+        let items: [PlanItem]
+
+        var id: Date { date }
+    }
+
     private var filteredItems: [PlanItem] {
         store.planItems
             .filter { item in
@@ -14,7 +22,7 @@ struct PlanView: View {
             }
     }
 
-    private var groupedItems: [(String, [PlanItem])] {
+    private var groupedItems: [DayGroup] {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "de_DE")
         formatter.dateStyle = .full
@@ -26,7 +34,7 @@ struct PlanView: View {
 
         return grouped
             .sorted { $0.key < $1.key }
-            .map { (formatter.string(from: $0.key), $0.value) }
+            .map { DayGroup(date: $0.key, title: formatter.string(from: $0.key), items: $0.value) }
     }
 
     var body: some View {
@@ -45,9 +53,9 @@ struct PlanView: View {
                 .listRowBackground(Color.clear)
             }
 
-            ForEach(groupedItems, id: \.0) { group in
-                Section(group.0) {
-                    ForEach(group.1) { item in
+            ForEach(groupedItems) { group in
+                Section(group.title) {
+                    ForEach(group.items) { item in
                         VStack(alignment: .leading, spacing: 5) {
                             AgendaRow(
                                 item: item,
@@ -73,10 +81,7 @@ struct PlanView: View {
 
     @ViewBuilder
     private func filterChip(title: String, member: FamilyMember?) -> some View {
-        let selected: Bool = {
-            guard let member else { return selectedMemberIDs.isEmpty }
-            return selectedMemberIDs.contains(member.id)
-        }()
+        let selected = member.map { selectedMemberIDs.contains($0.id) } ?? selectedMemberIDs.isEmpty
 
         Button {
             if let member {
