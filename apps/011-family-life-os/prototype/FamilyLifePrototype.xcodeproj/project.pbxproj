@@ -1,0 +1,323 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		A11000000000000000000001 /* FamilyLifePrototypeApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B11000000000000000000001 /* FamilyLifePrototypeApp.swift */; };
+		A11000000000000000000002 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = B11000000000000000000002 /* Models.swift */; };
+		A11000000000000000000003 /* DemoStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B11000000000000000000003 /* DemoStore.swift */; };
+		A11000000000000000000004 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B11000000000000000000004 /* RootView.swift */; };
+		A11000000000000000000005 /* Components.swift in Sources */ = {isa = PBXBuildFile; fileRef = B11000000000000000000005 /* Components.swift */; };
+		A11000000000000000000006 /* TodayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B11000000000000000000006 /* TodayView.swift */; };
+		A11000000000000000000007 /* InboxView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B11000000000000000000007 /* InboxView.swift */; };
+		A11000000000000000000008 /* ImportReviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B11000000000000000000008 /* ImportReviewView.swift */; };
+		A11000000000000000000009 /* PlanView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B11000000000000000000009 /* PlanView.swift */; };
+		A1100000000000000000000A /* FamilyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1100000000000000000000A /* FamilyView.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		B11000000000000000000001 /* FamilyLifePrototypeApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FamilyLifePrototypeApp.swift; sourceTree = "<group>"; };
+		B11000000000000000000002 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
+		B11000000000000000000003 /* DemoStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoStore.swift; sourceTree = "<group>"; };
+		B11000000000000000000004 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
+		B11000000000000000000005 /* Components.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components.swift; sourceTree = "<group>"; };
+		B11000000000000000000006 /* TodayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayView.swift; sourceTree = "<group>"; };
+		B11000000000000000000007 /* InboxView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InboxView.swift; sourceTree = "<group>"; };
+		B11000000000000000000008 /* ImportReviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImportReviewView.swift; sourceTree = "<group>"; };
+		B11000000000000000000009 /* PlanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanView.swift; sourceTree = "<group>"; };
+		B1100000000000000000000A /* FamilyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FamilyView.swift; sourceTree = "<group>"; };
+		B1100000000000000000000B /* FamilyLifePrototype.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FamilyLifePrototype.app; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		C11000000000000000000001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		D11000000000000000000001 = {
+			isa = PBXGroup;
+			children = (
+				D11000000000000000000002 /* FamilyLifePrototype */,
+				D11000000000000000000006 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		D11000000000000000000002 /* FamilyLifePrototype */ = {
+			isa = PBXGroup;
+			children = (
+				B11000000000000000000001 /* FamilyLifePrototypeApp.swift */,
+				D11000000000000000000003 /* Domain */,
+				D11000000000000000000004 /* Data */,
+				D11000000000000000000005 /* Views */,
+			);
+			path = FamilyLifePrototype;
+			sourceTree = "<group>";
+		};
+		D11000000000000000000003 /* Domain */ = {
+			isa = PBXGroup;
+			children = (
+				B11000000000000000000002 /* Models.swift */,
+			);
+			path = Domain;
+			sourceTree = "<group>";
+		};
+		D11000000000000000000004 /* Data */ = {
+			isa = PBXGroup;
+			children = (
+				B11000000000000000000003 /* DemoStore.swift */,
+			);
+			path = Data;
+			sourceTree = "<group>";
+		};
+		D11000000000000000000005 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				B11000000000000000000004 /* RootView.swift */,
+				B11000000000000000000005 /* Components.swift */,
+				B11000000000000000000006 /* TodayView.swift */,
+				B11000000000000000000007 /* InboxView.swift */,
+				B11000000000000000000008 /* ImportReviewView.swift */,
+				B11000000000000000000009 /* PlanView.swift */,
+				B1100000000000000000000A /* FamilyView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		D11000000000000000000006 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				B1100000000000000000000B /* FamilyLifePrototype.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		E11000000000000000000001 /* FamilyLifePrototype */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F11000000000000000000002 /* Build configuration list for PBXNativeTarget "FamilyLifePrototype" */;
+			buildPhases = (
+				C11000000000000000000002 /* Sources */,
+				C11000000000000000000001 /* Frameworks */,
+				C11000000000000000000003 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = FamilyLifePrototype;
+			productName = FamilyLifePrototype;
+			productReference = B1100000000000000000000B /* FamilyLifePrototype.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		E11000000000000000000002 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2600;
+				LastUpgradeCheck = 2600;
+				TargetAttributes = {
+					E11000000000000000000001 = {
+						CreatedOnToolsVersion = 26.0;
+					};
+				};
+			};
+			buildConfigurationList = F11000000000000000000001 /* Build configuration list for PBXProject "FamilyLifePrototype" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+				de,
+			);
+			mainGroup = D11000000000000000000001;
+			productRefGroup = D11000000000000000000006 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				E11000000000000000000001 /* FamilyLifePrototype */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		C11000000000000000000003 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		C11000000000000000000002 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A11000000000000000000001 /* FamilyLifePrototypeApp.swift in Sources */,
+				A11000000000000000000002 /* Models.swift in Sources */,
+				A11000000000000000000003 /* DemoStore.swift in Sources */,
+				A11000000000000000000004 /* RootView.swift in Sources */,
+				A11000000000000000000005 /* Components.swift in Sources */,
+				A11000000000000000000006 /* TodayView.swift in Sources */,
+				A11000000000000000000007 /* InboxView.swift in Sources */,
+				A11000000000000000000008 /* ImportReviewView.swift in Sources */,
+				A11000000000000000000009 /* PlanView.swift in Sources */,
+				A1100000000000000000000A /* FamilyView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		F12000000000000000000001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		F12000000000000000000002 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				COPY_PHASE_STRIP = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		F12000000000000000000003 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "Family Prototype";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = de.kamilunavo.familyprototype;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		F12000000000000000000004 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "Family Prototype";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = de.kamilunavo.familyprototype;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		F11000000000000000000001 /* Build configuration list for PBXProject "FamilyLifePrototype" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F12000000000000000000001 /* Debug */,
+				F12000000000000000000002 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		F11000000000000000000002 /* Build configuration list for PBXNativeTarget "FamilyLifePrototype" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F12000000000000000000003 /* Debug */,
+				F12000000000000000000004 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = E11000000000000000000002 /* Project object */;
+}
