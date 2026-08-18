@@ -31,7 +31,7 @@ Repository purpose: Persistent handoff/state repository for the full App Factory
 
 | # | Working title | Core idea | Planned monetization | Status |
 |---|---|---|---|---|
-| 001 | KeepMeter (PROVISIONAL) | Return-window + actual-usage decision tool: cost per use, usage pace, deadline, Keep/Review/Return | Freemium + Lifetime Pro | ACTIVE — native implementation underway |
+| 001 | KeepMeter (PROVISIONAL) | Return-window + actual-usage decision tool: cost per use, usage pace, deadline, Keep/Review/Return | Freemium + Lifetime Pro | ACTIVE — first green MVP build; polish/QA next |
 | 002 | ProofVault | Evidence/documentation vault for photos, videos, chats and PDFs; structured reports | Freemium + Pro | QUEUED |
 | 003 | ParcelPilot | Orders, deliveries, returns and refund tracking in one place | Freemium | QUEUED |
 | 004 | SubZero | Detect and track subscriptions, show recurring costs, reminders | Pro / Lifetime | QUEUED |
@@ -60,13 +60,21 @@ App-specific authoritative state:
 
 Default branch: `main`
 
-Latest app-specific state checkpoint commit:
+Current verified app checkpoint:
 
-`eb0d8e6e313371d9be633ead4cf88d842956b8eb`
+`bf024336455d2a65da1e7d5f25ac87f142a3de8d`
 
-Implementation checkpoint immediately before state update:
+Current app-state update commit:
 
-`92e2ea4ef203b16eadf9f2d54090213db81815c6`
+`0db1a265a442a10cce5c4109d2ed943fce5408dc`
+
+Validation PR:
+
+`acciento89-bot/keepmeter#1` — merged after green CI
+
+Validated workflow run:
+
+`32178808223` — SUCCESS
 
 ### Current concept
 
@@ -117,14 +125,11 @@ Original product-spec commit:
 - Current StoreKit product ID in code: `de.kamilunavo.keepmeter.pro.lifetime`.
 - Lifetime price target remains roughly EUR 7.99–12.99; exact App Store tier is not yet locked.
 
-### Implemented as of 2026-08-18
+### Implemented and compiling as of 2026-08-18
 
-- Dedicated KeepMeter repository created.
-- App-specific `docs/PROJECT_STATE.md` created.
-- Native `KeepMeter.xcodeproj` created.
-- Shared Xcode scheme created.
-- SwiftData `Purchase` model.
-- SwiftData `UsageEvent` model.
+- Dedicated KeepMeter repository and app-specific state file.
+- Native `KeepMeter.xcodeproj` and shared scheme.
+- SwiftData `Purchase` and `UsageEvent` models.
 - Active / kept / returned states.
 - Dashboard ordered by return urgency.
 - Add Purchase flow.
@@ -134,15 +139,34 @@ Original product-spec commit:
 - Cost-per-use calculation.
 - Return-window countdown / elapsed ratio.
 - Explainable KEEP / REVIEW / RETURN? engine.
-- Local return reminders.
-- Reminder cancellation when purchase is completed.
+- Local return reminders and reminder cancellation on completion.
 - StoreKit 2 entitlement service.
 - Lifetime Pro purchase and restore plumbing.
 - Free-tier enforcement at 5 active purchases.
 - Lifetime Pro paywall.
-- English localization resource.
-- German localization resource.
+- 3-page onboarding.
+- Main navigation tabs: Active / Insights / Archive / Settings.
+- Lightweight Insights dashboard with tracked value, total uses, average cost/use, active decisions, kept/returned counts and best-value purchase.
+- Settings / explicit Pro management entry.
+- Local-first privacy messaging and onboarding reset in Settings.
+- English and German localization resources.
 - GitHub Actions unsigned iOS Simulator build workflow.
+- `EntitlementStore` compile fix (`Combine` import).
+
+### Verified build gate
+
+The first real simulator compile is confirmed green.
+
+- Validation branch: `agent/ci-validation`.
+- PR: #1 `Validate current KeepMeter MVP build`.
+- Workflow run: `32178808223`.
+- Build job: SUCCESS.
+- Xcode target: KeepMeter / Debug / generic iOS Simulator / code signing disabled.
+- All workflow steps completed successfully.
+- PR #1 was squash-merged.
+- Merge commit: `bf024336455d2a65da1e7d5f25ac87f142a3de8d`.
+
+Future major source passes should continue to use CI as a regression gate before TestFlight.
 
 ### Current decision-engine rules
 
@@ -181,40 +205,40 @@ A preliminary exact-name search did not surface an obvious consumer app using `K
 
 ### Build / release status
 
-- Xcode project exists.
-- GitHub Actions simulator-build workflow exists at `.github/workflows/ios-build.yml`.
-- The connected GitHub interface used during this pass does not expose push-triggered workflow-run listing, so a green simulator build has not yet been confirmed from this environment.
-- No device QA yet.
+- First CI iOS Simulator build: GREEN.
+- Onboarding / Insights / Settings / StoreKit plumbing compile in the verified build.
+- No physical-device QA yet.
+- No persistence/relaunch QA yet.
+- No notification-delivery QA yet.
+- No StoreKit local/sandbox purchase QA yet.
 - No TestFlight build yet.
 - No App Store submission yet.
-- StoreKit code exists, but the matching Lifetime In-App Purchase still needs App Store Connect configuration before real purchase testing.
+- Matching Lifetime In-App Purchase still needs App Store Connect configuration before real purchase testing.
 
 ### Open MVP work
 
-- First confirmed green simulator build; fix compile/project issues if any.
-- Onboarding (max 3 cards).
-- Lightweight Insights.
-- Settings / explicit Pro management entry.
+- First high-polish visual system.
 - Visual identity and app icon.
 - Dynamic DE/EN notification-format cleanup.
 - StoreKit local test configuration.
 - App Store Connect Lifetime product creation/configuration.
 - Persistence/relaunch QA.
-- Notification QA.
+- Notification permission/delivery QA.
+- Free-limit / purchase / restore QA.
 - Light/dark-mode polish.
 - Accessibility pass.
 - Final name/domain/trademark due diligence.
-- TestFlight readiness pass.
+- TestFlight readiness pass and first signed upload.
 
 ### Immediate next steps
 
-1. Get the first simulator build green and fix anything CI/Xcode finds.
-2. Add onboarding and Settings/Pro entry point.
-3. Design the first polished visual system and app icon direction.
-4. Add StoreKit testing and App Store Connect product configuration when appropriate.
-5. QA the core loop, persistence, reminders and Pro/free-limit behavior.
-6. Lock the public name only after stronger due diligence.
-7. Upload to TestFlight only after the core build is stable.
+1. Apply a coherent visual polish pass without breaking the green core architecture.
+2. Establish app-icon / visual-identity direction.
+3. Add StoreKit local testing and exercise free -> Pro / restore behavior.
+4. QA persistence, reminders and the decision loop.
+5. Complete light/dark and accessibility passes.
+6. Lock public branding only after stronger name/domain/trademark due diligence.
+7. Upload first TestFlight build only after the QA gates are green.
 
 ## Handoff rule for new chats
 
