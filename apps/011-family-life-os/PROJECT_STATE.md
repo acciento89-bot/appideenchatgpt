@@ -1,7 +1,7 @@
 # Family Life OS — Project State
 
 Last updated: 2026-08-18
-Status: EXECUTABLE UI + ADAPTIVE QUALITY PASS GREEN
+Status: REPOSITORY CONTRACT GREEN / SUPABASE SCHEMA SOURCE-CONTROLLED / DB VALIDATION PENDING
 Internal portfolio slot: #011 candidate
 Public brand/name: NOT LOCKED
 Current canonical branch: `main`
@@ -17,33 +17,35 @@ Implementation repository: NOT CREATED YET — prototype temporarily lives in th
 - Adaptive UI / accessibility PR: `#5` — MERGED
 - Adaptive UI / accessibility merge commit: `aa70b24ebb21d472c66ac13d790096510f65a309`
 - Final green quality-pass CI run: `32182627951`
-- Final quality-pass head before squash: `fc957da0e5f55adf6f5f71d5834a7905c6359e43`
+- Backend contract / repository PR: `#6` — MERGED
+- Backend contract merge commit: `cb0a3f99f749ee46ce8b3b6d39c79d50bfe3341b`
+- Final backend branch head before squash: `ab68d1f25883886715d7892d6b90a5578c193924`
+- Final backend Swift CI run: `32184778802` — SUCCESS
 
 ## Product thesis
 
 > Put family chaos in. Get an organized plan out.
 
-The product is centered on a Family Inbox and an ingestion-to-action workflow, not on being another generic shared family calendar.
-
 Primary loop:
 
 **Capture -> Understand -> Review -> Act -> Follow up**
 
-`Import prüfen` is the signature trust boundary. AI/extraction output is proposal data only until the user explicitly confirms it.
+The product is centered on a Family Inbox and ingestion-to-action workflow, not on being another generic shared family calendar.
 
-## Accepted decisions
+`Import prüfen` remains the signature trust boundary. Extraction/AI output is proposal data only until the user explicitly confirms it.
+
+## Accepted product decisions
 
 - DACH-first behavior, globally extensible architecture.
 - Native SwiftUI client.
-- iPhone first, with intentional iPad adaptation rather than a stretched phone UI.
-- iOS/iPadOS 18+ deployment direction; iOS 26+ visual APIs gated by availability.
+- iPhone first, intentional iPad adaptation.
+- iOS/iPadOS 18+ deployment direction.
 - Shared backend required from v1.
-- Supabase selected as foundation backend.
+- Supabase selected as backend foundation.
 - Central EU / Frankfurt preferred region.
 - Postgres + Row Level Security as primary household isolation boundary.
 - Private object storage for family documents.
 - AI processing server-side only; no provider/service-role secrets in app.
-- Family Inbox is the core differentiation surface.
 - MVP sources: photo, screenshot/image, PDF/document share, pasted/direct text and voice.
 - Direct mailbox surveillance is not MVP.
 - AI creates editable proposals only; users confirm before canonical data is created.
@@ -52,17 +54,16 @@ Primary loop:
 - Settings are not a fifth permanent tab; capture is an action, not a tab.
 - MVP actions: events, tasks, deadlines, payments and preparation actions/reminders.
 - Family Pro recurring subscription remains provisional because AI/storage/sync create recurring cost.
-- German + English localization architecture from first build.
-- Child/guest permission architecture from day one.
-- Real backend/AI integration must not weaken review-before-confirmation.
+- Child/guest permission architecture exists from day one.
+- Real backend/AI integration must never weaken review-before-confirmation.
 
-## Executable prototype location
+## Executable prototype
 
-Current temporary implementation:
+Temporary implementation path:
 
 `apps/011-family-life-os/prototype/`
 
-Standalone project:
+Xcode project:
 
 `apps/011-family-life-os/prototype/FamilyLifePrototype.xcodeproj`
 
@@ -74,18 +75,18 @@ Provisional bundle id:
 
 `de.kamilunavo.familyprototype`
 
-Deployment target:
+Target:
 
 - iOS/iPadOS 18.0
-- iPhone + iPad target families
+- iPhone + iPad
 
 Dedicated build workflow:
 
 `.github/workflows/family-life-os-prototype-build.yml`
 
-The connected GitHub tooling still does not expose repository creation. Move the implementation to an app-specific repository when repository creation becomes available; do not let the central prototype path become permanent architecture.
+The connected GitHub tooling still does not expose repository creation. Move implementation to an app-specific repository when that becomes available; the central prototype location is temporary.
 
-## Implemented product flow
+## UI / UX implementation state
 
 ### App shell
 
@@ -101,9 +102,9 @@ Compact width:
 Regular width / iPad:
 
 - adaptive `NavigationSplitView`
-- persistent sidebar for Heute / Inbox / Plan / Familie
-- detail destination changes with sidebar selection
-- content widths are constrained so large screens do not become oversized phone cards
+- persistent sidebar
+- destination in detail column
+- constrained content widths instead of stretched iPhone cards
 
 ### Heute
 
@@ -111,23 +112,14 @@ Implemented:
 
 - conditional attention surface
 - factual family brief
-- chronological family timeline
-- task completion control
+- chronological timeline
+- task completion
 - member identity via avatar/name + accent
 - tomorrow/preparation section driven from plan data
-- calm state
-- real schedule-overlap detection for items sharing a family member
-- conflict attention row
-- conflict indicators on affected timeline rows
-- semantic light/dark compatible backgrounds
-
-Deterministic Today QA fixtures:
-
-- busy / standard
-- calm
-- conflict
-- Dark Mode
-- Accessibility Dynamic Type
+- deterministic busy/calm/conflict fixtures
+- real schedule-overlap detection for shared household members
+- conflict attention row + row-level indicators
+- semantic light/dark-compatible backgrounds
 
 ### Inbox
 
@@ -145,137 +137,264 @@ Implemented behavior:
 
 - filters: Offen / Verarbeitet / Alle
 - source types: image / PDF / text / voice
-- offline queued copy: `Wird synchronisiert, sobald du wieder online bist.`
-- processing spinner
-- failure presentation
+- explicit offline queued copy
+- processing/failure states
 - proposal count
-- capture menu entry points
-- review/partial rows are interactive
-- non-actionable processing/completed/error rows are not dead buttons
-- empty filtered state uses a meaningful next action
+- capture menu
+- review/partial rows actionable
+- non-actionable states are not dead buttons
+- meaningful empty state
+- `Text-Beispiel importieren` now exercises the repository text-ingestion path
 
 ### Import prüfen
 
-This remains the critical trust-boundary screen.
-
 Implemented:
 
-- original source remains available throughout review
-- compact-width stacked layout
-- regular-width two-column source + proposal layout
-- four school-letter proposals are editable
-- proposal inclusion can be toggled independently
+- source always reachable during review
+- compact stacked layout
+- regular-width two-column source/proposal layout
+- editable proposal cards
+- independent include/exclude
 - native date/time/reminder editing
-- ambiguous child assignment is explicitly unresolved
-- unresolved required assignment blocks confirmation
-- assigning Lina resolves the blocker
-- source and proposal controls have VoiceOver labels/hints
-- stable accessibility identifiers exist for critical review actions
-- accessibility text sizes reflow date controls vertically
-- confirmation converts accepted proposals into canonical in-memory `PlanItem` values
-- source is marked completed after confirmation
-- additional deterministic `readyImport` fixture verifies the unblocked state
+- unresolved child assignment blocks confirmation
+- assignment resolves blocker
+- VoiceOver labels/hints + stable accessibility identifiers
+- accessibility-size form reflow
+- confirmation delegates to repository boundary
+- accepted items retain source and source-proposal provenance
+- deterministic unresolved + ready-to-confirm fixtures
 
 ### Plan
 
 Implemented:
 
-- Agenda-first list
+- Agenda-first
 - day grouping
-- household member filter chips
+- member filters
 - event/task/deadline/payment/preparation rows
-- task/preparation completion support
+- task/preparation completion
 - `Aus Import` provenance indicator
 - empty filtered state
-- 44pt practical completion target
-- Agenda row reflow at accessibility Dynamic Type sizes
+- accessibility reflow
 
 ### Familie
 
 Implemented:
 
 - household summary
-- Owner / Adult / Child role display
-- adult full-access vs child-without-login distinction
-- permission architecture messaging
-- member accents and initials
-- large-text member-row adaptation
-- nonfunctional invite action explicitly disabled in prototype rather than pretending to work
+- Owner / Adult / Child roles
+- full-access vs child-without-login distinction
+- permissions messaging
+- large-text adaptation
+- prototype invite action explicitly disabled rather than pretending to work
 
-## Accessibility / appearance baseline now implemented
+## Accessibility / appearance baseline
 
-Current UI pass includes:
+Implemented baseline:
 
 - Dynamic Type-aware layouts
-- dedicated accessibility-size reflow for dense rows/forms
+- accessibility-size row/form reflow
 - VoiceOver labels and hints for critical controls
-- stable accessibility identifiers for important interaction points
+- stable accessibility identifiers
 - non-color-only family identity
-- minimum practical touch targets on key controls
-- Light/Dark semantic system surfaces
+- practical touch-target sizing
+- semantic Light/Dark system surfaces
 - Dark Mode previews
 - accessibility-size previews
 - regular-width previews
-- meaningful empty states
-- explicit offline/failure states
+- explicit empty/offline/error states
 
-This is an implementation baseline, not a claim that full manual VoiceOver/device QA has already been completed. Physical-device and interactive accessibility QA remain future release gates.
+This is not a claim that manual physical-device or VoiceOver QA is complete. Those remain release gates.
 
-## CI / compiler history
+## Swift repository boundary — merged in PR #6
 
-### First executable slice
+Current application boundary:
 
-Run `32180375921` failed on one Swift `foregroundStyle` type-inference issue in `ImportReviewView`.
+`SwiftUI View -> DemoStore -> FamilyRepository -> data source`
 
-Fix: explicit `Color.primary` / `Color.orange`.
+Current data source:
 
-Run `32180561109` completed **SUCCESS**. PR #4 merged only after green CI.
+`InMemoryFamilyRepository`
 
-### Adaptive quality pass
+Planned production data source:
 
-Initial PR #5 run `32182317924` caught an iOS API mismatch in the new regular-width sidebar: the direct non-optional `List(selection:)` binding was not available for the targeted iOS API.
+`SupabaseFamilyRepository`
 
-Fix: the sidebar now uses an explicit optional `Binding<AppSection?>` and writes resolved selection back to the non-optional app state.
+New source files:
 
-Run `32182408384` completed **SUCCESS** after that functional fix.
+- `prototype/FamilyLifePrototype/Data/FamilyRepository.swift`
+- `prototype/FamilyLifePrototype/Data/InMemoryFamilyRepository.swift`
+- `prototype/FamilyLifePrototype/Data/FixtureTextExtractionService.swift`
 
-Two non-functional preview warnings remained because `.previewDevice(...)` is ignored inside the modern `#Preview` macro.
+`FamilyRepository` currently exposes:
 
-Fix: iPad/regular-width previews now force `.environment(\.horizontalSizeClass, .regular)` instead. A ready-to-confirm Import Review preview was added at the same time.
+- `currentSnapshot()`
+- `ingestText(...)`
+- `confirmReviewedProposals(...)`
+- `setPlanItemCompleted(...)`
 
-Final run `32182627951` completed **SUCCESS** on head `fc957da0e5f55adf6f5f71d5834a7905c6359e43`.
+`DemoStore` remains observable UI state but delegates ingestion, confirmation and completion persistence-like operations to the repository.
 
-App-code log check after the final run:
+The deterministic `FixtureTextExtractionService` is explicitly not AI. It recognizes the locked school-letter fixture and produces the four expected proposals so the data/review contract can be exercised without network credentials.
 
-- no Swift compile warnings from the prototype source
-- no remaining `previewDevice` warnings
-- build ended with `BUILD SUCCEEDED`
-- remaining runner/Xcode informational warnings are external to app source: AppIntents metadata skipped because the prototype does not link AppIntents, plus a GitHub Actions Node-version deprecation notice from `actions/checkout@v4`
+Optimistic task completion now rolls back only the local previous completion value if repository persistence fails.
 
-PR #5 was squash-merged only after the final successful build.
+## Domain/provenance additions
 
-Merged adaptive-quality checkpoint:
+Added:
 
-`aa70b24ebb21d472c66ac13d790096510f65a309`
+- `ProposalReviewStatus`: proposed / confirmed / rejected
+- `ActionProposal.reviewStatus`
+- `PlanItem.sourceProposalID`
 
-## Signature fixture
+`sourceProposalID` is the application-level idempotency/provenance key matching the database contract.
 
-Demo household: `Familie Berger` with Mara, Jonas, Lina and Ben.
+## Supabase SQL contract — source controlled, NOT yet database-validated
 
-The school-letter source produces exactly four proposals:
+Backend contract doc:
+
+`apps/011-family-life-os/BACKEND_CONTRACT.md`
+
+Migrations:
+
+- `supabase/migrations/20260818224000_family_core.sql`
+- `supabase/migrations/20260818224500_fix_member_uniqueness_and_confirm_retry.sql`
+- `supabase/migrations/20260818224700_private_helper_permissions.sql`
+- `supabase/migrations/20260818225000_tighten_client_write_surface.sql`
+
+Core tables:
+
+- `households`
+- `household_members`
+- `source_items`
+- `extraction_runs`
+- `action_proposals`
+- `action_proposal_assignees`
+- `plan_items`
+- `plan_item_assignees`
+- `reminders`
+
+Important invariants / security decisions:
+
+- RLS enabled on client-exposed collaborative tables.
+- Multiple children/guests without authenticated `user_id` are allowed in one household.
+- `(household_id, user_id)` is unique only when `user_id` is non-null.
+- private membership helpers use restricted `SECURITY DEFINER` with empty `search_path`.
+- authenticated clients receive only the column update surface required by the product.
+- processing status, review finalization and canonical provenance are not freely client-writable.
+- machine extraction rows remain trusted-server-owned.
+- direct plan-item provenance must resolve to source/proposal in the same household.
+
+## Atomic proposal confirmation contract
+
+RPC:
+
+`public.confirm_action_proposals(source_item_id, proposal_ids)`
+
+Current source-controlled behavior:
+
+1. resolve the source household
+2. require current authenticated owner/adult membership
+3. verify every requested proposal belongs to that source
+4. reject excluded/rejected/unresolved proposals
+5. create/reuse one canonical `plan_item` per proposal
+6. use unique `source_proposal_id` as idempotency boundary
+7. copy only same-household proposal assignees
+8. mark proposal confirmed
+9. mark source partial while proposals remain open, otherwise done
+10. retry returns/reuses existing canonical item rather than duplicating it
+
+The final form is `SECURITY DEFINER` only because it owns writes to server-controlled review/provenance/status columns; it retains explicit user/household checks, an empty `search_path`, and restricted `EXECUTE` permission.
+
+## pgTAP security/contract tests — written, NOT yet executed
+
+Test file:
+
+`supabase/tests/database/family_core_rls.test.sql`
+
+Current 12 assertions cover:
+
+- core tables exist
+- multiple no-login child profiles are allowed
+- household A cannot read household B rows
+- unresolved proposal confirmation fails
+- valid confirmation succeeds
+- confirmation retry succeeds
+- confirmation retry creates only one canonical plan item
+- child role does not receive adult household-management permission
+
+The test plan count was statically corrected from 11 to 12 during the pass.
+
+### Validation boundary
+
+**Validated now:**
+
+- repository/data Swift refactor compiles in the real GitHub macOS/Xcode gate
+- exact final backend branch head `ab68d1f25883886715d7892d6b90a5578c193924`
+- CI run `32184778802` completed SUCCESS
+- PR #6 was merged only after exact-head green CI
+- merge commit `cb0a3f99f749ee46ce8b3b6d39c79d50bfe3341b`
+
+**Not yet validated:**
+
+- migrations applied to a clean Supabase/Postgres database
+- pgTAP tests executed successfully
+- live Supabase Auth
+- live Data API RLS behavior
+- live confirmation RPC behavior
+- Realtime
+- private Storage
+- OCR
+- real AI provider
+
+The current execution environment did not provide an initialized Supabase CLI/Postgres/Docker stack, so the SQL suite could not be honestly executed here. Do not call the database backend green until migrations apply and `supabase test db` passes against a real/local database.
+
+## Signature text vertical slice
+
+Locked source:
+
+German class-trip school letter.
+
+Expected proposals:
 
 1. Klassenfahrt event
 2. permission-slip deadline/task
 3. 35 EUR payment reminder
 4. lunchpack/preparation action
 
-The initial state requires an ambiguous child assignment to be resolved. The user can edit proposals before confirmation. Confirmed items become PlanItems and retain source provenance.
+Current in-memory repository path:
+
+1. Inbox -> `Text-Beispiel importieren`
+2. `DemoStore.ingestSchoolLetterText()`
+3. `FamilyRepository.ingestText()`
+4. deterministic fixture extraction
+5. source becomes reviewable
+6. `Import prüfen`
+7. user resolves child ambiguity / edits fields
+8. `FamilyRepository.confirmReviewedProposals()`
+9. canonical `PlanItem` values are created with source/proposal provenance
+10. source becomes partial/done
+
+The next milestone is to make this exact visible flow operate against real Supabase data without changing the UX contract.
+
+## CI / compiler history
+
+- run `32180375921` — failed on Swift `foregroundStyle` inference; fixed
+- run `32180561109` — SUCCESS; PR #4 merged
+- run `32182317924` — failed on iPad sidebar selection API; fixed
+- run `32182408384` — SUCCESS
+- run `32182627951` — SUCCESS; PR #5 merged
+- backend refactor intermediate run `32184322336` — SUCCESS
+- backend intermediate run `32184431611` — SUCCESS but exposed one Swift warning in completion rollback
+- completion rollback was refactored to use the saved local previous state
+- final backend exact-head run `32184778802` — SUCCESS
+- PR #6 squash-merged to `cb0a3f99f749ee46ce8b3b6d39c79d50bfe3341b`
 
 ## Brand state
 
 Public name remains open and must not block implementation.
 
-`Family Life OS` is an internal codename only. Do not use it as locked public positioning because competitor territory already overlaps with the `Family Life Operating System` phrase.
+`Family Life OS` is an internal codename only. Do not lock it as public positioning.
 
 First-pass rejected naming directions:
 
@@ -293,53 +412,11 @@ Brand character:
 - discreet
 - premium without luxury styling
 
-Preferred icon concept: **Gather -> Order** — several rounded loose pieces becoming one organized form.
+Preferred icon concept: **Gather -> Order** — rounded loose pieces becoming one organized form.
 
 Avoid cartoon-family, robot/AI-sparkle and generic house/checkmark identity.
 
 Final public name requires current App Store/web + EUIPO/DPMA/domain checks before lock.
-
-## Technical architecture direction
-
-Canonical architecture: `TECH_ARCHITECTURE.md`.
-
-Core stack direction:
-
-- SwiftUI
-- Swift concurrency / Observation
-- local cache/offline queue where appropriate
-- Supabase Auth
-- Supabase Postgres
-- RLS
-- private Supabase Storage
-- Realtime where useful
-- server/Edge Function AI orchestration
-- APNs-backed server notifications
-
-Rules:
-
-- backend is canonical for collaborative household data
-- views do not issue raw backend queries directly
-- every client-exposed household table uses RLS
-- no public family-document bucket
-- no raw family documents in generic telemetry/logs
-- model output is structured and validated
-- confirmation is transactional/idempotent
-
-Initial core entities:
-
-- profiles
-- households
-- household_members
-- source_items
-- extraction_runs
-- action_proposals
-- plan_items
-- plan_item_assignees
-- reminders
-- household_invites
-
-A child/guest may exist as a household member without an authenticated user account.
 
 ## Deferred / rejected for MVP
 
@@ -364,6 +441,7 @@ A child/guest may exist as a household member without an authenticated user acco
 - `apps/011-family-life-os/BRAND_DIRECTION.md`
 - `apps/011-family-life-os/TECH_ARCHITECTURE.md`
 - `apps/011-family-life-os/UI_FIXTURES.md`
+- `apps/011-family-life-os/BACKEND_CONTRACT.md`
 - `apps/011-family-life-os/PROJECT_STATE.md`
 - `apps/011-family-life-os/prototype/README.md`
 
@@ -380,16 +458,18 @@ A child/guest may exist as a household member without an authenticated user acco
 
 ## Immediate next steps
 
-1. Implement the Supabase schema and RLS policies for households, members, source items, proposals and plan items.
-2. Introduce repository/service interfaces so the current views stop depending directly on `DemoStore` as the eventual source of truth.
-3. Prove the first real ingestion path with the plain-text school-letter fixture: source -> structured proposal records -> review -> transactional confirmation -> plan items.
-4. Add authentication/household membership only to the minimum needed for secure shared data; do not expand onboarding scope prematurely.
-5. Add photo/PDF/private Storage/OCR only after the text data contract is proven.
-6. Add real AI extraction only behind validated structured output and the existing explicit review boundary.
-7. Perform physical iPhone/iPad + manual VoiceOver/appearance QA before any TestFlight release claim.
-8. Move to an app-specific repository when repository creation becomes available.
-9. Update this state and the central App Factory state after every major pass.
+1. Initialize/connect a Supabase development environment.
+2. Apply all migrations to a clean database.
+3. Run `supabase test db` and fix every migration/RLS/pgTAP failure before remote deployment.
+4. Implement `SupabaseFamilyRepository` against the now-proven schema.
+5. Add only the minimum Auth/household setup required to prove shared data securely.
+6. Run the exact school-letter text path against the real database: source -> proposals -> review -> atomic confirmation -> Today/Plan refresh.
+7. Only after the text contract is green, add private Storage + photo/PDF ingestion + OCR.
+8. Add real AI extraction only after structured-output validation and explicit review remain intact.
+9. Perform physical iPhone/iPad + manual VoiceOver QA before TestFlight readiness claims.
+10. Move to an app-specific repository when repository creation becomes available.
+11. Update this state and the central App Factory state after every major pass.
 
 ## Handoff rule
 
-Before continuing this app in a new chat, read this file first, then PRODUCT_SPEC, DESIGN_SYSTEM, UX_SCREEN_SPEC, BRAND_DIRECTION, TECH_ARCHITECTURE, UI_FIXTURES and the prototype README. Inspect current `main` and CI state before changing code. Continue from the Supabase/repository-interface next steps; do not reconstruct scope from chat memory.
+Before continuing this app in a new chat, read this file first, then PRODUCT_SPEC, DESIGN_SYSTEM, UX_SCREEN_SPEC, BRAND_DIRECTION, TECH_ARCHITECTURE, UI_FIXTURES, BACKEND_CONTRACT and the prototype README. Inspect current `main` and CI state before changing code. Continue with real Supabase migration/test validation and then `SupabaseFamilyRepository`; do not jump to OCR/AI before the text database contract is green.
