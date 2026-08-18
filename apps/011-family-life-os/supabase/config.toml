@@ -23,10 +23,6 @@ max_client_conn = 100
 enabled = false
 port = 54323
 
-[inbucket]
-enabled = false
-port = 54324
-
 [storage]
 enabled = false
 
