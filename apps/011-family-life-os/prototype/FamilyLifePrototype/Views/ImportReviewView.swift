@@ -2,30 +2,16 @@ import SwiftUI
 
 struct ImportReviewView: View {
     @Bindable var store: DemoStore
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @State private var sourceExpanded = false
 
     var body: some View {
-        ScrollView {
-            LazyVStack(alignment: .leading, spacing: 18) {
-                sourcePreview
-
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("\(store.proposals.count) Dinge erkannt")
-                        .font(.title2.bold())
-                    Text("Bitte kurz prüfen, bevor sie in euren Familienplan übernommen werden.")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
-
-                ForEach($store.proposals) { $proposal in
-                    ProposalEditor(
-                        proposal: $proposal,
-                        members: store.members
-                    )
-                }
+        Group {
+            if horizontalSizeClass == .regular {
+                regularWidthLayout
+            } else {
+                compactWidthLayout
             }
-            .padding(20)
-            .padding(.bottom, 84)
         }
         .background(Color(.systemGroupedBackground))
         .navigationTitle("Import prüfen")
@@ -35,10 +21,77 @@ struct ImportReviewView: View {
                 Button("Später") {
                     store.isImportReviewPresented = false
                 }
+                .accessibilityHint("Schließt die Prüfung, ohne die Quelle zu löschen")
             }
         }
         .safeAreaInset(edge: .bottom) {
             confirmationBar
+        }
+    }
+
+    private var compactWidthLayout: some View {
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: 18) {
+                sourcePreview
+                extractionHeader
+                proposalCards
+            }
+            .frame(maxWidth: 760, alignment: .leading)
+            .frame(maxWidth: .infinity, alignment: .center)
+            .padding(20)
+            .padding(.bottom, 84)
+        }
+    }
+
+    private var regularWidthLayout: some View {
+        HStack(spacing: 0) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    Text("Original")
+                        .font(.title2.bold())
+                        .accessibilityAddTraits(.isHeader)
+                    sourcePreview
+                }
+                .padding(24)
+            }
+            .frame(minWidth: 300, idealWidth: 360, maxWidth: 420)
+            .background(Color(.secondarySystemGroupedBackground))
+
+            Divider()
+
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 18) {
+                    extractionHeader
+                    proposalCards
+                }
+                .frame(maxWidth: 700, alignment: .leading)
+                .frame(maxWidth: .infinity, alignment: .center)
+                .padding(24)
+                .padding(.bottom, 84)
+            }
+        }
+    }
+
+    private var extractionHeader: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("\(store.proposals.count) Dinge erkannt")
+                .font(.title2.bold())
+            Text("Bitte kurz prüfen, bevor sie in euren Familienplan übernommen werden.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(.isHeader)
+    }
+
+    @ViewBuilder
+    private var proposalCards: some View {
+        ForEach($store.proposals) { $proposal in
+            ProposalEditor(
+                proposal: $proposal,
+                members: store.members
+            )
         }
     }
 
@@ -49,25 +102,29 @@ struct ImportReviewView: View {
                     .font(.footnote)
                     .foregroundStyle(.secondary)
                     .textSelection(.enabled)
+                    .fixedSize(horizontal: false, vertical: true)
                     .padding(.top, 10)
             } else {
                 Text("Originalquelle ist für diesen Fixture-Eintrag nicht als Text hinterlegt.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
                     .padding(.top, 10)
             }
         } label: {
-            HStack(spacing: 12) {
+            HStack(alignment: .top, spacing: 12) {
                 Image(systemName: store.selectedSource?.kind.systemImage ?? "doc")
                     .font(.title3)
                     .foregroundStyle(.indigo)
                     .frame(width: 38, height: 38)
                     .background(.indigo.opacity(0.12), in: RoundedRectangle(cornerRadius: 11, style: .continuous))
+                    .accessibilityHidden(true)
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(store.selectedSource?.title ?? "Quelle")
                         .font(.headline)
-                    Text("Originalquelle anzeigen")
+                        .fixedSize(horizontal: false, vertical: true)
+                    Text(sourceExpanded ? "Originalquelle ausblenden" : "Originalquelle anzeigen")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -75,6 +132,7 @@ struct ImportReviewView: View {
         }
         .padding(14)
         .background(.background, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .accessibilityIdentifier("import-source")
     }
 
     private var confirmationBar: some View {
@@ -83,6 +141,7 @@ struct ImportReviewView: View {
                 Label("Bitte offene Zuordnung prüfen", systemImage: "exclamationmark.circle.fill")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(.orange)
+                    .accessibilityIdentifier("import-blocker")
             }
 
             Button {
@@ -96,7 +155,11 @@ struct ImportReviewView: View {
             .buttonStyle(.borderedProminent)
             .controlSize(.large)
             .disabled(store.includedProposalCount == 0 || store.hasBlockingProposal)
+            .accessibilityHint(store.hasBlockingProposal ? "Erst offene Pflichtfelder prüfen" : "Übernimmt die ausgewählten Vorschläge in den Familienplan")
+            .accessibilityIdentifier("import-confirm")
         }
+        .frame(maxWidth: 720)
+        .frame(maxWidth: .infinity)
         .padding(.horizontal, 20)
         .padding(.top, 10)
         .padding(.bottom, 8)
@@ -107,6 +170,8 @@ struct ImportReviewView: View {
 private struct ProposalEditor: View {
     @Binding var proposal: ActionProposal
     let members: [FamilyMember]
+
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     private var assignedMembers: [FamilyMember] {
         members.filter { proposal.memberIDs.contains($0.id) }
@@ -124,30 +189,32 @@ private struct ProposalEditor: View {
             HStack(alignment: .center, spacing: 10) {
                 Toggle("Übernehmen", isOn: $proposal.isIncluded)
                     .labelsHidden()
+                    .accessibilityLabel("Vorschlag übernehmen")
 
                 Label(proposal.kind.displayName, systemImage: proposal.kind.systemImage)
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(proposal.kind.tint)
 
-                Spacer()
+                Spacer(minLength: 0)
             }
 
             TextField("Titel", text: $proposal.title, axis: .vertical)
                 .font(.headline)
+                .accessibilityLabel("Titel")
 
             if proposal.startsAt != nil {
-                DatePicker(
-                    "Beginn",
-                    selection: Binding(
+                dateControl(
+                    title: "Beginn",
+                    date: Binding(
                         get: { proposal.startsAt ?? .now },
                         set: { proposal.startsAt = $0 }
                     )
                 )
 
                 if proposal.endsAt != nil {
-                    DatePicker(
-                        "Ende",
-                        selection: Binding(
+                    dateControl(
+                        title: "Ende",
+                        date: Binding(
                             get: { proposal.endsAt ?? proposal.startsAt ?? .now },
                             set: { proposal.endsAt = $0 }
                         )
@@ -156,9 +223,9 @@ private struct ProposalEditor: View {
             }
 
             if proposal.dueAt != nil {
-                DatePicker(
-                    proposal.kind == .preparation ? "Erinnerung" : "Fällig",
-                    selection: Binding(
+                dateControl(
+                    title: proposal.kind == .preparation ? "Erinnerung" : "Fällig",
+                    date: Binding(
                         get: { proposal.dueAt ?? .now },
                         set: { proposal.dueAt = $0 }
                     )
@@ -185,17 +252,20 @@ private struct ProposalEditor: View {
                     }
                 }
             } label: {
-                HStack(spacing: 10) {
+                HStack(alignment: .center, spacing: 10) {
                     Image(systemName: proposal.memberIDs.isEmpty ? "person.crop.circle.badge.questionmark" : "person.2.fill")
+                        .accessibilityHidden(true)
                     if assignedMembers.isEmpty {
                         Text("Welches Kind?")
                             .fontWeight(.semibold)
                     } else {
                         Text(assignedMembers.map(\.name).joined(separator: ", "))
+                            .fixedSize(horizontal: false, vertical: true)
                     }
-                    Spacer()
+                    Spacer(minLength: 8)
                     Image(systemName: "chevron.up.chevron.down")
                         .font(.caption)
+                        .accessibilityHidden(true)
                 }
                 .foregroundStyle(proposal.isReadyToConfirm ? Color.primary : Color.orange)
                 .padding(12)
@@ -204,21 +274,87 @@ private struct ProposalEditor: View {
                     in: RoundedRectangle(cornerRadius: 12, style: .continuous)
                 )
             }
+            .accessibilityLabel(assignedMembers.isEmpty ? "Person zuordnen, noch offen" : "Zugeordnet zu \(assignedMembers.map(\.name).joined(separator: ", "))")
+            .accessibilityHint("Öffnet die Auswahl der Familienmitglieder")
 
             if let location = proposal.location {
                 Label(location, systemImage: "mappin.and.ellipse")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
 
             if let note = proposal.note {
                 Text(note)
                     .font(.footnote)
                     .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
         .padding(16)
         .background(.background, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
         .opacity(proposal.isIncluded ? 1 : 0.55)
+        .accessibilityIdentifier("proposal-\(proposal.id.uuidString)")
     }
+
+    @ViewBuilder
+    private func dateControl(title: String, date: Binding<Date>) -> some View {
+        if dynamicTypeSize.isAccessibilitySize {
+            VStack(alignment: .leading, spacing: 6) {
+                Text(title)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                DatePicker(title, selection: date)
+                    .labelsHidden()
+                    .datePickerStyle(.compact)
+                    .accessibilityLabel(title)
+            }
+        } else {
+            DatePicker(title, selection: date)
+                .datePickerStyle(.compact)
+        }
+    }
+}
+
+#Preview("Import prüfen – iPhone") {
+    let store = DemoStore()
+    store.openSignatureReview()
+    return NavigationStack {
+        ImportReviewView(store: store)
+    }
+}
+
+#Preview("Import prüfen – bereit") {
+    let store = DemoStore(scenario: .readyImport)
+    store.openSignatureReview()
+    return NavigationStack {
+        ImportReviewView(store: store)
+    }
+}
+
+#Preview("Import prüfen – Dark") {
+    let store = DemoStore()
+    store.openSignatureReview()
+    return NavigationStack {
+        ImportReviewView(store: store)
+    }
+    .preferredColorScheme(.dark)
+}
+
+#Preview("Import prüfen – Accessibility") {
+    let store = DemoStore()
+    store.openSignatureReview()
+    return NavigationStack {
+        ImportReviewView(store: store)
+    }
+    .environment(\.dynamicTypeSize, .accessibility3)
+}
+
+#Preview("Import prüfen – Regular Width") {
+    let store = DemoStore()
+    store.openSignatureReview()
+    return NavigationStack {
+        ImportReviewView(store: store)
+    }
+    .environment(\.horizontalSizeClass, .regular)
 }

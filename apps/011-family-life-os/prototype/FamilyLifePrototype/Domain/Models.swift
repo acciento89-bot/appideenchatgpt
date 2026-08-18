@@ -76,6 +76,7 @@ struct PlanItem: Identifiable, Hashable, Codable, Sendable {
 }
 
 enum InboxStatus: String, CaseIterable, Codable, Sendable {
+    case queued
     case uploading
     case processing
     case review
@@ -85,6 +86,7 @@ enum InboxStatus: String, CaseIterable, Codable, Sendable {
 
     var displayName: String {
         switch self {
+        case .queued: "Wartet auf Upload"
         case .uploading: "Wird hochgeladen"
         case .processing: "Wird analysiert"
         case .review: "Prüfen"

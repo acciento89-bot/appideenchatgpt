@@ -16,7 +16,7 @@ struct InboxView: View {
         let sorted = store.inboxItems.sorted { $0.createdAt > $1.createdAt }
         switch filter {
         case .open:
-            return sorted.filter { [.uploading, .processing, .review, .partial, .failed].contains($0.status) }
+            return sorted.filter { [.queued, .uploading, .processing, .review, .partial, .failed].contains($0.status) }
         case .processed:
             return sorted.filter { $0.status == .done }
         case .all:
@@ -35,26 +35,35 @@ struct InboxView: View {
                 .pickerStyle(.segmented)
                 .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
                 .listRowBackground(Color.clear)
+                .accessibilityIdentifier("inbox-filter")
             }
 
             if visibleItems.isEmpty {
-                ContentUnavailableView(
-                    "Nichts offen",
-                    systemImage: "tray",
-                    description: Text("Neue Fotos, PDFs, Texte oder Spracheingaben erscheinen hier.")
-                )
+                ContentUnavailableView {
+                    Label("Nichts offen", systemImage: "tray")
+                } description: {
+                    Text("Neue Fotos, PDFs, Texte oder Spracheingaben erscheinen hier.")
+                } actions: {
+                    Button("Etwas hinzufügen") {
+                        store.openSignatureReview()
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
                 .listRowBackground(Color.clear)
             } else {
                 Section {
                     ForEach(visibleItems) { source in
-                        Button {
-                            if source.status == .review || source.status == .partial {
+                        if source.status == .review || source.status == .partial {
+                            Button {
                                 store.openReview(sourceID: source.id)
+                            } label: {
+                                InboxRow(source: source, isActionable: true)
                             }
-                        } label: {
-                            InboxRow(source: source)
+                            .buttonStyle(.plain)
+                            .accessibilityHint("Öffnet die erkannten Vorschläge zur Prüfung")
+                        } else {
+                            InboxRow(source: source, isActionable: false)
                         }
-                        .buttonStyle(.plain)
                     }
                 }
             }
@@ -83,6 +92,7 @@ struct InboxView: View {
                     Image(systemName: "plus")
                 }
                 .accessibilityLabel("Zur Inbox hinzufügen")
+                .accessibilityIdentifier("inbox-add")
             }
         }
     }
@@ -90,9 +100,12 @@ struct InboxView: View {
 
 private struct InboxRow: View {
     let source: InboxSource
+    let isActionable: Bool
+
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
-        HStack(spacing: 14) {
+        HStack(alignment: .top, spacing: 14) {
             Image(systemName: source.kind.systemImage)
                 .font(.title3)
                 .foregroundStyle(source.status.tint)
@@ -104,43 +117,81 @@ private struct InboxRow: View {
                 Text(source.title)
                     .font(.body.weight(.semibold))
                     .foregroundStyle(.primary)
+                    .fixedSize(horizontal: false, vertical: true)
 
-                HStack(spacing: 6) {
-                    Text(source.kind.displayName)
-                    Text("·")
-                    Text(source.createdAt, format: .dateTime.day().month().hour().minute())
-                }
-                .font(.caption)
-                .foregroundStyle(.secondary)
+                Text("\(source.kind.displayName) · \(source.createdAt.formatted(.dateTime.day().month().hour().minute()))")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
 
-                HStack(spacing: 8) {
-                    StatusPill(status: source.status)
-                    if source.proposalCount > 0 {
-                        Text("\(source.proposalCount) Vorschläge")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                if dynamicTypeSize.isAccessibilitySize {
+                    VStack(alignment: .leading, spacing: 6) {
+                        StatusPill(status: source.status)
+                        proposalText
+                    }
+                } else {
+                    HStack(spacing: 8) {
+                        StatusPill(status: source.status)
+                        proposalText
                     }
                 }
 
-                if let errorMessage = source.errorMessage {
-                    Text(errorMessage)
-                        .font(.caption)
-                        .foregroundStyle(.red)
+                if let message = source.errorMessage {
+                    Label(
+                        message,
+                        systemImage: source.status == .failed ? "exclamationmark.triangle.fill" : "wifi.slash"
+                    )
+                    .font(.caption)
+                    .foregroundStyle(source.status == .failed ? Color.red : Color.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
                 }
             }
 
             Spacer(minLength: 8)
 
-            if source.status == .review || source.status == .partial {
+            if isActionable {
                 Image(systemName: "chevron.right")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(.tertiary)
+                    .accessibilityHidden(true)
             } else if source.status == .processing || source.status == .uploading {
                 ProgressView()
                     .controlSize(.small)
+                    .accessibilityLabel(source.status.displayName)
             }
         }
         .padding(.vertical, 6)
         .contentShape(Rectangle())
+        .accessibilityElement(children: .combine)
+        .accessibilityIdentifier("inbox-source-\(source.id.uuidString)")
     }
+
+    @ViewBuilder
+    private var proposalText: some View {
+        if source.proposalCount > 0 {
+            Text("\(source.proposalCount) Vorschläge")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+    }
+}
+
+#Preview("Inbox – Mixed") {
+    NavigationStack {
+        InboxView(store: DemoStore())
+    }
+}
+
+#Preview("Inbox – Dark") {
+    NavigationStack {
+        InboxView(store: DemoStore())
+    }
+    .preferredColorScheme(.dark)
+}
+
+#Preview("Inbox – Accessibility") {
+    NavigationStack {
+        InboxView(store: DemoStore())
+    }
+    .environment(\.dynamicTypeSize, .accessibility3)
 }

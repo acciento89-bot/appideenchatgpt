@@ -51,24 +51,41 @@ struct PlanView: View {
                 }
                 .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
                 .listRowBackground(Color.clear)
+                .accessibilityIdentifier("plan-member-filter")
             }
 
-            ForEach(groupedItems) { group in
-                Section(group.title) {
-                    ForEach(group.items) { item in
-                        VStack(alignment: .leading, spacing: 5) {
-                            AgendaRow(
-                                item: item,
-                                members: store.members,
-                                showsCompletion: item.kind == .task || item.kind == .preparation,
-                                onToggleCompletion: { store.toggleCompletion(item.id) }
-                            )
+            if groupedItems.isEmpty {
+                ContentUnavailableView {
+                    Label("Keine Einträge", systemImage: "calendar.badge.checkmark")
+                } description: {
+                    Text("Für diesen Personenfilter gibt es aktuell keine Termine oder Aufgaben.")
+                } actions: {
+                    if !selectedMemberIDs.isEmpty {
+                        Button("Alle anzeigen") {
+                            selectedMemberIDs.removeAll()
+                        }
+                        .buttonStyle(.borderedProminent)
+                    }
+                }
+                .listRowBackground(Color.clear)
+            } else {
+                ForEach(groupedItems) { group in
+                    Section(group.title) {
+                        ForEach(group.items) { item in
+                            VStack(alignment: .leading, spacing: 5) {
+                                AgendaRow(
+                                    item: item,
+                                    members: store.members,
+                                    showsCompletion: item.kind == .task || item.kind == .preparation,
+                                    onToggleCompletion: { store.toggleCompletion(item.id) }
+                                )
 
-                            if item.sourceID != nil {
-                                Label("Aus Import", systemImage: "doc.text.magnifyingglass")
-                                    .font(.caption2.weight(.medium))
-                                    .foregroundStyle(.secondary)
-                                    .padding(.leading, 74)
+                                if item.sourceID != nil {
+                                    Label("Aus Import", systemImage: "doc.text.magnifyingglass")
+                                        .font(.caption2.weight(.medium))
+                                        .foregroundStyle(.secondary)
+                                        .accessibilityLabel("Quelle: aus Import")
+                                }
                             }
                         }
                     }
@@ -97,15 +114,38 @@ struct PlanView: View {
             HStack(spacing: 6) {
                 if let member {
                     MemberAvatar(member: member, size: 22)
+                        .accessibilityHidden(true)
                 }
                 Text(title)
                     .font(.subheadline.weight(.semibold))
             }
             .padding(.horizontal, 11)
             .padding(.vertical, 7)
+            .frame(minHeight: 44)
             .background(selected ? Color.primary.opacity(0.12) : Color.secondary.opacity(0.07), in: Capsule())
         }
         .buttonStyle(.plain)
+        .accessibilityLabel(member == nil ? "Alle Familienmitglieder" : title)
         .accessibilityAddTraits(selected ? .isSelected : [])
     }
+}
+
+#Preview("Plan – Light") {
+    NavigationStack {
+        PlanView(store: DemoStore())
+    }
+}
+
+#Preview("Plan – Dark") {
+    NavigationStack {
+        PlanView(store: DemoStore())
+    }
+    .preferredColorScheme(.dark)
+}
+
+#Preview("Plan – Accessibility") {
+    NavigationStack {
+        PlanView(store: DemoStore())
+    }
+    .environment(\.dynamicTypeSize, .accessibility3)
 }
