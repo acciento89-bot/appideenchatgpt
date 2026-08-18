@@ -41,6 +41,7 @@ Repository purpose: Persistent handoff/state repository for the full App Factory
 | 008 | BeforeAfter | Guided repeat photography with overlay/alignment, comparison, collage/video | Pro / Lifetime | QUEUED |
 | 009 | ScamLens | Analyze screenshots/messages for suspicious indicators and explain risk factors | Credits / Pro | QUEUED |
 | 010 | SwipeOrDie | Very fast portrait reaction/high-score game with short sessions | Ads + IAP | QUEUED |
+| 011 | Family Life OS (WORKING TITLE) | Family Inbox: photo/PDF/text/voice -> reviewed events, tasks, deadlines and preparation actions | Freemium + Family Pro subscription | FOUNDATION / VALIDATION — product + design system created |
 
 ## Current active app — #001
 
@@ -78,7 +79,7 @@ Created in commit:
 
 ### Current decisions
 
-- Build all 10 App Factory ideas sequentially, but validate before wasting implementation time.
+- Build all App Factory ideas sequentially, but validate before wasting implementation time.
 - #001 remains first and is being built as a consumer iPhone utility.
 - #001 has pivoted from "receipt/warranty vault" to "use it enough before the return deadline".
 - Working name is **KeepMeter**, currently provisional.
@@ -207,6 +208,106 @@ This does NOT block product/spec work in the central repository. The app-specifi
 10. Run first simulator/device QA pass.
 11. Update both app-specific and master state after the implementation pass.
 
+## Candidate #011 — Family Life OS
+
+Status: FOUNDATION / VALIDATION
+Current working branch: `agent/family-life-os-foundation`
+Public name: NOT LOCKED
+Implementation repository: NOT CREATED YET
+
+### Product thesis
+
+#011 is deliberately not positioned as another generic family calendar or "all family tools in one app" product.
+
+Core promise:
+
+> **Put family chaos in. Get an organized plan out.**
+
+Primary loop:
+
+**Capture -> Understand -> Review -> Act -> Follow up**
+
+Family information can enter via photo, screenshot, PDF/document share, text, voice or manual input. The app converts the source into structured proposals such as events, tasks, deadlines, payment reminders and preparation actions. AI proposals are editable and must be confirmed before becoming canonical family data.
+
+### Canonical foundation docs
+
+- `apps/011-family-life-os/PRODUCT_SPEC.md`
+- `apps/011-family-life-os/DESIGN_SYSTEM.md`
+- `apps/011-family-life-os/PROJECT_STATE.md`
+
+Foundation commits on branch:
+
+- Product specification: `8fff64f7ad973debb6c0a808d963e799b2f17029`
+- Design system: `3de8df37bf3d6c2eff82eeabccbfffccd23b3cbf`
+- Project state: `011e6f5a4ebffb18bf5eb3ed236ce2ce8606c17c`
+
+### Market guardrail
+
+Current family-organizer competition is strong. FamilyWall already provides a broad all-in-one suite. familymind is explicitly positioned as a proactive German-language AI family assistant. Nori offers multimodal AI input including voice/photo/file flows. Fami and many other products already combine shared calendars, chores, shopping, meal planning and/or budgets.
+
+Therefore #011 may NOT claim differentiation from any single one of these features:
+
+- shared calendar
+- chores
+- family color coding
+- generic AI chat
+- voice-created events
+- photo/PDF extraction alone
+- all-in-one family organization
+
+The differentiation target is the quality and low-friction nature of the complete ingestion-to-action workflow.
+
+### Accepted foundation decisions
+
+- DACH-first workflows, globally extensible architecture.
+- iPhone-first native SwiftUI client with intentional iPad adaptation.
+- Shared backend required from v1.
+- Family Inbox is the core product surface.
+- Primary tabs: Heute, Inbox, Plan, Familie.
+- Settings are not a fifth permanent tab.
+- MVP sources: photo, screenshot/image, PDF/document share, text and voice.
+- Direct mailbox scanning is not MVP.
+- AI creates proposals only; users confirm before actions become canonical.
+- Confirmed actions retain provenance to source material.
+- Core action types: events, tasks, deadlines, reminders, payment reminders and preparation actions.
+- Subscription is appropriate because AI, storage, sync and notification infrastructure have recurring costs.
+- German/English localization architecture from first build.
+- Child/guest permission model architected from day one.
+- Apple-native design. On iOS 26+, Liquid Glass is reserved mainly for functional/navigation layers and important controls rather than decorative content cards.
+
+### Deferred / rejected for MVP
+
+- family chat/social network replacement
+- live GPS
+- video/audio calling
+- bank integration/full budgeting
+- meal/recipe platform
+- complex chore reward economy
+- automatic mailbox surveillance
+- autonomous real-world bookings/calls
+- medical-advice assistant
+
+### First implementation slice
+
+1. Household + sample members.
+2. Today UI.
+3. Inbox UI.
+4. Import text/image.
+5. Structured action proposals.
+6. Review Import UI.
+7. Confirm events/tasks.
+8. Reflect confirmed actions on Today.
+
+### Immediate next steps
+
+1. Perform brand/name shortlist + collision checks.
+2. Select backend architecture and EU hosting model.
+3. Lock minimum iOS/iPadOS target.
+4. Create the app-specific repository when implementation starts and repository creation is available.
+5. Scaffold SwiftUI project and real fixture-driven screens.
+6. Validate Today, Inbox and Review Import on iPhone/iPad, Dark Mode and Dynamic Type.
+7. Update `apps/011-family-life-os/PROJECT_STATE.md` and this master state after every major pass.
+
 ## Handoff rule for new chats
 
-When the user says to continue the App Factory, first inspect this repository and this file. Then inspect the active app's product/project-state file. Do not rely only on chat memory. Update this file after every major pass so it remains the authoritative cross-chat handoff state.
+When the user says to continue the App Factory, first inspect this repository and this file. Then inspect the active app's product/project-state file. If the user explicitly asks to continue Family Life OS, inspect `apps/011-family-life-os/PROJECT_STATE.md`, `PRODUCT_SPEC.md` and `DESIGN_SYSTEM.md` before continuing. Do not rely only on chat memory. Update this file after every major pass so it remains the authoritative cross-chat handoff state.
