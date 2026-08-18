@@ -236,6 +236,7 @@ No major adjacent feature module should be allowed to hide a weak version of thi
 - foundation state prepared for merge: `02cf167109d843978bfd5d14b92198559a7df9ed`
 - final pre-merge state: `1d654530eeb8f2e827f2036dacb412ff361d9d27`
 - foundation documentation closeout: `7087b34ba7f6ffdfaf6d065cac3245a0411f99da`
+- sealed foundation state: `cdc29be3d0c96a2361eaf7de8173beae91e978a8`
 
 ## Open decisions
 
