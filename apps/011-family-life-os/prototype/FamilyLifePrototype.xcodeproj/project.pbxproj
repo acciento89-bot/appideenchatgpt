@@ -17,6 +17,9 @@
 		A11000000000000000000008 /* ImportReviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B11000000000000000000008 /* ImportReviewView.swift */; };
 		A11000000000000000000009 /* PlanView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B11000000000000000000009 /* PlanView.swift */; };
 		A1100000000000000000000A /* FamilyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1100000000000000000000A /* FamilyView.swift */; };
+		A1100000000000000000000B /* FamilyRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1100000000000000000000C /* FamilyRepository.swift */; };
+		A1100000000000000000000C /* FixtureTextExtractionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1100000000000000000000D /* FixtureTextExtractionService.swift */; };
+		A1100000000000000000000D /* InMemoryFamilyRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1100000000000000000000E /* InMemoryFamilyRepository.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -31,6 +34,9 @@
 		B11000000000000000000009 /* PlanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanView.swift; sourceTree = "<group>"; };
 		B1100000000000000000000A /* FamilyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FamilyView.swift; sourceTree = "<group>"; };
 		B1100000000000000000000B /* FamilyLifePrototype.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FamilyLifePrototype.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		B1100000000000000000000C /* FamilyRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FamilyRepository.swift; sourceTree = "<group>"; };
+		B1100000000000000000000D /* FixtureTextExtractionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FixtureTextExtractionService.swift; sourceTree = "<group>"; };
+		B1100000000000000000000E /* InMemoryFamilyRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InMemoryFamilyRepository.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -75,6 +81,9 @@
 			isa = PBXGroup;
 			children = (
 				B11000000000000000000003 /* DemoStore.swift */,
+				B1100000000000000000000C /* FamilyRepository.swift */,
+				B1100000000000000000000D /* FixtureTextExtractionService.swift */,
+				B1100000000000000000000E /* InMemoryFamilyRepository.swift */,
 			);
 			path = Data;
 			sourceTree = "<group>";
@@ -173,6 +182,9 @@
 				A11000000000000000000001 /* FamilyLifePrototypeApp.swift in Sources */,
 				A11000000000000000000002 /* Models.swift in Sources */,
 				A11000000000000000000003 /* DemoStore.swift in Sources */,
+				A1100000000000000000000B /* FamilyRepository.swift in Sources */,
+				A1100000000000000000000C /* FixtureTextExtractionService.swift in Sources */,
+				A1100000000000000000000D /* InMemoryFamilyRepository.swift in Sources */,
 				A11000000000000000000004 /* RootView.swift in Sources */,
 				A11000000000000000000005 /* Components.swift in Sources */,
 				A11000000000000000000006 /* TodayView.swift in Sources */,
@@ -240,7 +252,7 @@
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
-				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNINITIALIZED_AUT = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
