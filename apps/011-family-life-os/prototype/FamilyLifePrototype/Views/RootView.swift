@@ -32,6 +32,17 @@ struct RootView: View {
         }
     }
 
+    private var sidebarSelection: Binding<AppSection?> {
+        Binding(
+            get: { selectedSection },
+            set: { newValue in
+                if let newValue {
+                    selectedSection = newValue
+                }
+            }
+        )
+    }
+
     var body: some View {
         Group {
             if horizontalSizeClass == .regular {
@@ -85,7 +96,7 @@ struct RootView: View {
 
     private var tabletShell: some View {
         NavigationSplitView {
-            List(AppSection.allCases, selection: $selectedSection) { section in
+            List(AppSection.allCases, selection: sidebarSelection) { section in
                 Label(section.title, systemImage: section.systemImage)
                     .tag(section)
             }
