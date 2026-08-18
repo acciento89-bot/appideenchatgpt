@@ -41,6 +41,7 @@ Repository purpose: Persistent handoff/state repository for the full App Factory
 | 008 | BeforeAfter | Guided repeat photography with overlay/alignment, comparison, collage/video | Pro / Lifetime | QUEUED |
 | 009 | ScamLens | Analyze screenshots/messages for suspicious indicators and explain risk factors | Credits / Pro | QUEUED |
 | 010 | SwipeOrDie | Very fast portrait reaction/high-score game with short sessions | Ads + IAP | QUEUED |
+| 011 | Family Life OS (INTERNAL CODENAME) | Family Inbox: photo/PDF/text/voice -> reviewed events, tasks, deadlines, payments and preparation actions | Freemium + Family Pro subscription | FOUNDATION — UX locked; architecture selected |
 
 ## Current active app — #001 KeepMeter
 
@@ -240,12 +241,136 @@ A preliminary exact-name search did not surface an obvious consumer app using `K
 6. Lock public branding only after stronger name/domain/trademark due diligence.
 7. Upload first TestFlight build only after the QA gates are green.
 
+## Candidate #011 — Family Life OS
+
+Status: FOUNDATION / UX LOCKED / ARCHITECTURE SELECTED
+Internal codename only; public brand not locked.
+Foundation PR: `acciento89-bot/appideenchatgpt#3` — merged 2026-08-18.
+Foundation merge commit: `cd86aa4980133020b05629f9930aff598d9f9b35`.
+
+### Product thesis
+
+> **Put family chaos in. Get an organized plan out.**
+
+Core loop:
+
+**Capture -> Understand -> Review -> Act -> Follow up**
+
+#011 is not intended to be another generic family calendar, chores app or all-in-one organizer. Its differentiation target is the complete Family Inbox ingestion-to-action workflow: family information arrives as photo, screenshot, PDF, text or voice; the system extracts structured proposals; the user reviews/edits them; confirmed events/tasks/deadlines/payments/preparation actions then surface at the right time.
+
+### Canonical foundation docs
+
+- `apps/011-family-life-os/PRODUCT_SPEC.md`
+- `apps/011-family-life-os/DESIGN_SYSTEM.md`
+- `apps/011-family-life-os/UX_SCREEN_SPEC.md`
+- `apps/011-family-life-os/BRAND_DIRECTION.md`
+- `apps/011-family-life-os/TECH_ARCHITECTURE.md`
+- `apps/011-family-life-os/UI_FIXTURES.md`
+- `apps/011-family-life-os/PROJECT_STATE.md`
+
+App-specific project state is the authoritative handoff for #011 until its own implementation repository is created.
+
+### Locked UX direction
+
+Primary destinations:
+
+1. Heute
+2. Inbox
+3. Plan
+4. Familie
+
+Capture is an action, not a fifth tab. Settings/account is not a permanent fifth destination.
+
+`Import prüfen` is the signature trust-boundary screen:
+
+- source remains reachable
+- extracted proposals are independently editable
+- unresolved fields are explicitly marked
+- AI does not silently create canonical family data
+- confirmed items retain source provenance
+
+Today is a calm briefing/timeline, not a duplicate calendar dashboard. Plan starts agenda-first. Child/guest roles are architected from day one.
+
+### Technical architecture direction
+
+- native SwiftUI client
+- iPhone first, intentional adaptive iPad UI
+- iOS/iPadOS 18+ direction, iOS 26+ visual APIs gated
+- Supabase foundation backend
+- Central EU / Frankfurt preferred region
+- Postgres + Row Level Security for household isolation
+- private family-document storage
+- server-side AI only
+- structured validated proposal output
+- Realtime where useful, but normal fetch remains authoritative
+- APNs-backed notification path
+- local cache/offline queue where appropriate
+
+Canonical collaborative household data lives on the backend. Views do not issue raw Supabase queries directly. Service-role/AI secrets never ship in the app.
+
+### First vertical-slice fixture
+
+The first executable prototype is locked around a German school-letter import that produces exactly four proposals:
+
+1. Klassenfahrt event
+2. permission-slip deadline/task
+3. 35 EUR payment reminder
+4. lunchpack/preparation action
+
+The user must resolve an ambiguous child assignment and edit at least one proposed field before confirmation. Confirmed items then appear in Plan/Heute and link back to the source.
+
+### Brand guardrail
+
+`Family Life OS` is an internal codename only. Current competitor Famiqo uses `Family Life Operating System`, so that phrase is not treated as distinctive public positioning.
+
+First-pass rejected naming directions include Famiqo, Kinora, Familoop and Kinbox. Final public name requires current App Store/web plus EUIPO/DPMA/domain checks.
+
+Preferred icon concept direction: **Gather -> Order** — loose rounded pieces converging into one organized form. Avoid cartoon-family, robot/AI-sparkle and generic house/checkmark identity.
+
+### Deferred / rejected for MVP
+
+- generic calendar + shopping + chores clone
+- family chat/social network replacement
+- live GPS
+- video/audio calls
+- bank integration/full budgeting
+- meal/recipe platform
+- complex chore reward economy
+- automatic mailbox surveillance
+- autonomous bookings/calls
+- medical-advice assistant
+- generic AI-chat-first UI
+- decorative Liquid Glass everywhere
+
+### Open decisions
+
+- final public brand/name
+- exact AI provider/model and extraction implementation
+- subscription pricing and AI quota
+- attachment retention/privacy/legal defaults
+- calendar interoperability
+- child independent-login timing
+- final icon artwork/palette
+- app-specific implementation repository creation
+
+### Immediate next steps
+
+1. Create the app-specific implementation repository when repository creation is available.
+2. Scaffold the native SwiftUI app shell and domain/service boundaries.
+3. Implement fixture-driven Heute, Inbox and Import prüfen before real AI integration.
+4. Implement Supabase schema/RLS and text-fixture ingestion path.
+5. Validate the end-to-end vertical slice on iPhone/iPad, Dark Mode and Dynamic Type.
+6. Only after that core loop is excellent, expand Plan/calendar and adjacent family modules.
+7. Update both the #011 project state and this master state after every major pass.
+
 ## Handoff rule for new chats
 
 When the user says to continue the App Factory:
 
 1. Read `acciento89-bot/appideenchatgpt/docs/APP_FACTORY_STATE.md`.
-2. Read the active app's `docs/PROJECT_STATE.md` — currently `acciento89-bot/keepmeter/docs/PROJECT_STATE.md`.
+2. Read the active app's `docs/PROJECT_STATE.md` — currently `acciento89-bot/keepmeter/docs/PROJECT_STATE.md` for #001.
 3. Inspect the current repo branch/commit/build state before coding.
 4. Continue from the recorded next steps rather than reconstructing from chat memory.
 5. Update both state files after every major pass.
+
+If the user explicitly asks to continue #011 Family Life OS, additionally read `apps/011-family-life-os/PROJECT_STATE.md` and its linked canonical foundation docs before continuing.
