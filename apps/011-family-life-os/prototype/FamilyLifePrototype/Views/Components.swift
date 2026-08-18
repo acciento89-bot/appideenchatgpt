@@ -60,6 +60,7 @@ struct MemberStack: View {
                     }
             }
         }
+        .accessibilityHidden(true)
     }
 }
 
@@ -82,6 +83,8 @@ struct AgendaRow: View {
     var showsCompletion = false
     var onToggleCompletion: (() -> Void)?
 
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
     private var itemMembers: [FamilyMember] {
         members.filter { item.memberIDs.contains($0.id) }
     }
@@ -91,68 +94,113 @@ struct AgendaRow: View {
     }
 
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
-            VStack(alignment: .leading, spacing: 2) {
-                if let displayDate {
-                    Text(displayDate, format: .dateTime.hour().minute())
-                        .font(.subheadline.monospacedDigit().weight(.semibold))
-                } else {
-                    Text("Ganztägig")
-                        .font(.caption.weight(.semibold))
-                }
-            }
-            .foregroundStyle(.secondary)
-            .frame(width: 58, alignment: .leading)
-
-            RoundedRectangle(cornerRadius: 2)
-                .fill(item.kind.tint)
-                .frame(width: 4)
-                .frame(minHeight: 48)
-
-            VStack(alignment: .leading, spacing: 6) {
-                HStack(alignment: .firstTextBaseline) {
-                    Image(systemName: item.kind.systemImage)
-                        .foregroundStyle(item.kind.tint)
-                        .accessibilityHidden(true)
-
-                    Text(item.title)
-                        .font(.body.weight(.semibold))
-                        .strikethrough(item.isCompleted)
-                        .foregroundStyle(item.isCompleted ? .secondary : .primary)
-                }
-
-                HStack(spacing: 8) {
-                    if !itemMembers.isEmpty {
-                        MemberStack(members: itemMembers)
-                        Text(itemMembers.map(\.name).joined(separator: ", "))
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
-                    }
-
-                    if let location = item.location {
-                        Label(location, systemImage: "mappin.and.ellipse")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
-                    }
-                }
-            }
-
-            Spacer(minLength: 4)
-
-            if showsCompletion, let onToggleCompletion {
-                Button(action: onToggleCompletion) {
-                    Image(systemName: item.isCompleted ? "checkmark.circle.fill" : "circle")
-                        .font(.title3)
-                        .foregroundStyle(item.isCompleted ? .green : .secondary)
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel(item.isCompleted ? "Als offen markieren" : "Als erledigt markieren")
+        Group {
+            if dynamicTypeSize.isAccessibilitySize {
+                accessibilityLayout
+            } else {
+                standardLayout
             }
         }
         .padding(.vertical, 8)
         .contentShape(Rectangle())
+    }
+
+    private var standardLayout: some View {
+        HStack(alignment: .top, spacing: 12) {
+            timeLabel
+                .frame(width: 58, alignment: .leading)
+
+            kindMarker
+            coreContent
+            Spacer(minLength: 4)
+            completionButton
+        }
+    }
+
+    private var accessibilityLayout: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .center, spacing: 10) {
+                timeLabel
+                Spacer(minLength: 8)
+                completionButton
+            }
+
+            HStack(alignment: .top, spacing: 10) {
+                kindMarker
+                coreContent
+            }
+        }
+    }
+
+    private var timeLabel: some View {
+        Group {
+            if let displayDate {
+                Text(displayDate, format: .dateTime.hour().minute())
+                    .font(.subheadline.monospacedDigit().weight(.semibold))
+            } else {
+                Text("Ganztägig")
+                    .font(.caption.weight(.semibold))
+            }
+        }
+        .foregroundStyle(.secondary)
+    }
+
+    private var kindMarker: some View {
+        RoundedRectangle(cornerRadius: 2)
+            .fill(item.kind.tint)
+            .frame(width: 4)
+            .frame(minHeight: 48)
+            .accessibilityHidden(true)
+    }
+
+    private var coreContent: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .firstTextBaseline, spacing: 7) {
+                Image(systemName: item.kind.systemImage)
+                    .foregroundStyle(item.kind.tint)
+                    .accessibilityHidden(true)
+
+                Text(item.title)
+                    .font(.body.weight(.semibold))
+                    .strikethrough(item.isCompleted)
+                    .foregroundStyle(item.isCompleted ? .secondary : .primary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            if !itemMembers.isEmpty {
+                HStack(spacing: 8) {
+                    MemberStack(members: itemMembers)
+                    Text(itemMembers.map(\.name).joined(separator: ", "))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+
+            if let location = item.location {
+                Label(location, systemImage: "mappin.and.ellipse")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .accessibilityElement(children: .combine)
+    }
+
+    @ViewBuilder
+    private var completionButton: some View {
+        if showsCompletion, let onToggleCompletion {
+            Button(action: onToggleCompletion) {
+                Image(systemName: item.isCompleted ? "checkmark.circle.fill" : "circle")
+                    .font(.title3)
+                    .foregroundStyle(item.isCompleted ? .green : .secondary)
+                    .frame(width: 44, height: 44)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(item.isCompleted ? "Als offen markieren" : "Als erledigt markieren")
+            .accessibilityIdentifier("plan-item-completion")
+        }
     }
 }
 
@@ -160,15 +208,29 @@ struct SectionHeader: View {
     let title: String
     var trailing: String?
 
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
     var body: some View {
-        HStack {
-            Text(title)
-                .font(.title3.bold())
-            Spacer()
-            if let trailing {
-                Text(trailing)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+        Group {
+            if dynamicTypeSize.isAccessibilitySize, let trailing {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(title)
+                        .font(.title3.bold())
+                    Text(trailing)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+            } else {
+                HStack(alignment: .firstTextBaseline) {
+                    Text(title)
+                        .font(.title3.bold())
+                    Spacer()
+                    if let trailing {
+                        Text(trailing)
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+                }
             }
         }
     }
