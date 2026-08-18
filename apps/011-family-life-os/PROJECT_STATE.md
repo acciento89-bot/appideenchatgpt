@@ -1,11 +1,13 @@
 # Family Life OS — Project State
 
 Last updated: 2026-08-18
-Status: FOUNDATION / UX LOCK / ARCHITECTURE SELECTED
+Status: FOUNDATION MERGED / UX LOCKED / ARCHITECTURE SELECTED
 Internal portfolio slot: #011 candidate
 Public brand/name: NOT LOCKED
-Current branch: `agent/family-life-os-foundation-v2`
-Current PR: PENDING
+Current canonical branch: `main`
+Foundation PR: `#3` — MERGED
+Foundation merge commit: `cd86aa4980133020b05629f9930aff598d9f9b35`
+Central App Factory state checkpoint: `f40aacb932990cf50835510d8196ad5ed9f9eaf1`
 Implementation repository: NOT CREATED YET
 
 ## Product thesis
@@ -217,7 +219,11 @@ No adjacent feature module may hide a weak version of this loop.
 - real adaptive iPad layout
 - iOS 26 native Liquid Glass primarily in functional/navigation surfaces
 
-## Current clean foundation-v2 commits
+## Foundation history
+
+The original PR #2 became stale because `main` advanced in parallel with KeepMeter. It was intentionally not force-merged. A clean current-main-based branch was created and merged as PR #3 so no KeepMeter state was rolled back.
+
+Clean foundation commits before squash merge:
 
 - product specification: `08f2af30ef949593763da20c8c460fa5b577c99f`
 - design system: `ef7b1231db5a5bf6e9a213790fab092472fb90f0`
@@ -225,6 +231,9 @@ No adjacent feature module may hide a weak version of this loop.
 - brand direction: `b6decbe2327773dc41e815a76fcd3e8adf1f9cd9`
 - technical architecture: `746731e10cfaa8641d6663ff67c3c09105f06ee8`
 - UI fixtures: `16d73a2aa6ceb7427feee1c1c3b0cc6891075cbb`
+- project state: `809166a25b4adaa7a5a88a0262afaad8c2105a26`
+
+Merged foundation commit: `cd86aa4980133020b05629f9930aff598d9f9b35`.
 
 ## Open decisions
 
@@ -239,15 +248,13 @@ No adjacent feature module may hide a weak version of this loop.
 
 ## Immediate next steps
 
-1. Add #011 to current central App Factory state without regressing KeepMeter.
-2. Create clean PR from this current-main-based branch and supersede conflicted PR #2.
-3. Merge foundation docs.
-4. Create app-specific implementation repo when repository creation is available.
-5. Scaffold SwiftUI app shell + domain/service boundaries.
-6. Implement fixture-driven Heute, Inbox and Import prüfen before real AI integration.
-7. Add Supabase schema/RLS and text-fixture ingestion path.
-8. Validate vertical slice on iPhone/iPad, Dark Mode and Dynamic Type.
-9. Update this state after every major pass.
+1. Create the app-specific implementation repository when repository creation is available.
+2. Scaffold SwiftUI app shell + domain/service boundaries.
+3. Implement fixture-driven Heute, Inbox and Import prüfen before real AI integration.
+4. Add Supabase schema/RLS and text-fixture ingestion path.
+5. Validate vertical slice on iPhone/iPad, Dark Mode and Dynamic Type.
+6. Only after the core loop is excellent, expand Plan/calendar and adjacent modules.
+7. Update this project state and the central App Factory state after every major pass.
 
 ## Handoff rule
 
