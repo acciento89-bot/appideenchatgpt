@@ -141,6 +141,38 @@ Important architecture rules:
 - model output is structured and validated before proposals are stored
 - proposal confirmation is idempotent/transactional to prevent duplicates
 
+## UI fixture pack locked
+
+`UI_FIXTURES.md` now defines deterministic prototype content rather than lorem ipsum.
+
+Demo household: `Familie Berger` with two adults and two child profiles.
+
+Signature fixture: a German school-letter import that produces exactly four proposals:
+
+1. Klassenfahrt event
+2. permission-slip deadline/task
+3. 35 EUR payment reminder
+4. lunchpack/preparation action
+
+The demo requires resolving an ambiguous child assignment and editing at least one proposed field before confirming, proving that the review workflow is genuinely interactive rather than a fake success screen.
+
+Visual QA fixture states include:
+
+- normal busy Today
+- calm Today
+- schedule conflict
+- mixed Inbox processing states
+- failed analysis
+- partial confirmation
+- unresolved Import Review
+- ready-to-confirm Import Review
+- Plan agenda
+- Family members
+- Dark Mode
+- iPad split layout
+- Dynamic Type accessibility size
+- offline pending upload
+
 ## Rejected / deferred directions
 
 - generic calendar + shopping + chores clone
@@ -164,6 +196,7 @@ Important architecture rules:
 - `apps/011-family-life-os/UX_SCREEN_SPEC.md`
 - `apps/011-family-life-os/BRAND_DIRECTION.md`
 - `apps/011-family-life-os/TECH_ARCHITECTURE.md`
+- `apps/011-family-life-os/UI_FIXTURES.md`
 - `apps/011-family-life-os/PROJECT_STATE.md`
 
 ## Market validation guardrails
@@ -212,6 +245,9 @@ No major adjacent feature module should be allowed to hide a weak version of thi
 - core UX screen specification: `01353de30c0891f49f8e93d8dcf2349f71043a85`
 - brand direction: `2016842f5f897e8eb83f22cc95ecb4fe1c868a6c`
 - technical architecture: `a53a7802c8832e9ac603da3f2e40aa3c40a6c961`
+- project-state architecture/UX update: `bbaf49292df86a42020a5b368eae2b25e67c6224`
+- UI fixture pack: `6eec4c2198713448b251600949d301697bb34f99`
+- central master-state UX/architecture checkpoint: `6944a0f0359283472c24cc60a1949c3e23139dac`
 
 ## Open decisions
 
@@ -226,8 +262,8 @@ No major adjacent feature module should be allowed to hide a weak version of thi
 
 ## Immediate next steps
 
-1. Update central `docs/APP_FACTORY_STATE.md` with this UX/architecture pass.
-2. Create final first-pass UI visual specification/fixtures for Heute, Inbox and Import prüfen.
+1. Merge this completed foundation/UX/architecture documentation pass into main so the handoff is durable.
+2. Create first visual UI implementation/spec pass for Heute, Inbox and Import prüfen using locked fixtures.
 3. Create app-specific repository when implementation begins and repository creation is available.
 4. Scaffold SwiftUI app shell + domain/service boundaries.
 5. Implement fixture-driven Heute, Inbox and Import prüfen before real AI integration.
@@ -237,4 +273,4 @@ No major adjacent feature module should be allowed to hide a weak version of thi
 
 ## Handoff rule
 
-Before continuing Family Life OS in another chat, read this file first, then PRODUCT_SPEC, DESIGN_SYSTEM, UX_SCREEN_SPEC, BRAND_DIRECTION and TECH_ARCHITECTURE. Do not reconstruct scope from memory.
+Before continuing Family Life OS in another chat, read this file first, then PRODUCT_SPEC, DESIGN_SYSTEM, UX_SCREEN_SPEC, BRAND_DIRECTION, TECH_ARCHITECTURE and UI_FIXTURES. Do not reconstruct scope from memory.
