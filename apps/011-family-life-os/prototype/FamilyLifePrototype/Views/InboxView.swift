@@ -16,7 +16,7 @@ struct InboxView: View {
         let sorted = store.inboxItems.sorted { $0.createdAt > $1.createdAt }
         switch filter {
         case .open:
-            return sorted.filter { [.uploading, .processing, .review, .partial, .failed].contains($0.status) }
+            return sorted.filter { [.queued, .uploading, .processing, .review, .partial, .failed].contains($0.status) }
         case .processed:
             return sorted.filter { $0.status == .done }
         case .all:
@@ -136,11 +136,14 @@ private struct InboxRow: View {
                     }
                 }
 
-                if let errorMessage = source.errorMessage {
-                    Label(errorMessage, systemImage: "exclamationmark.triangle.fill")
-                        .font(.caption)
-                        .foregroundStyle(.red)
-                        .fixedSize(horizontal: false, vertical: true)
+                if let message = source.errorMessage {
+                    Label(
+                        message,
+                        systemImage: source.status == .failed ? "exclamationmark.triangle.fill" : "wifi.slash"
+                    )
+                    .font(.caption)
+                    .foregroundStyle(source.status == .failed ? Color.red : Color.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
                 }
             }
 
