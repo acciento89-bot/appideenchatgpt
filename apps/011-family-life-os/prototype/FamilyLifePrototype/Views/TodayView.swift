@@ -21,10 +21,6 @@ struct TodayView: View {
             .map { $0 }
     }
 
-    private var primaryAdult: FamilyMember? {
-        store.members.first { $0.role == .owner }
-    }
-
     var body: some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 24) {
@@ -40,11 +36,16 @@ struct TodayView: View {
                     SectionHeader(title: "Heute", trailing: "18. August")
 
                     if todayItems.isEmpty {
-                        ContentUnavailableView(
-                            "Heute ist alles ruhig",
-                            systemImage: "checkmark.circle",
-                            description: Text("Neue Infos kannst du direkt über die Inbox hinzufügen.")
-                        )
+                        ContentUnavailableView {
+                            Label("Heute ist alles ruhig", systemImage: "checkmark.circle")
+                        } description: {
+                            Text("Neue Infos kannst du direkt über die Inbox hinzufügen.")
+                        } actions: {
+                            Button("Etwas hinzufügen") {
+                                store.openSignatureReview()
+                            }
+                            .buttonStyle(.borderedProminent)
+                        }
                     } else {
                         ForEach(todayItems) { item in
                             AgendaRow(
@@ -62,23 +63,23 @@ struct TodayView: View {
 
                 prepareSection
             }
+            .frame(maxWidth: 760, alignment: .leading)
+            .frame(maxWidth: .infinity, alignment: .center)
             .padding(.horizontal, 20)
             .padding(.bottom, 32)
         }
         .background(Color(.systemGroupedBackground))
         .navigationTitle("Heute")
         .toolbar {
-            ToolbarItemGroup(placement: .topBarTrailing) {
+            ToolbarItem(placement: .topBarTrailing) {
                 Button {
                     store.openSignatureReview()
                 } label: {
                     Image(systemName: "plus")
                 }
                 .accessibilityLabel("Etwas hinzufügen")
-
-                if let primaryAdult {
-                    MemberAvatar(member: primaryAdult, size: 30)
-                }
+                .accessibilityHint("Öffnet einen Beispielimport zum Prüfen")
+                .accessibilityIdentifier("today-add")
             }
         }
     }
@@ -90,8 +91,11 @@ struct TodayView: View {
                 .foregroundStyle(.secondary)
             Text("Guten Abend")
                 .font(.largeTitle.bold())
+                .fixedSize(horizontal: false, vertical: true)
         }
         .padding(.top, 8)
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(.isHeader)
     }
 
     private var attentionSection: some View {
@@ -100,27 +104,28 @@ struct TodayView: View {
 
             VStack(spacing: 0) {
                 ForEach(attentionItems) { item in
-                    HStack(spacing: 12) {
+                    HStack(alignment: .top, spacing: 12) {
                         Image(systemName: item.kind.systemImage)
                             .foregroundStyle(.orange)
                             .frame(width: 28, height: 28)
                             .background(.orange.opacity(0.12), in: Circle())
+                            .accessibilityHidden(true)
 
                         VStack(alignment: .leading, spacing: 3) {
                             Text(item.title)
                                 .font(.subheadline.weight(.semibold))
+                                .fixedSize(horizontal: false, vertical: true)
                             if let due = item.dueAt {
                                 Text(due, format: .dateTime.weekday(.wide).day().month())
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                             }
                         }
-                        Spacer()
-                        Image(systemName: "chevron.right")
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(.tertiary)
+
+                        Spacer(minLength: 0)
                     }
                     .padding(14)
+                    .accessibilityElement(children: .combine)
 
                     if item.id != attentionItems.last?.id {
                         Divider().padding(.leading, 54)
@@ -129,6 +134,7 @@ struct TodayView: View {
             }
             .background(.background, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
         }
+        .accessibilityIdentifier("today-attention")
     }
 
     private var familyBrief: some View {
@@ -136,6 +142,7 @@ struct TodayView: View {
             HStack(spacing: 8) {
                 Image(systemName: "sparkles")
                     .foregroundStyle(.indigo)
+                    .accessibilityHidden(true)
                 Text("Familienüberblick")
                     .font(.headline)
             }
@@ -148,28 +155,32 @@ struct TodayView: View {
         .padding(16)
         .background(.background, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
         .accessibilityElement(children: .combine)
+        .accessibilityIdentifier("today-brief")
     }
 
     private var prepareSection: some View {
         VStack(alignment: .leading, spacing: 10) {
             SectionHeader(title: "Für morgen vorbereiten")
 
-            HStack(spacing: 12) {
+            HStack(alignment: .top, spacing: 12) {
                 Image(systemName: "doc.text.fill")
                     .foregroundStyle(.purple)
                     .frame(width: 34, height: 34)
                     .background(.purple.opacity(0.12), in: Circle())
+                    .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Einverständniserklärung unterschreiben")
                         .font(.subheadline.weight(.semibold))
+                        .fixedSize(horizontal: false, vertical: true)
                     Text("Lina · morgen fällig")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
-                Spacer()
+                Spacer(minLength: 0)
             }
             .padding(14)
             .background(.background, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .accessibilityElement(children: .combine)
         }
     }
 
@@ -178,4 +189,24 @@ struct TodayView: View {
         let components = calendar.dateComponents([.year, .month, .day], from: date)
         return components.year == 2026 && components.month == 8 && components.day == 18
     }
+}
+
+#Preview("Heute – Light") {
+    NavigationStack {
+        TodayView(store: DemoStore())
+    }
+}
+
+#Preview("Heute – Dark") {
+    NavigationStack {
+        TodayView(store: DemoStore())
+    }
+    .preferredColorScheme(.dark)
+}
+
+#Preview("Heute – Accessibility") {
+    NavigationStack {
+        TodayView(store: DemoStore())
+    }
+    .environment(\.dynamicTypeSize, .accessibility3)
 }
