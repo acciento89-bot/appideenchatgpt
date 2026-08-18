@@ -6,32 +6,23 @@ Repository purpose: Persistent handoff/state repository for the full App Factory
 
 ## Mandatory workflow
 
-1. Build/validate the apps sequentially, starting with #001.
+1. Build/validate the apps sequentially, starting with #001 unless the user explicitly selects another App Factory candidate.
 2. This repository is the central App Factory memory and must be updated after every major design, development, naming, monetization, release, TestFlight, App Store, or strategy pass.
 3. Each app gets its own repository once implementation starts.
 4. Each app repository must contain `docs/PROJECT_STATE.md` as its app-specific single source of truth.
-5. The central state must record at minimum:
-   - active app and current phase
-   - repository URL/name
-   - current branch / commit / PR when known
-   - accepted decisions
-   - rejected directions
-   - monetization model
-   - current feature scope
-   - open risks / blockers
-   - TestFlight / App Store status
-   - exact next steps
-6. Before continuing App Factory work in a new chat, read this file first and then read the active app's `docs/PROJECT_STATE.md`.
-7. Keep v1 focused: one clear user problem, minimal screens, minimal backend, monetization from v1 where appropriate.
-8. Do not force subscriptions when a one-time purchase or lifetime unlock is a better fit.
-9. Before locking a name or positioning, check the current market and App Store/web competition.
-10. App Factory validation may materially pivot an idea before or during early implementation if the original concept is already commoditized.
+5. The central state must record at minimum active app/phase, repo, commit/PR, accepted/rejected decisions, monetization, scope, blockers, release status and next steps.
+6. Before continuing App Factory work in a new chat, read this file first and then read the selected app's project state.
+7. Keep v1 focused and validate before overbuilding.
+8. Do not force subscriptions when a one-time/lifetime unlock fits better.
+9. Before locking a name or positioning, check current App Store/web competition and appropriate trademark/domain sources.
+10. Major source passes must pass CI/regression gates before merge/TestFlight.
+11. Never overwrite another App Factory candidate's recorded state when updating one candidate; preserve concurrent project sections.
 
 ## Portfolio queue
 
 | # | Working title | Core idea | Planned monetization | Status |
 |---|---|---|---|---|
-| 001 | KeepMeter (PROVISIONAL) | Return-window + actual-usage decision tool: cost per use, usage pace, deadline, Keep/Review/Return | Freemium + Lifetime Pro | ACTIVE — first green MVP build; polish/QA next |
+| 001 | KeepMeter (PROVISIONAL) | Return-window + actual-usage decision tool: cost per use, usage pace, deadline, Keep/Review/Return | Freemium + Lifetime Pro | ACTIVE — polished MVP green; StoreKit/QA next |
 | 002 | ProofVault | Evidence/documentation vault for photos, videos, chats and PDFs; structured reports | Freemium + Pro | QUEUED |
 | 003 | ParcelPilot | Orders, deliveries, returns and refund tracking in one place | Freemium | QUEUED |
 | 004 | SubZero | Detect and track subscriptions, show recurring costs, reminders | Pro / Lifetime | QUEUED |
@@ -63,19 +54,11 @@ Default branch: `main`
 
 Current verified app checkpoint:
 
-`bf024336455d2a65da1e7d5f25ac87f142a3de8d`
+`45c53308ae41fc38eec5049c0181d4b0d7ede42b`
 
-Current app-state update commit:
+Latest app-state update commit:
 
-`0db1a265a442a10cce5c4109d2ed943fce5408dc`
-
-Validation PR:
-
-`acciento89-bot/keepmeter#1` — merged after green CI
-
-Validated workflow run:
-
-`32178808223` — SUCCESS
+`fb84802c477593f243c5187bc46b5d021cd0ee4d`
 
 ### Current concept
 
@@ -93,21 +76,9 @@ The user adds a purchase, logs actual use, watches cost per use and the return c
 
 ### Why the concept pivoted
 
-The original receipt-scan / return-window / warranty concept was found to be crowded in 2026. Close or adjacent products found during validation included Belegio, Lyfe, Warranty Box, KeepSlip, ValueGuard, Reclaimo, Return & Refund Tracker, ReturnCue AI and Refundly.
+The original receipt-scan / return-window / warranty concept was found to be crowded in 2026. Close/adjacent products found during validation included Belegio, Lyfe, Warranty Box, KeepSlip, ValueGuard, Reclaimo, Return & Refund Tracker, ReturnCue AI and Refundly. Adjacent cost-per-use products also exist.
 
-Adjacent cost-per-use products also exist, including CostPerUse, UseWorth and Skip or Buy; Presence+ includes a clothing-specific Keep/Return flow with cost-per-wear.
-
-KeepMeter therefore must not position itself as another receipt vault or another generic cost-per-use calculator. Its differentiation is the combined deadline-aware decision loop.
-
-### Product specification
-
-Canonical central product spec:
-
-`apps/001-keepmeter/PRODUCT_SPEC.md`
-
-Original product-spec commit:
-
-`f2f4a60288a8184d7c67f406b77136e1a8431012`
+KeepMeter therefore must not position itself as another receipt vault or generic cost-per-use calculator. Its differentiation is the combined deadline-aware decision loop.
 
 ### Locked implementation decisions
 
@@ -116,130 +87,139 @@ Original product-spec commit:
 - iOS 17+.
 - Local-first; no account/backend for core v1.
 - UserNotifications for deadline reminders.
-- Deterministic/explainable decision engine rather than an opaque AI verdict.
+- Deterministic/explainable decision engine rather than opaque AI.
 - German + English from the first build.
 - Free tier capped at 5 active purchases.
 - Archived/finished purchases do not count toward the active cap.
 - StoreKit 2 Lifetime Pro unlock.
 - No subscription in v1.
 - Provisional bundle ID: `de.kamilunavo.keepmeter`.
-- Current StoreKit product ID in code: `de.kamilunavo.keepmeter.pro.lifetime`.
-- Lifetime price target remains roughly EUR 7.99–12.99; exact App Store tier is not yet locked.
+- Current StoreKit product ID: `de.kamilunavo.keepmeter.pro.lifetime`.
+- Lifetime price target roughly EUR 7.99–12.99; exact tier not locked.
 
-### Implemented and compiling as of 2026-08-18
+### Implemented and compiling
 
-- Dedicated KeepMeter repository and app-specific state file.
-- Native `KeepMeter.xcodeproj` and shared scheme.
-- SwiftData `Purchase` and `UsageEvent` models.
+- Dedicated KeepMeter repository and project-state file.
+- Native Xcode project + shared scheme.
+- SwiftData `Purchase` / `UsageEvent` models.
 - Active / kept / returned states.
-- Dashboard ordered by return urgency.
-- Add Purchase flow.
-- Purchase Detail flow.
-- Archive.
+- Dashboard, Add Purchase, Purchase Detail and Archive.
 - One-tap usage logging.
-- Cost-per-use calculation.
-- Return-window countdown / elapsed ratio.
+- Cost-per-use and return-window calculations.
 - Explainable KEEP / REVIEW / RETURN? engine.
-- Local return reminders and reminder cancellation on completion.
-- StoreKit 2 entitlement service.
-- Lifetime Pro purchase and restore plumbing.
+- Local reminders + cancellation on completion.
+- StoreKit 2 entitlement/purchase/restore plumbing.
 - Free-tier enforcement at 5 active purchases.
 - Lifetime Pro paywall.
 - 3-page onboarding.
-- Main navigation tabs: Active / Insights / Archive / Settings.
-- Lightweight Insights dashboard with tracked value, total uses, average cost/use, active decisions, kept/returned counts and best-value purchase.
-- Settings / explicit Pro management entry.
-- Local-first privacy messaging and onboarding reset in Settings.
-- English and German localization resources.
+- Tabs: Active / Insights / Archive / Settings.
+- Insights dashboard.
+- Settings / explicit Pro management.
+- English + German localization.
 - GitHub Actions unsigned iOS Simulator build workflow.
-- `EntitlementStore` compile fix (`Combine` import).
+- First coherent visual system across every MVP surface.
 
-### Verified build gate
+### Visual system — first polish complete
 
-The first real simulator compile is confirmed green.
+PR #2 applied the first cohesive KeepMeter design across Onboarding, Dashboard, Purchase Detail, Insights, Archive, Add Purchase, Settings and Paywall:
 
-- Validation branch: `agent/ci-validation`.
-- PR: #1 `Validate current KeepMeter MVP build`.
-- Workflow run: `32178808223`.
-- Build job: SUCCESS.
-- Xcode target: KeepMeter / Debug / generic iOS Simulator / code signing disabled.
-- All workflow steps completed successfully.
-- PR #1 was squash-merged.
-- Merge commit: `bf024336455d2a65da1e7d5f25ac87f142a3de8d`.
+- adaptive branded background
+- reusable material-card language with restrained borders/shadows
+- semantic keep/review/return colors
+- visible return-window progress
+- stronger uses / cost-per-use / deadline metric hierarchy
+- redesigned decision hero
+- prominent one-tap usage action
+- polished final keep/return controls
+- Lifetime-first Pro presentation emphasizing one-time purchase/no subscription
+- success haptic after logging usage
+- additional DE/EN visual copy
 
-Future major source passes should continue to use CI as a regression gate before TestFlight.
+System-aware backgrounds/materials make the direction light/dark compatible, but dedicated appearance QA is still required.
+
+### Verified build gates
+
+**Gate 1 — functional MVP**
+
+- PR #1 `Validate current KeepMeter MVP build`
+- Workflow run `32178808223`
+- Result: SUCCESS
+- Merge checkpoint `bf024336455d2a65da1e7d5f25ac87f142a3de8d`
+
+**Gate 2 — visual polish**
+
+- Branch `agent/visual-polish-v1`
+- PR #2 `Polish KeepMeter MVP visual system`
+- 11 changed files / ~1,200 additions during the pass
+- Workflow run `32179763750`
+- Full iOS Simulator `xcodebuild`: SUCCESS
+- PR #2 squash-merged
+- Merge checkpoint `45c53308ae41fc38eec5049c0181d4b0d7ede42b`
+
+Future major source passes must continue to use CI as a regression gate.
 
 ### Current decision-engine rules
-
-Current conservative prototype rules:
 
 - deadline passed -> REVIEW
 - zero uses and <= 3 days remaining -> RETURN?
 - <= 1 use and <= 3 days remaining -> REVIEW
-- zero uses after >= 60% of the return window -> REVIEW
+- zero uses after >= 60% of return window -> REVIEW
 - >= 3 uses -> KEEP signal
 - early window -> REVIEW / gather more signal
 - otherwise -> REVIEW / more evidence needed
 
-The UI explains the reason. Cost per use is displayed, but no universal monetary threshold pretends to define personal value.
+The UI explains the reason. No universal cost threshold pretends to define personal value.
 
 ### Naming
 
-Working name: `KeepMeter`.
+Working name: `KeepMeter` — **PROVISIONAL**.
 
-Status: **PROVISIONAL**.
-
-Rejected/unavailable/unsuitable directions found during research include ReturnRadar, Belegio, Keepture, Receiptra, Reclaimo, Refundly, KeepScore, WorthKeep / KeepWorth, ReturnCue and ProofNest.
-
-A preliminary exact-name search did not surface an obvious consumer app using `KeepMeter`, but formal trademark clearance and domain reservation are not recorded yet.
+Preliminary exact-name searching found no obvious exact consumer-app collision, but formal trademark clearance and domain reservation are not recorded. Previously rejected/unavailable/unsuitable directions include ReturnRadar, Belegio, Keepture, Receiptra, Reclaimo, Refundly, KeepScore, WorthKeep / KeepWorth, ReturnCue and ProofNest.
 
 ### Rejected directions
 
-- Do not revive generic receipt/warranty-vault positioning.
-- Do not clone Belegio, KeepSlip, ReturnCue AI, Refundly or similar products.
-- Do not turn v1 into finance/budgeting software.
-- Do not link bank accounts.
-- Do not access user inboxes for v1.
-- Do not require an account/backend.
-- Do not make an unexplainable AI recommendation.
-- Do not force a subscription.
+- generic receipt/warranty vault
+- clone of existing receipt/refund tools
+- finance/budgeting suite
+- bank linking
+- inbox access for v1
+- mandatory account/backend
+- opaque AI verdict
+- forced subscription
 
 ### Build / release status
 
-- First CI iOS Simulator build: GREEN.
-- Onboarding / Insights / Settings / StoreKit plumbing compile in the verified build.
+- Functional iOS Simulator compile: GREEN.
+- Visual-polish iOS Simulator compile: GREEN.
 - No physical-device QA yet.
 - No persistence/relaunch QA yet.
 - No notification-delivery QA yet.
 - No StoreKit local/sandbox purchase QA yet.
 - No TestFlight build yet.
 - No App Store submission yet.
-- Matching Lifetime In-App Purchase still needs App Store Connect configuration before real purchase testing.
+- Matching Lifetime IAP still needs App Store Connect configuration.
 
 ### Open MVP work
 
-- First high-polish visual system.
-- Visual identity and app icon.
-- Dynamic DE/EN notification-format cleanup.
-- StoreKit local test configuration.
-- App Store Connect Lifetime product creation/configuration.
+- StoreKit local `.storekit` test configuration.
+- App Store Connect Lifetime product setup.
 - Persistence/relaunch QA.
 - Notification permission/delivery QA.
 - Free-limit / purchase / restore QA.
-- Light/dark-mode polish.
+- Dedicated light/dark appearance QA.
 - Accessibility pass.
-- Final name/domain/trademark due diligence.
-- TestFlight readiness pass and first signed upload.
+- Dynamic notification localization cleanup.
+- Final visual identity / app icon.
+- Final-enough name/domain/trademark due diligence.
+- TestFlight readiness + signed upload.
 
 ### Immediate next steps
 
-1. Apply a coherent visual polish pass without breaking the green core architecture.
-2. Establish app-icon / visual-identity direction.
-3. Add StoreKit local testing and exercise free -> Pro / restore behavior.
-4. QA persistence, reminders and the decision loop.
-5. Complete light/dark and accessibility passes.
-6. Lock public branding only after stronger name/domain/trademark due diligence.
-7. Upload first TestFlight build only after the QA gates are green.
+1. Add StoreKit local testing and exercise free -> Pro -> restore.
+2. QA persistence and notifications.
+3. Run dedicated light/dark + accessibility passes.
+4. Lock icon/branding after stronger name checks.
+5. Prepare first signed TestFlight build only after QA gates are green.
 
 ## Candidate #011 — Family Life OS
 
@@ -302,7 +282,7 @@ Today is a calm briefing/timeline, not a duplicate calendar dashboard. Plan star
 - private family-document storage
 - server-side AI only
 - structured validated proposal output
-- Realtime where useful, but normal fetch remains authoritative
+- Realtime where useful, normal fetch remains authoritative
 - APNs-backed notification path
 - local cache/offline queue where appropriate
 
@@ -356,21 +336,19 @@ Preferred icon concept direction: **Gather -> Order** — loose rounded pieces c
 ### Immediate next steps
 
 1. Create the app-specific implementation repository when repository creation is available.
-2. Scaffold the native SwiftUI app shell and domain/service boundaries.
+2. Scaffold native SwiftUI shell and domain/service boundaries.
 3. Implement fixture-driven Heute, Inbox and Import prüfen before real AI integration.
 4. Implement Supabase schema/RLS and text-fixture ingestion path.
-5. Validate the end-to-end vertical slice on iPhone/iPad, Dark Mode and Dynamic Type.
-6. Only after that core loop is excellent, expand Plan/calendar and adjacent family modules.
-7. Update both the #011 project state and this master state after every major pass.
+5. Validate end-to-end vertical slice on iPhone/iPad, Dark Mode and Dynamic Type.
+6. Only after the core loop is excellent, expand Plan/calendar and adjacent family modules.
+7. Update both #011 project state and this master state after every major pass.
 
 ## Handoff rule for new chats
 
-When the user says to continue the App Factory:
+When continuing the App Factory:
 
 1. Read `acciento89-bot/appideenchatgpt/docs/APP_FACTORY_STATE.md`.
-2. Read the active app's `docs/PROJECT_STATE.md` — currently `acciento89-bot/keepmeter/docs/PROJECT_STATE.md` for #001.
-3. Inspect the current repo branch/commit/build state before coding.
-4. Continue from the recorded next steps rather than reconstructing from chat memory.
-5. Update both state files after every major pass.
-
-If the user explicitly asks to continue #011 Family Life OS, additionally read `apps/011-family-life-os/PROJECT_STATE.md` and its linked canonical foundation docs before continuing.
+2. Read the selected app's project state (`acciento89-bot/keepmeter/docs/PROJECT_STATE.md` for #001; `apps/011-family-life-os/PROJECT_STATE.md` for #011 until its own repo exists).
+3. Inspect current repo branch/commit/build state before coding.
+4. Continue from recorded next steps.
+5. Update only the relevant candidate section while preserving all concurrent project sections.
