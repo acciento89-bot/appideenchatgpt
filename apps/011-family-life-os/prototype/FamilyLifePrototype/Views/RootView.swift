@@ -129,7 +129,7 @@ struct RootView: View {
     RootView(store: DemoStore())
 }
 
-#Preview("iPad") {
+#Preview("iPad / Regular Width") {
     RootView(store: DemoStore())
-        .previewDevice("iPad Pro 11-inch (M4)")
+        .environment(\.horizontalSizeClass, .regular)
 }
