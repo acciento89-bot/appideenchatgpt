@@ -1,16 +1,23 @@
 # Family Life OS — Project State
 
 Last updated: 2026-08-18
-Status: FIRST EXECUTABLE UI VERTICAL SLICE GREEN
+Status: EXECUTABLE UI + ADAPTIVE QUALITY PASS GREEN
 Internal portfolio slot: #011 candidate
 Public brand/name: NOT LOCKED
 Current canonical branch: `main`
-Foundation PR: `#3` — MERGED
-Foundation merge commit: `cd86aa4980133020b05629f9930aff598d9f9b35`
-UI prototype PR: `#4` — MERGED
-UI prototype merge commit: `2c9ad0a3400321bc692cafaa9b492c30e9bbb8ec`
-Green prototype CI run: `32180561109`
 Implementation repository: NOT CREATED YET — prototype temporarily lives in the central App Factory repo
+
+## Current checkpoints
+
+- Foundation PR: `#3` — MERGED
+- Foundation merge commit: `cd86aa4980133020b05629f9930aff598d9f9b35`
+- First executable UI PR: `#4` — MERGED
+- First executable UI merge commit: `2c9ad0a3400321bc692cafaa9b492c30e9bbb8ec`
+- First green prototype CI run: `32180561109`
+- Adaptive UI / accessibility PR: `#5` — MERGED
+- Adaptive UI / accessibility merge commit: `aa70b24ebb21d472c66ac13d790096510f65a309`
+- Final green quality-pass CI run: `32182627951`
+- Final quality-pass head before squash: `fc957da0e5f55adf6f5f71d5834a7905c6359e43`
 
 ## Product thesis
 
@@ -22,10 +29,13 @@ Primary loop:
 
 **Capture -> Understand -> Review -> Act -> Follow up**
 
+`Import prüfen` is the signature trust boundary. AI/extraction output is proposal data only until the user explicitly confirms it.
+
 ## Accepted decisions
 
 - DACH-first behavior, globally extensible architecture.
-- iPhone-first native SwiftUI client with intentional iPad adaptation.
+- Native SwiftUI client.
+- iPhone first, with intentional iPad adaptation rather than a stretched phone UI.
 - iOS/iPadOS 18+ deployment direction; iOS 26+ visual APIs gated by availability.
 - Shared backend required from v1.
 - Supabase selected as foundation backend.
@@ -41,170 +51,233 @@ Primary loop:
 - Core destinations: Heute, Inbox, Plan, Familie.
 - Settings are not a fifth permanent tab; capture is an action, not a tab.
 - MVP actions: events, tasks, deadlines, payments and preparation actions/reminders.
-- Family Pro recurring subscription is provisional monetization because AI/storage/sync create recurring cost.
+- Family Pro recurring subscription remains provisional because AI/storage/sync create recurring cost.
 - German + English localization architecture from first build.
 - Child/guest permission architecture from day one.
-- `Import prüfen` is the signature trust-boundary screen and must be excellent before scope expands.
-- Real backend/AI integration must not begin by weakening the review-before-confirmation rule already proven in the fixture flow.
+- Real backend/AI integration must not weaken review-before-confirmation.
 
-## First executable SwiftUI vertical slice — GREEN
+## Executable prototype location
 
-The first real iOS/iPadOS project now exists under:
+Current temporary implementation:
 
 `apps/011-family-life-os/prototype/`
 
-This is a temporary implementation location because the connected GitHub tooling cannot create a new repository in this session. The prototype must move to an app-specific repository once repository creation is available; do not let the temporary central location become the permanent architecture.
+Standalone project:
 
-### Implemented app shell
+`apps/011-family-life-os/prototype/FamilyLifePrototype.xcodeproj`
 
-Four native SwiftUI tabs:
+Shared scheme:
 
-1. Heute
-2. Inbox
-3. Plan
-4. Familie
+`FamilyLifePrototype`
 
-Each is wrapped in its own `NavigationStack`. Import review is presented as a modal workflow.
+Provisional bundle id:
 
-### Implemented domain/data model
+`de.kamilunavo.familyprototype`
 
-Fixture-driven domain types now exist for:
+Deployment target:
 
-- household members / roles / accents
-- plan items
-- source/inbox items
-- action proposals
-- event / task / deadline / payment / preparation kinds
+- iOS/iPadOS 18.0
+- iPhone + iPad target families
 
-`DemoStore` uses the Observation framework and owns the interactive prototype state.
+Dedicated build workflow:
 
-### Implemented Heute
+`.github/workflows/family-life-os-prototype-build.yml`
+
+The connected GitHub tooling still does not expose repository creation. Move the implementation to an app-specific repository when repository creation becomes available; do not let the central prototype path become permanent architecture.
+
+## Implemented product flow
+
+### App shell
+
+Compact width:
+
+- native `TabView`
+- Heute
+- Inbox
+- Plan
+- Familie
+- independent navigation stacks
+
+Regular width / iPad:
+
+- adaptive `NavigationSplitView`
+- persistent sidebar for Heute / Inbox / Plan / Familie
+- detail destination changes with sidebar selection
+- content widths are constrained so large screens do not become oversized phone cards
+
+### Heute
+
+Implemented:
 
 - conditional attention surface
-- compact factual family brief
+- factual family brief
 - chronological family timeline
-- task completion affordance
+- task completion control
 - member identity via avatar/name + accent
-- tomorrow/preparation section
-- semantic system backgrounds suitable for light/dark mode
+- tomorrow/preparation section driven from plan data
+- calm state
+- real schedule-overlap detection for items sharing a family member
+- conflict attention row
+- conflict indicators on affected timeline rows
+- semantic light/dark compatible backgrounds
 
-### Implemented Inbox
+Deterministic Today QA fixtures:
+
+- busy / standard
+- calm
+- conflict
+- Dark Mode
+- Accessibility Dynamic Type
+
+### Inbox
+
+Implemented statuses:
+
+- `Wartet auf Upload`
+- `Wird hochgeladen`
+- `Wird analysiert`
+- `Prüfen`
+- `Teilweise übernommen`
+- `Erledigt`
+- `Analyse fehlgeschlagen`
+
+Implemented behavior:
 
 - filters: Offen / Verarbeitet / Alle
 - source types: image / PDF / text / voice
-- upload / processing / review / partial / done / failed state model
+- offline queued copy: `Wird synchronisiert, sobald du wieder online bist.`
 - processing spinner
-- failure copy
+- failure presentation
 - proposal count
 - capture menu entry points
+- review/partial rows are interactive
+- non-actionable processing/completed/error rows are not dead buttons
+- empty filtered state uses a meaningful next action
 
-### Implemented `Import prüfen`
+### Import prüfen
 
-This signature trust-boundary flow is interactive, not a static mockup.
+This remains the critical trust-boundary screen.
 
-- original source can be expanded/read
+Implemented:
+
+- original source remains available throughout review
+- compact-width stacked layout
+- regular-width two-column source + proposal layout
 - four school-letter proposals are editable
 - proposal inclusion can be toggled independently
-- date/time/reminder fields use native `DatePicker`
-- ambiguous member assignment is explicitly unresolved
-- confirmation button is blocked while a required assignment is unresolved
+- native date/time/reminder editing
+- ambiguous child assignment is explicitly unresolved
+- unresolved required assignment blocks confirmation
 - assigning Lina resolves the blocker
-- selected proposals can be confirmed
-- confirmation converts proposal data into canonical in-memory `PlanItem` values
+- source and proposal controls have VoiceOver labels/hints
+- stable accessibility identifiers exist for critical review actions
+- accessibility text sizes reflow date controls vertically
+- confirmation converts accepted proposals into canonical in-memory `PlanItem` values
 - source is marked completed after confirmation
+- additional deterministic `readyImport` fixture verifies the unblocked state
 
-### Implemented Plan
+### Plan
+
+Implemented:
 
 - Agenda-first list
 - day grouping
-- household member filters
+- household member filter chips
 - event/task/deadline/payment/preparation rows
 - task/preparation completion support
-- subtle `Aus Import` provenance indicator
+- `Aus Import` provenance indicator
+- empty filtered state
+- 44pt practical completion target
+- Agenda row reflow at accessibility Dynamic Type sizes
 
-### Implemented Familie
+### Familie
+
+Implemented:
 
 - household summary
 - Owner / Adult / Child role display
 - adult full-access vs child-without-login distinction
 - permission architecture messaging
 - member accents and initials
+- large-text member-row adaptation
+- nonfunctional invite action explicitly disabled in prototype rather than pretending to work
 
-## Build gate
+## Accessibility / appearance baseline now implemented
 
-A standalone Xcode project and shared scheme now exist:
+Current UI pass includes:
 
-- `prototype/FamilyLifePrototype.xcodeproj`
-- scheme: `FamilyLifePrototype`
-- provisional bundle id: `de.kamilunavo.familyprototype`
-- iOS/iPadOS deployment target: 18.0
-- target device families: iPhone + iPad
+- Dynamic Type-aware layouts
+- dedicated accessibility-size reflow for dense rows/forms
+- VoiceOver labels and hints for critical controls
+- stable accessibility identifiers for important interaction points
+- non-color-only family identity
+- minimum practical touch targets on key controls
+- Light/Dark semantic system surfaces
+- Dark Mode previews
+- accessibility-size previews
+- regular-width previews
+- meaningful empty states
+- explicit offline/failure states
 
-Dedicated CI workflow:
+This is an implementation baseline, not a claim that full manual VoiceOver/device QA has already been completed. Physical-device and interactive accessibility QA remain future release gates.
 
-`.github/workflows/family-life-os-prototype-build.yml`
+## CI / compiler history
 
-Build command uses an unsigned generic iOS Simulator destination.
+### First executable slice
 
-### CI history
+Run `32180375921` failed on one Swift `foregroundStyle` type-inference issue in `ImportReviewView`.
 
-Run `32180375921` failed on one Swift type-inference issue in `ImportReviewView`: a ternary `foregroundStyle` mixed two concrete `ShapeStyle` types.
+Fix: explicit `Color.primary` / `Color.orange`.
 
-The code was corrected to use explicit `Color.primary` / `Color.orange`.
+Run `32180561109` completed **SUCCESS**. PR #4 merged only after green CI.
 
-Run `32180561109` then completed **SUCCESS** on head `c0d19f94074c7288bb1838541638d2d49b329331`.
+### Adaptive quality pass
 
-PR #4 was squash-merged only after the green simulator build.
+Initial PR #5 run `32182317924` caught an iOS API mismatch in the new regular-width sidebar: the direct non-optional `List(selection:)` binding was not available for the targeted iOS API.
 
-Merged UI checkpoint:
+Fix: the sidebar now uses an explicit optional `Binding<AppSection?>` and writes resolved selection back to the non-optional app state.
 
-`2c9ad0a3400321bc692cafaa9b492c30e9bbb8ec`
+Run `32182408384` completed **SUCCESS** after that functional fix.
 
-## UX locked for first prototype
+Two non-functional preview warnings remained because `.previewDevice(...)` is ignored inside the modern `#Preview` macro.
 
-### Heute
+Fix: iPad/regular-width previews now force `.environment(\.horizontalSizeClass, .regular)` instead. A ready-to-confirm Import Review preview was added at the same time.
 
-- conditional attention only when needed
-- factual compact family brief from confirmed data only
-- lightweight chronological timeline
-- conditional tomorrow/preparation section
-- calm empty state
+Final run `32182627951` completed **SUCCESS** on head `fc957da0e5f55adf6f5f71d5834a7905c6359e43`.
 
-### Inbox
+App-code log check after the final run:
 
-- raw incoming family information + processing state
-- simple `Offen / Verarbeitet / Alle` filters
-- explicit upload/analyze/review/failure states
-- source remains available for provenance/recovery
+- no Swift compile warnings from the prototype source
+- no remaining `previewDevice` warnings
+- build ended with `BUILD SUCCEEDED`
+- remaining runner/Xcode informational warnings are external to app source: AppIntents metadata skipped because the prototype does not link AppIntents, plus a GitHub Actions Node-version deprecation notice from `actions/checkout@v4`
 
-### Import prüfen
+PR #5 was squash-merged only after the final successful build.
 
-- original source always reachable
-- independently editable proposals
-- types: Termin / Aufgabe / Frist / Zahlung / Vorbereitung
-- uncertainty highlighted at the specific field
-- confirmation disabled only for unresolved required fields
-- no silent canonical writes
+Merged adaptive-quality checkpoint:
 
-### Plan
+`aa70b24ebb21d472c66ac13d790096510f65a309`
 
-- Agenda-first MVP
-- member filtering
-- full calendar visualization follows only if vertical slice is strong
+## Signature fixture
 
-### Familie
+Demo household: `Familie Berger` with Mara, Jonas, Lina and Ben.
 
-- household + members
-- roles: Owner / Adult / Child / Guest-Caregiver
-- sensitive permissions enforced server-side once backend is connected
+The school-letter source produces exactly four proposals:
+
+1. Klassenfahrt event
+2. permission-slip deadline/task
+3. 35 EUR payment reminder
+4. lunchpack/preparation action
+
+The initial state requires an ambiguous child assignment to be resolved. The user can edit proposals before confirmation. Confirmed items become PlanItems and retain source provenance.
 
 ## Brand state
 
 Public name remains open and must not block implementation.
 
-`Family Life OS` is an internal codename only. It should not become public positioning without re-evaluation because competitor Famiqo currently uses `Family Life Operating System`.
+`Family Life OS` is an internal codename only. Do not use it as locked public positioning because competitor territory already overlaps with the `Family Life Operating System` phrase.
 
-First-pass rejected directions:
+First-pass rejected naming directions:
 
 - Famiqo
 - Kinora
@@ -222,11 +295,11 @@ Brand character:
 
 Preferred icon concept: **Gather -> Order** — several rounded loose pieces becoming one organized form.
 
-No cartoon-family, robot/AI-sparkle or generic house/checkmark identity.
+Avoid cartoon-family, robot/AI-sparkle and generic house/checkmark identity.
 
-Final public name requires App Store/web + EUIPO/DPMA/domain checks before lock.
+Final public name requires current App Store/web + EUIPO/DPMA/domain checks before lock.
 
-## Technical architecture
+## Technical architecture direction
 
 Canonical architecture: `TECH_ARCHITECTURE.md`.
 
@@ -268,21 +341,6 @@ Initial core entities:
 
 A child/guest may exist as a household member without an authenticated user account.
 
-## UI fixture pack locked
-
-Demo household: `Familie Berger` with Mara, Jonas, Lina and Ben.
-
-Signature fixture is a German school letter that yields exactly four proposals:
-
-1. Klassenfahrt event
-2. permission-slip deadline/task
-3. 35 EUR payment reminder
-4. lunchpack/preparation action
-
-The first review resolves an ambiguous child assignment and supports editing before confirmation.
-
-Visual QA fixture requirements still include busy/calm/conflict Today, mixed Inbox states, failed analysis, partial processing, unresolved and ready Import Review, Plan agenda, Family list, Dark Mode, iPad split view, Dynamic Type and offline capture.
-
 ## Deferred / rejected for MVP
 
 - generic calendar + shopping + chores clone
@@ -322,16 +380,16 @@ Visual QA fixture requirements still include busy/calm/conflict Today, mixed Inb
 
 ## Immediate next steps
 
-1. Do a dedicated visual/interaction QA pass of the green prototype using the locked fixture matrix.
-2. Add proper SwiftUI previews for normal/busy/error/unresolved states and iPad regular width.
-3. Refine adaptive iPad navigation/split-view behavior rather than merely relying on the shared tab shell.
-4. Add Dark Mode, Dynamic Type and VoiceOver regression checks/adjustments.
-5. Create the app-specific implementation repository once repository creation is available and move the prototype without history loss.
-6. Then implement the Supabase schema + RLS and replace fixture persistence with repository interfaces.
-7. Start real ingestion with the plain-text school-letter path first; add photo/PDF/OCR only after the data contract is proven.
-8. Keep real AI extraction behind structured proposals and explicit review.
+1. Implement the Supabase schema and RLS policies for households, members, source items, proposals and plan items.
+2. Introduce repository/service interfaces so the current views stop depending directly on `DemoStore` as the eventual source of truth.
+3. Prove the first real ingestion path with the plain-text school-letter fixture: source -> structured proposal records -> review -> transactional confirmation -> plan items.
+4. Add authentication/household membership only to the minimum needed for secure shared data; do not expand onboarding scope prematurely.
+5. Add photo/PDF/private Storage/OCR only after the text data contract is proven.
+6. Add real AI extraction only behind validated structured output and the existing explicit review boundary.
+7. Perform physical iPhone/iPad + manual VoiceOver/appearance QA before any TestFlight release claim.
+8. Move to an app-specific repository when repository creation becomes available.
 9. Update this state and the central App Factory state after every major pass.
 
 ## Handoff rule
 
-Before continuing this app in a new chat, read this file first, then PRODUCT_SPEC, DESIGN_SYSTEM, UX_SCREEN_SPEC, BRAND_DIRECTION, TECH_ARCHITECTURE, UI_FIXTURES and the prototype README. Inspect current `main` and CI state before changing code. Do not reconstruct scope from memory.
+Before continuing this app in a new chat, read this file first, then PRODUCT_SPEC, DESIGN_SYSTEM, UX_SCREEN_SPEC, BRAND_DIRECTION, TECH_ARCHITECTURE, UI_FIXTURES and the prototype README. Inspect current `main` and CI state before changing code. Continue from the Supabase/repository-interface next steps; do not reconstruct scope from chat memory.
