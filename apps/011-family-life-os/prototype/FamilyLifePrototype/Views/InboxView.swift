@@ -44,10 +44,11 @@ struct InboxView: View {
                 } description: {
                     Text("Neue Fotos, PDFs, Texte oder Spracheingaben erscheinen hier.")
                 } actions: {
-                    Button("Etwas hinzufügen") {
-                        store.openSignatureReview()
+                    Button("Text-Beispiel importieren") {
+                        store.ingestSchoolLetterText()
                     }
                     .buttonStyle(.borderedProminent)
+                    .disabled(store.isRepositoryBusy)
                 }
                 .listRowBackground(Color.clear)
             } else {
@@ -82,16 +83,21 @@ struct InboxView: View {
                     Button("Dokument/PDF importieren", systemImage: "doc") {
                         store.openSignatureReview()
                     }
-                    Button("Text einfügen", systemImage: "text.alignleft") {
-                        store.openSignatureReview()
+                    Button("Text-Beispiel importieren", systemImage: "text.alignleft") {
+                        store.ingestSchoolLetterText()
                     }
                     Button("Sprechen", systemImage: "waveform") {
                         store.openSignatureReview()
                     }
                 } label: {
-                    Image(systemName: "plus")
+                    if store.isRepositoryBusy {
+                        ProgressView()
+                    } else {
+                        Image(systemName: "plus")
+                    }
                 }
-                .accessibilityLabel("Zur Inbox hinzufügen")
+                .disabled(store.isRepositoryBusy)
+                .accessibilityLabel(store.isRepositoryBusy ? "Import läuft" : "Zur Inbox hinzufügen")
                 .accessibilityIdentifier("inbox-add")
             }
         }
