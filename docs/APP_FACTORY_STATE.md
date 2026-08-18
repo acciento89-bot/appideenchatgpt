@@ -3,254 +3,170 @@
 Last updated: 2026-08-18
 Status: ACTIVE
 Current user-selected workstream: #011 Family Life OS
-Repository purpose: Persistent handoff/state repository for the full App Factory so work can continue across limited chat lengths and new ChatGPT conversations without losing decisions or progress.
+Repository purpose: Persistent handoff/state repository for the full App Factory so work can continue across chat limits and new conversations without losing decisions or progress.
 
 ## Mandatory workflow
 
-1. Build/validate the apps sequentially, starting with #001 unless the user explicitly selects another App Factory candidate.
+1. Build/validate apps sequentially starting with #001 unless the user explicitly selects another candidate.
 2. This repository is the central App Factory memory and must be updated after every major design, development, naming, monetization, release, TestFlight, App Store, or strategy pass.
-3. Each app gets its own repository once implementation starts.
+3. Each app gets its own repository once implementation starts and repository creation is available.
 4. Each app repository must contain `docs/PROJECT_STATE.md` as its app-specific single source of truth.
-5. The central state must record at minimum active app/phase, repo, commit/PR, accepted/rejected decisions, monetization, scope, blockers, release status and next steps.
-6. Before continuing App Factory work in a new chat, read this file first and then read the selected app's project state.
-7. Keep v1 focused and validate before overbuilding.
-8. Do not force subscriptions when a one-time/lifetime unlock fits better.
-9. Before locking a name or positioning, check current App Store/web competition and appropriate trademark/domain sources.
-10. Major source passes must pass CI/regression gates before merge/TestFlight.
-11. Never overwrite another App Factory candidate's recorded state when updating one candidate; preserve concurrent project sections.
+5. Before continuing work, read this file first and then the selected app's project state.
+6. Major source passes must pass CI/regression gates before merge/TestFlight.
+7. Keep v1 focused; do not add adjacent features to hide a weak core loop.
+8. Do not force subscriptions when lifetime/one-time better matches product economics.
+9. Before locking a public name or positioning, re-check current App Store/web and appropriate trademark/domain sources.
+10. Never overwrite another candidate's state while updating one workstream.
 
 ## Portfolio queue
 
 | # | Working title | Core idea | Planned monetization | Status |
 |---|---|---|---|---|
-| 001 | KeepMeter (PROVISIONAL) | Return-window + actual-usage decision tool: cost per use, usage pace, deadline, Keep/Review/Return | Freemium + Lifetime Pro | ACTIVE — polished MVP green; StoreKit/QA next |
+| 001 | KeepMeter (PROVISIONAL) | Return-window + actual-usage decision tool: cost/use, usage pace, deadline, Keep/Review/Return | Freemium + Lifetime Pro | ACTIVE — polished MVP green; StoreKit/QA next |
 | 002 | ProofVault | Evidence/documentation vault for photos, videos, chats and PDFs; structured reports | Freemium + Pro | QUEUED |
-| 003 | ParcelPilot | Orders, deliveries, returns and refund tracking in one place | Freemium | QUEUED |
-| 004 | SubZero | Detect and track subscriptions, show recurring costs, reminders | Pro / Lifetime | QUEUED |
-| 005 | GiftBrain | Save gift ideas per person/occasion via share sheet, price/link/photo | Lifetime | QUEUED |
-| 006 | DecideIt | Weighted decision comparison with criteria and optional shared ratings | Freemium | QUEUED |
-| 007 | Rambl | Voice dump -> structured tasks, notes, lists and dates | Subscription due to AI/cloud cost | QUEUED |
-| 008 | BeforeAfter | Guided repeat photography with overlay/alignment, comparison, collage/video | Pro / Lifetime | QUEUED |
-| 009 | ScamLens | Analyze screenshots/messages for suspicious indicators and explain risk factors | Credits / Pro | QUEUED |
-| 010 | SwipeOrDie | Very fast portrait reaction/high-score game with short sessions | Ads + IAP | QUEUED |
-| 011 | Family Life OS (INTERNAL CODENAME) | Family Inbox: photo/PDF/text/voice -> reviewed events, tasks, deadlines, payments and preparation actions | Freemium + Family Pro subscription | EXECUTABLE UI + ADAPTIVE QUALITY PASS GREEN |
+| 003 | ParcelPilot | Orders, deliveries, returns and refund tracking | Freemium | QUEUED |
+| 004 | SubZero | Detect/track subscriptions and recurring costs | Pro / Lifetime | QUEUED |
+| 005 | GiftBrain | Gift ideas per person/occasion via share sheet | Lifetime | QUEUED |
+| 006 | DecideIt | Weighted decision comparison | Freemium | QUEUED |
+| 007 | Rambl | Voice dump -> structured tasks, notes, lists, dates | Subscription | QUEUED |
+| 008 | BeforeAfter | Guided repeat photography/alignment/comparison | Pro / Lifetime | QUEUED |
+| 009 | ScamLens | Analyze screenshots/messages for suspicious indicators | Credits / Pro | QUEUED |
+| 010 | SwipeOrDie | Fast portrait reaction/high-score game | Ads + IAP | QUEUED |
+| 011 | Family Life OS (INTERNAL CODENAME) | Family Inbox: photo/PDF/text/voice -> reviewed events/tasks/deadlines/payments/preparation | Freemium + Family Pro subscription | REPOSITORY CONTRACT GREEN / SUPABASE SQL PENDING DB VALIDATION |
 
-## Portfolio app #001 — KeepMeter
+# Portfolio app #001 — KeepMeter
 
-### Repositories
+## Repositories / authoritative state
 
-Master App Factory repository:
-
-`acciento89-bot/appideenchatgpt`
-
-App-specific repository:
+App repo:
 
 `acciento89-bot/keepmeter`
 
-App-specific authoritative state:
+Authoritative app state:
 
 `acciento89-bot/keepmeter/docs/PROJECT_STATE.md`
 
-Default branch: `main`
-
-Current verified app checkpoint:
+Current recorded verified checkpoint:
 
 `45c53308ae41fc38eec5049c0181d4b0d7ede42b`
 
-Latest recorded app-state update commit:
+Latest recorded app-state update:
 
 `fb84802c477593f243c5187bc46b5d021cd0ee4d`
 
-### Current concept
+## Product thesis
 
-#001 is no longer a generic receipt/warranty tracker.
-
-Current thesis:
-
-> **Is this purchase actually worth keeping before the return window closes?**
+> Is this purchase actually worth keeping before the return window closes?
 
 Core loop:
 
 **Bought -> Use -> Measure -> Decide before deadline.**
 
-The user adds a purchase, logs actual use, watches cost per use and the return countdown, and receives a transparent KEEP / REVIEW / RETURN? signal before the deadline.
+KeepMeter is deliberately not another receipt/warranty vault or generic cost-per-use calculator. Its differentiation is the combined deadline-aware decision loop.
 
-### Why the concept pivoted
-
-The original receipt-scan / return-window / warranty concept was found to be crowded in 2026. Close/adjacent products found during validation included Belegio, Lyfe, Warranty Box, KeepSlip, ValueGuard, Reclaimo, Return & Refund Tracker, ReturnCue AI and Refundly. Adjacent cost-per-use products also exist.
-
-KeepMeter therefore must not position itself as another receipt vault or generic cost-per-use calculator. Its differentiation is the combined deadline-aware decision loop.
-
-### Locked implementation decisions
+## Locked implementation decisions
 
 - Native iPhone utility.
 - SwiftUI + SwiftData.
 - iOS 17+.
 - Local-first; no account/backend for core v1.
 - UserNotifications for deadline reminders.
-- Deterministic/explainable decision engine rather than opaque AI.
-- German + English from the first build.
-- Free tier capped at 5 active purchases.
-- Archived/finished purchases do not count toward the active cap.
-- StoreKit 2 Lifetime Pro unlock.
-- No subscription in v1.
-- Provisional bundle ID: `de.kamilunavo.keepmeter`.
-- Current StoreKit product ID: `de.kamilunavo.keepmeter.pro.lifetime`.
-- Lifetime price target roughly EUR 7.99–12.99; exact tier not locked.
+- Explainable deterministic decision engine rather than opaque AI.
+- German + English from first build.
+- Free tier: 5 active purchases.
+- StoreKit 2 Lifetime Pro; no subscription in v1.
+- Provisional bundle id `de.kamilunavo.keepmeter`.
+- Product id `de.kamilunavo.keepmeter.pro.lifetime`.
+- Lifetime target approximately EUR 7.99–12.99; exact tier not locked.
 
-### Implemented and compiling
+## Implemented / green
 
-- Dedicated KeepMeter repository and project-state file.
-- Native Xcode project + shared scheme.
-- SwiftData `Purchase` / `UsageEvent` models.
-- Active / kept / returned states.
-- Dashboard, Add Purchase, Purchase Detail and Archive.
-- One-tap usage logging.
-- Cost-per-use and return-window calculations.
-- Explainable KEEP / REVIEW / RETURN? engine.
-- Local reminders + cancellation on completion.
-- StoreKit 2 entitlement/purchase/restore plumbing.
-- Free-tier enforcement at 5 active purchases.
-- Lifetime Pro paywall.
-- 3-page onboarding.
-- Tabs: Active / Insights / Archive / Settings.
-- Insights dashboard.
-- Settings / explicit Pro management.
-- English + German localization.
-- GitHub Actions unsigned iOS Simulator build workflow.
-- First coherent visual system across every MVP surface.
+- native Xcode project + shared scheme
+- SwiftData purchase/usage models
+- Active / kept / returned states
+- Dashboard / Add Purchase / Detail / Archive
+- usage logging + cost per use
+- return countdown
+- explainable KEEP / REVIEW / RETURN? engine
+- local reminders
+- StoreKit entitlement/purchase/restore plumbing
+- free-tier enforcement + paywall
+- onboarding
+- Active / Insights / Archive / Settings tabs
+- DE/EN localization
+- first coherent visual system
+- GitHub Actions simulator build gate
 
-### Visual system — first polish complete
+Build gates:
 
-PR #2 applied the first cohesive KeepMeter design across Onboarding, Dashboard, Purchase Detail, Insights, Archive, Add Purchase, Settings and Paywall:
+- functional MVP run `32178808223` — SUCCESS
+- visual polish run `32179763750` — SUCCESS
+- visual polish merge checkpoint `45c53308ae41fc38eec5049c0181d4b0d7ede42b`
 
-- adaptive branded background
-- reusable material-card language with restrained borders/shadows
-- semantic keep/review/return colors
-- visible return-window progress
-- stronger uses / cost-per-use / deadline metric hierarchy
-- redesigned decision hero
-- prominent one-tap usage action
-- polished final keep/return controls
-- Lifetime-first Pro presentation emphasizing one-time purchase/no subscription
-- success haptic after logging usage
-- additional DE/EN visual copy
+## KeepMeter open work
 
-System-aware backgrounds/materials make the direction light/dark compatible, but dedicated appearance QA is still required.
+- local `.storekit` config
+- App Store Connect Lifetime IAP setup
+- persistence/relaunch QA
+- notification delivery QA
+- free-limit / purchase / restore QA
+- dedicated light/dark + accessibility QA
+- notification localization cleanup
+- final icon/identity
+- final naming/domain/trademark due diligence
+- TestFlight readiness + signed upload
 
-### Verified build gates
+## KeepMeter next steps
 
-**Gate 1 — functional MVP**
+1. StoreKit local testing.
+2. Persistence + notification QA.
+3. Appearance/accessibility pass.
+4. Final icon/branding/name checks.
+5. First signed TestFlight only after QA gates are green.
 
-- PR #1 `Validate current KeepMeter MVP build`
-- Workflow run `32178808223`
-- Result: SUCCESS
-- Merge checkpoint `bf024336455d2a65da1e7d5f25ac87f142a3de8d`
+# Candidate #011 — Family Life OS
 
-**Gate 2 — visual polish**
-
-- Branch `agent/visual-polish-v1`
-- PR #2 `Polish KeepMeter MVP visual system`
-- 11 changed files / ~1,200 additions during the pass
-- Workflow run `32179763750`
-- Full iOS Simulator `xcodebuild`: SUCCESS
-- PR #2 squash-merged
-- Merge checkpoint `45c53308ae41fc38eec5049c0181d4b0d7ede42b`
-
-Future major source passes must continue to use CI as a regression gate.
-
-### Current decision-engine rules
-
-- deadline passed -> REVIEW
-- zero uses and <= 3 days remaining -> RETURN?
-- <= 1 use and <= 3 days remaining -> REVIEW
-- zero uses after >= 60% of return window -> REVIEW
-- >= 3 uses -> KEEP signal
-- early window -> REVIEW / gather more signal
-- otherwise -> REVIEW / more evidence needed
-
-The UI explains the reason. No universal cost threshold pretends to define personal value.
-
-### Naming
-
-Working name: `KeepMeter` — **PROVISIONAL**.
-
-Preliminary exact-name searching found no obvious exact consumer-app collision, but formal trademark clearance and domain reservation are not recorded. Previously rejected/unavailable/unsuitable directions include ReturnRadar, Belegio, Keepture, Receiptra, Reclaimo, Refundly, KeepScore, WorthKeep / KeepWorth, ReturnCue and ProofNest.
-
-### Rejected directions
-
-- generic receipt/warranty vault
-- clone of existing receipt/refund tools
-- finance/budgeting suite
-- bank linking
-- inbox access for v1
-- mandatory account/backend
-- opaque AI verdict
-- forced subscription
-
-### Build / release status
-
-- Functional iOS Simulator compile: GREEN.
-- Visual-polish iOS Simulator compile: GREEN.
-- No physical-device QA yet.
-- No persistence/relaunch QA yet.
-- No notification-delivery QA yet.
-- No StoreKit local/sandbox purchase QA yet.
-- No TestFlight build yet.
-- No App Store submission yet.
-- Matching Lifetime IAP still needs App Store Connect configuration.
-
-### Open MVP work
-
-- StoreKit local `.storekit` test configuration.
-- App Store Connect Lifetime product setup.
-- Persistence/relaunch QA.
-- Notification permission/delivery QA.
-- Free-limit / purchase / restore QA.
-- Dedicated light/dark appearance QA.
-- Accessibility pass.
-- Dynamic notification localization cleanup.
-- Final visual identity / app icon.
-- Final-enough name/domain/trademark due diligence.
-- TestFlight readiness + signed upload.
-
-### Immediate next steps
-
-1. Add StoreKit local testing and exercise free -> Pro -> restore.
-2. QA persistence and notifications.
-3. Run dedicated light/dark + accessibility passes.
-4. Lock icon/branding after stronger name checks.
-5. Prepare first signed TestFlight build only after QA gates are green.
-
-## Candidate #011 — Family Life OS
-
-Status: EXECUTABLE UI + ADAPTIVE QUALITY PASS GREEN
+Status: REPOSITORY CONTRACT GREEN / SUPABASE SCHEMA SOURCE-CONTROLLED / DB VALIDATION PENDING
 Internal codename only; public brand not locked.
 
-### Current checkpoints
+## Current checkpoints
 
-- Foundation PR: `acciento89-bot/appideenchatgpt#3` — merged 2026-08-18
-- Foundation merge commit: `cd86aa4980133020b05629f9930aff598d9f9b35`
-- First executable UI PR: `acciento89-bot/appideenchatgpt#4` — merged 2026-08-18
-- First executable UI merge commit: `2c9ad0a3400321bc692cafaa9b492c30e9bbb8ec`
-- First green prototype workflow run: `32180561109`
-- Adaptive UI/accessibility PR: `acciento89-bot/appideenchatgpt#5` — merged 2026-08-18
-- Adaptive UI/accessibility merge commit: `aa70b24ebb21d472c66ac13d790096510f65a309`
-- Final green adaptive-quality workflow run: `32182627951`
-- Final quality-pass head before squash: `fc957da0e5f55adf6f5f71d5834a7905c6359e43`
-- App-specific project state checkpoint after adaptive pass: `5bd73c35d92c08c6731f538f791e3b2810f901e4`
+- Foundation PR #3 — MERGED
+- Foundation merge `cd86aa4980133020b05629f9930aff598d9f9b35`
+- First executable UI PR #4 — MERGED
+- UI merge `2c9ad0a3400321bc692cafaa9b492c30e9bbb8ec`
+- First green UI run `32180561109`
+- Adaptive UI/accessibility PR #5 — MERGED
+- Adaptive merge `aa70b24ebb21d472c66ac13d790096510f65a309`
+- Final adaptive run `32182627951` — SUCCESS
+- Backend contract/repository PR #6 — MERGED
+- Final backend branch head before squash `ab68d1f25883886715d7892d6b90a5578c193924`
+- Final backend Swift CI run `32184778802` — SUCCESS
+- Backend merge `cb0a3f99f749ee46ce8b3b6d39c79d50bfe3341b`
+- App-specific state after backend pass `ce224ebe19c4a94d3a932492f164b918eac317ac`
 
-### Product thesis
+Authoritative #011 handoff until an app-specific repo exists:
 
-> **Put family chaos in. Get an organized plan out.**
+`apps/011-family-life-os/PROJECT_STATE.md`
+
+## Product thesis / locked trust boundary
+
+> Put family chaos in. Get an organized plan out.
 
 Core loop:
 
 **Capture -> Understand -> Review -> Act -> Follow up**
 
-#011 is not intended to be another generic family calendar, chores app or all-in-one organizer. Its differentiation target is the complete Family Inbox ingestion-to-action workflow: family information arrives as photo, screenshot, PDF, text or voice; the system extracts structured proposals; the user reviews/edits them; confirmed events/tasks/deadlines/payments/preparation actions then surface at the right time.
+`Import prüfen` is the signature trust boundary:
 
-### Canonical docs
+- source remains reachable
+- proposals independently editable/includable
+- unresolved required fields block confirmation
+- extraction/AI cannot silently create canonical family data
+- explicit confirmation required
+- confirmed items retain source + proposal provenance
+
+## Canonical #011 docs
 
 - `apps/011-family-life-os/PRODUCT_SPEC.md`
 - `apps/011-family-life-os/DESIGN_SYSTEM.md`
@@ -258,228 +174,227 @@ Core loop:
 - `apps/011-family-life-os/BRAND_DIRECTION.md`
 - `apps/011-family-life-os/TECH_ARCHITECTURE.md`
 - `apps/011-family-life-os/UI_FIXTURES.md`
+- `apps/011-family-life-os/BACKEND_CONTRACT.md`
 - `apps/011-family-life-os/PROJECT_STATE.md`
 - `apps/011-family-life-os/prototype/README.md`
 
-`apps/011-family-life-os/PROJECT_STATE.md` is the authoritative #011 handoff until its own implementation repository exists.
+## Executable client state
 
-### Executable implementation
-
-The executable prototype currently lives temporarily under:
+Temporary implementation:
 
 `apps/011-family-life-os/prototype/`
 
-It contains:
+Project:
 
-- standalone `FamilyLifePrototype.xcodeproj`
-- shared scheme
-- separated domain/data/view files
-- dedicated iOS Simulator CI workflow
+`FamilyLifePrototype.xcodeproj`
+
+Target:
+
+- SwiftUI
+- iOS/iPadOS 18+
+- iPhone + iPad
 - provisional bundle id `de.kamilunavo.familyprototype`
-- iOS/iPadOS 18.0 target
-- iPhone + iPad target families
 
-The connected GitHub tooling does not currently expose repository creation. Move the implementation to an app-specific repository once repository creation becomes available.
+Implemented:
 
-### Current interactive surfaces
+- Heute / Inbox / Plan / Familie
+- adaptive iPad `NavigationSplitView`
+- compact iPhone tabs
+- two-column iPad Import Review
+- busy/calm/conflict Today fixtures
+- real shared-member schedule overlap detection
+- queued/processing/review/partial/done/failed Inbox states
+- Dynamic Type adaptation
+- VoiceOver labels/hints and accessibility IDs
+- semantic light/dark surfaces
+- source provenance
+- editable school-letter review flow
 
-- Heute
-- Inbox
-- Plan
-- Familie
-- interactive `Import prüfen`
-- realistic Familie Berger fixture household
-- school-letter source preview
-- independent proposal selection/editing
-- unresolved child assignment blocks confirmation
-- assignment/date/reminder editing
-- confirmation converts proposals into canonical in-memory PlanItems
-- Plan agenda/member filtering/provenance
-- Family roles/permission presentation
+## Swift repository boundary — merged
 
-### Adaptive iPad pass — complete
+Current boundary:
 
-Compact width keeps the four-tab shell.
+`SwiftUI View -> DemoStore -> FamilyRepository -> data source`
 
-Regular width now uses a genuine `NavigationSplitView` with:
+Current implementation:
 
-- persistent sidebar for Heute / Inbox / Plan / Familie
-- selected destination in detail
-- constrained content widths rather than stretched phone cards
+`InMemoryFamilyRepository`
 
-`Import prüfen` now adapts on regular width to:
+Planned production implementation:
 
-- source/original column
-- proposal/review column
-- persistent confirmation area
+`SupabaseFamilyRepository`
 
-The initial sidebar implementation was caught by CI because the targeted iOS `List(selection:)` API required an optional selection binding. It was corrected to an explicit `Binding<AppSection?>`.
+Repository operations:
 
-### Accessibility / appearance baseline — implemented
+- current snapshot
+- text ingestion
+- reviewed proposal confirmation
+- plan completion update
 
-- Dynamic Type-aware layouts
-- Agenda rows reflow vertically at accessibility text sizes
-- member rows reflow at accessibility text sizes
-- Import Review date controls reflow at accessibility sizes
-- critical controls have VoiceOver labels/hints
-- stable accessibility identifiers added for important interactions
-- member identity does not rely only on color
-- practical 44pt completion target
-- non-actionable Inbox states are not fake/dead buttons
-- meaningful empty states
-- semantic Light/Dark system surfaces
-- Dark Mode previews
-- accessibility-size previews
-- regular-width previews
+The deterministic `FixtureTextExtractionService` is explicitly not AI. It exists only to prove the locked text source -> proposals -> review -> confirmation contract without credentials/network dependency.
 
-This is an implementation baseline, not a claim that manual physical-device/VoiceOver QA is finished.
+Domain now includes:
 
-### Expanded deterministic QA state coverage
+- proposal review status
+- `sourceProposalID` canonical provenance/idempotency key
 
-Inbox now includes:
+Inbox has a visible `Text-Beispiel importieren` path that exercises the repository boundary.
 
-- `Wartet auf Upload`
-- `Wird hochgeladen`
-- `Wird analysiert`
-- `Prüfen`
-- `Teilweise übernommen`
-- `Erledigt`
-- `Analyse fehlgeschlagen`
+## Supabase SQL contract — source controlled, not yet executed
 
-Offline queued state copy:
+Backend contract:
 
-`Wird synchronisiert, sobald du wieder online bist.`
+`apps/011-family-life-os/BACKEND_CONTRACT.md`
 
-Today now has deterministic scenarios for:
+Migrations:
 
-- busy / standard
-- calm
-- conflict
+- `20260818224000_family_core.sql`
+- `20260818224500_fix_member_uniqueness_and_confirm_retry.sql`
+- `20260818224700_private_helper_permissions.sql`
+- `20260818225000_tighten_client_write_surface.sql`
 
-Conflict scenario includes real overlap detection for events sharing a household member and surfaces both an attention item and row-level indicators.
+Core schema includes:
 
-Import Review includes both unresolved and ready-to-confirm deterministic states.
+- households
+- household_members
+- source_items
+- extraction_runs
+- action_proposals
+- action_proposal_assignees
+- plan_items
+- plan_item_assignees
+- reminders
 
-### Build gates
+Security/integrity decisions:
 
-Dedicated workflow:
+- RLS enabled across client-exposed collaborative tables.
+- Multiple children/guests without login are allowed per household.
+- linked login user uniqueness applies only when `user_id` is non-null.
+- private membership helpers have restricted execution and empty `search_path`.
+- authenticated client update privileges are narrowed to product-editable columns.
+- processing/review/provenance fields remain server/RPC-owned.
+- machine extraction rows are trusted-server-owned.
+- canonical plan provenance must resolve within the same household.
 
-`.github/workflows/family-life-os-prototype-build.yml`
+## Atomic proposal confirmation
 
-Prototype history:
+RPC:
 
-- run `32180375921` — failed on one Swift `foregroundStyle` type mismatch; fixed
-- run `32180561109` — SUCCESS; PR #4 then merged
+`public.confirm_action_proposals(source_item_id, proposal_ids)`
 
-Adaptive quality history:
+Contract:
 
-- run `32182317924` — failed on iOS-incompatible non-optional sidebar `List(selection:)`; fixed
-- run `32182408384` — SUCCESS after functional sidebar fix
-- preview hygiene pass replaced ignored `.previewDevice(...)` usage with regular-width environment previews
-- final run `32182627951` — **SUCCESS** on head `fc957da0e5f55adf6f5f71d5834a7905c6359e43`
-- app-source log check: no Swift compile warnings and no remaining preview warnings; build ended `BUILD SUCCEEDED`
-- remaining warnings are external to app source: no AppIntents dependency and GitHub Actions Node-version notice from `actions/checkout@v4`
+1. require authenticated owner/adult in source household
+2. verify all proposals belong to source
+3. reject excluded/rejected/unresolved proposals
+4. create/reuse one canonical plan item per proposal
+5. unique `source_proposal_id` prevents duplicate canonical rows on retry
+6. copy same-household assignees
+7. mark proposals confirmed
+8. mark source partial/done
+9. confirmation retry is idempotent
 
-PR #5 was squash-merged only after the final successful build.
+The final RPC is a tightly scoped `SECURITY DEFINER` because it must write server-owned review/status/provenance columns that authenticated clients cannot update directly. It retains explicit user/household checks, empty `search_path`, and restricted execution.
 
-### Locked trust rules
+## pgTAP tests — written, not yet run
 
-`Import prüfen` remains the signature trust-boundary screen:
+Test:
 
-- source remains reachable
-- extracted proposals are independently editable
-- unresolved fields are explicitly marked
-- AI/extraction does not silently create canonical family data
-- explicit confirmation is required
-- confirmed items retain source provenance
+`supabase/tests/database/family_core_rls.test.sql`
 
-Today remains a calm briefing/timeline, not a duplicate calendar dashboard. Plan remains agenda-first. Child/guest roles remain architected from day one.
+Current 12 assertions cover:
 
-### Technical architecture direction
+- core tables
+- multiple no-login children
+- household isolation
+- unresolved confirmation failure
+- valid confirmation success
+- idempotent confirmation retry
+- one canonical item after retry
+- child denied adult-management permission
 
-- native SwiftUI client
-- iPhone first, intentional adaptive iPad UI
-- iOS/iPadOS 18+ direction, iOS 26+ visual APIs gated
-- Supabase foundation backend
-- Central EU / Frankfurt preferred region
-- Postgres + Row Level Security for household isolation
-- private family-document storage
-- server-side AI only
-- structured validated proposal output
-- Realtime where useful, normal fetch remains authoritative
-- APNs-backed notification path
-- local cache/offline queue where appropriate
+## #011 validation boundary
 
-Canonical collaborative household data lives on the backend. Views must not issue raw Supabase queries directly. Service-role/AI secrets never ship in the app.
+Validated:
 
-### First real backend vertical slice — next
+- Swift repository/data refactor compiles in GitHub's macOS/Xcode simulator gate.
+- exact final branch head `ab68d1f25883886715d7892d6b90a5578c193924`
+- run `32184778802` — SUCCESS
+- PR #6 merged only after exact-head green CI
+- backend merge `cb0a3f99f749ee46ce8b3b6d39c79d50bfe3341b`
 
-Prove this exact data path first:
+Not yet validated:
 
-1. household/member records
-2. create plain-text school-letter source
-3. persist structured proposal records
-4. fetch proposals through repository/service boundary
-5. review/edit in current `Import prüfen`
-6. transactionally confirm accepted proposals
-7. create canonical plan items + assignees
-8. preserve source provenance
-9. Today/Plan refresh from repository data
+- SQL migrations applied to clean Supabase/Postgres
+- pgTAP suite executed successfully
+- live Auth
+- live Data API RLS
+- live confirmation RPC
+- Realtime
+- Storage
+- OCR
+- real AI extraction
 
-Photo/PDF/private Storage/OCR follows only after the text contract works. Real AI extraction follows only after structured proposal validation is in place.
+The current execution environment did not provide an initialized Supabase/Postgres/Docker stack. Therefore SQL/RLS is deliberately **not called green yet**.
 
-### Brand guardrail
+## First real backend vertical slice — next
 
-`Family Life OS` is an internal codename only. It is not locked public positioning.
+Prove exactly this against a real Supabase database before adding OCR/AI:
 
-First-pass rejected naming directions include Famiqo, Kinora, Familoop and Kinbox. Final public name requires current App Store/web plus EUIPO/DPMA/domain checks.
+1. initialize/connect Supabase development environment
+2. apply migrations from clean DB
+3. run `supabase test db`
+4. fix every SQL/RLS/pgTAP failure
+5. implement `SupabaseFamilyRepository`
+6. minimum Auth + household membership
+7. create plain-text school-letter source
+8. persist/read proposals
+9. review/edit in existing `Import prüfen`
+10. atomic confirm -> canonical plan items + assignees + provenance
+11. Today/Plan refresh from live repository data
 
-Preferred icon concept direction: **Gather -> Order** — loose rounded pieces converging into one organized form. Avoid cartoon-family, robot/AI-sparkle and generic house/checkmark identity.
+Only after that is green:
 
-### Deferred / rejected for MVP
+- private Storage
+- photo/PDF ingestion
+- OCR
+- real AI provider with validated structured output
 
-- generic calendar + shopping + chores clone
-- family chat/social network replacement
+## Brand guardrail
+
+`Family Life OS` is internal only.
+
+Rejected first-pass naming directions:
+
+- Famiqo
+- Kinora
+- Familoop
+- Kinbox
+
+Preferred icon direction: **Gather -> Order**.
+
+Avoid generic house/checkmark, cartoon family, or robot/AI sparkle identity.
+
+## Deferred / rejected for #011 MVP
+
+- generic calendar/shopping/chores clone
+- family social/chat replacement
 - live GPS
 - video/audio calls
-- bank integration/full budgeting
+- bank/full budgeting
 - meal/recipe platform
-- complex chore reward economy
+- complex chore economy
 - automatic mailbox surveillance
 - autonomous bookings/calls
 - medical-advice assistant
-- generic AI-chat-first UI
+- generic AI-chat-first interface
 - decorative Liquid Glass everywhere
-
-### Open decisions
-
-- final public brand/name
-- exact AI provider/model and extraction implementation
-- subscription pricing and AI quota
-- attachment retention/privacy/legal defaults
-- calendar interoperability
-- child independent-login timing
-- final icon artwork/palette
-- app-specific implementation repository creation
-
-### Immediate next steps
-
-1. Implement Supabase schema and RLS for households, members, sources, proposals and plan items.
-2. Introduce repository/service interfaces so the UI is no longer coupled to `DemoStore` as the eventual source of truth.
-3. Prove the plain-text school-letter ingestion/persistence/confirmation path end to end.
-4. Add the minimum secure auth/household membership needed for collaborative data.
-5. Add private Storage + photo/PDF/OCR only after text data contracts are proven.
-6. Add real AI extraction only behind validated structured output and explicit review.
-7. Perform physical iPhone/iPad + manual VoiceOver QA before any TestFlight readiness claim.
-8. Move to an app-specific repository when repository creation becomes available.
-9. Update both #011 project state and this master state after every major pass.
 
 ## Handoff rule for new chats
 
-When continuing the App Factory:
-
-1. Read `acciento89-bot/appideenchatgpt/docs/APP_FACTORY_STATE.md`.
-2. Read the selected app's project state (`acciento89-bot/keepmeter/docs/PROJECT_STATE.md` for #001; `apps/011-family-life-os/PROJECT_STATE.md` for #011 until its own repo exists).
-3. Inspect current repo branch/commit/build state before coding.
-4. If the user selected #011, continue from the Supabase/repository-interface vertical slice recorded above.
-5. Update only the relevant candidate section while preserving all concurrent project sections.
+1. Read this file.
+2. Read the selected app-specific state.
+3. For #011, continue from `apps/011-family-life-os/PROJECT_STATE.md` and `BACKEND_CONTRACT.md`.
+4. Inspect current `main` + CI before code changes.
+5. Do not jump to photo/OCR/AI before the real Supabase text contract is migrated and tested green.
+6. Preserve other candidate sections when updating one workstream.
