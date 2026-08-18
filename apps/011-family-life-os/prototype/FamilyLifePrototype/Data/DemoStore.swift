@@ -138,6 +138,7 @@ final class DemoStore {
     func toggleCompletion(_ itemID: UUID) {
         guard let index = planItems.firstIndex(where: { $0.id == itemID }) else { return }
 
+        let previousState = planItems[index].isCompleted
         planItems[index].isCompleted.toggle()
         let desiredState = planItems[index].isCompleted
 
@@ -149,7 +150,9 @@ final class DemoStore {
                 )
                 apply(snapshot)
             } catch {
-                apply(await repository.currentSnapshot())
+                if let rollbackIndex = planItems.firstIndex(where: { $0.id == itemID }) {
+                    planItems[rollbackIndex].isCompleted = previousState
+                }
                 repositoryErrorMessage = error.localizedDescription
             }
         }
