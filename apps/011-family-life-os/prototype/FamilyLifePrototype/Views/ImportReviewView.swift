@@ -324,6 +324,14 @@ private struct ProposalEditor: View {
     }
 }
 
+#Preview("Import prüfen – bereit") {
+    let store = DemoStore(scenario: .readyImport)
+    store.openSignatureReview()
+    return NavigationStack {
+        ImportReviewView(store: store)
+    }
+}
+
 #Preview("Import prüfen – Dark") {
     let store = DemoStore()
     store.openSignatureReview()
@@ -342,11 +350,11 @@ private struct ProposalEditor: View {
     .environment(\.dynamicTypeSize, .accessibility3)
 }
 
-#Preview("Import prüfen – iPad") {
+#Preview("Import prüfen – Regular Width") {
     let store = DemoStore()
     store.openSignatureReview()
     return NavigationStack {
         ImportReviewView(store: store)
     }
-    .previewDevice("iPad Pro 11-inch (M4)")
+    .environment(\.horizontalSizeClass, .regular)
 }
