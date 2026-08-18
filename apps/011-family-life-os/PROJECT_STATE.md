@@ -235,6 +235,7 @@ No major adjacent feature module should be allowed to hide a weak version of thi
 - central master-state UX/architecture checkpoint: `6944a0f0359283472c24cc60a1949c3e23139dac`
 - foundation state prepared for merge: `02cf167109d843978bfd5d14b92198559a7df9ed`
 - final pre-merge state: `1d654530eeb8f2e827f2036dacb412ff361d9d27`
+- foundation documentation closeout: `7087b34ba7f6ffdfaf6d065cac3245a0411f99da`
 
 ## Open decisions
 
