@@ -2,6 +2,7 @@
 
 Last updated: 2026-08-18
 Status: ACTIVE
+Current user-selected workstream: #011 Family Life OS
 Repository purpose: Persistent handoff/state repository for the full App Factory so work can continue across limited chat lengths and new ChatGPT conversations without losing decisions or progress.
 
 ## Mandatory workflow
@@ -32,9 +33,9 @@ Repository purpose: Persistent handoff/state repository for the full App Factory
 | 008 | BeforeAfter | Guided repeat photography with overlay/alignment, comparison, collage/video | Pro / Lifetime | QUEUED |
 | 009 | ScamLens | Analyze screenshots/messages for suspicious indicators and explain risk factors | Credits / Pro | QUEUED |
 | 010 | SwipeOrDie | Very fast portrait reaction/high-score game with short sessions | Ads + IAP | QUEUED |
-| 011 | Family Life OS (INTERNAL CODENAME) | Family Inbox: photo/PDF/text/voice -> reviewed events, tasks, deadlines, payments and preparation actions | Freemium + Family Pro subscription | FIRST EXECUTABLE UI SLICE GREEN |
+| 011 | Family Life OS (INTERNAL CODENAME) | Family Inbox: photo/PDF/text/voice -> reviewed events, tasks, deadlines, payments and preparation actions | Freemium + Family Pro subscription | EXECUTABLE UI + ADAPTIVE QUALITY PASS GREEN |
 
-## Current active app — #001 KeepMeter
+## Portfolio app #001 — KeepMeter
 
 ### Repositories
 
@@ -56,7 +57,7 @@ Current verified app checkpoint:
 
 `45c53308ae41fc38eec5049c0181d4b0d7ede42b`
 
-Latest app-state update commit:
+Latest recorded app-state update commit:
 
 `fb84802c477593f243c5187bc46b5d021cd0ee4d`
 
@@ -223,14 +224,21 @@ Preliminary exact-name searching found no obvious exact consumer-app collision, 
 
 ## Candidate #011 — Family Life OS
 
-Status: FIRST EXECUTABLE UI VERTICAL SLICE GREEN
+Status: EXECUTABLE UI + ADAPTIVE QUALITY PASS GREEN
 Internal codename only; public brand not locked.
-Foundation PR: `acciento89-bot/appideenchatgpt#3` — merged 2026-08-18.
-Foundation merge commit: `cd86aa4980133020b05629f9930aff598d9f9b35`.
-UI prototype PR: `acciento89-bot/appideenchatgpt#4` — merged 2026-08-18.
-UI prototype merge commit: `2c9ad0a3400321bc692cafaa9b492c30e9bbb8ec`.
-Green prototype workflow run: `32180561109`.
-App-specific project state checkpoint after prototype: `c6855780d8ec1602afb25394f3881df52b2ba980`.
+
+### Current checkpoints
+
+- Foundation PR: `acciento89-bot/appideenchatgpt#3` — merged 2026-08-18
+- Foundation merge commit: `cd86aa4980133020b05629f9930aff598d9f9b35`
+- First executable UI PR: `acciento89-bot/appideenchatgpt#4` — merged 2026-08-18
+- First executable UI merge commit: `2c9ad0a3400321bc692cafaa9b492c30e9bbb8ec`
+- First green prototype workflow run: `32180561109`
+- Adaptive UI/accessibility PR: `acciento89-bot/appideenchatgpt#5` — merged 2026-08-18
+- Adaptive UI/accessibility merge commit: `aa70b24ebb21d472c66ac13d790096510f65a309`
+- Final green adaptive-quality workflow run: `32182627951`
+- Final quality-pass head before squash: `fc957da0e5f55adf6f5f71d5834a7905c6359e43`
+- App-specific project state checkpoint after adaptive pass: `5bd73c35d92c08c6731f538f791e3b2810f901e4`
 
 ### Product thesis
 
@@ -242,7 +250,7 @@ Core loop:
 
 #011 is not intended to be another generic family calendar, chores app or all-in-one organizer. Its differentiation target is the complete Family Inbox ingestion-to-action workflow: family information arrives as photo, screenshot, PDF, text or voice; the system extracts structured proposals; the user reviews/edits them; confirmed events/tasks/deadlines/payments/preparation actions then surface at the right time.
 
-### Canonical foundation docs
+### Canonical docs
 
 - `apps/011-family-life-os/PRODUCT_SPEC.md`
 - `apps/011-family-life-os/DESIGN_SYSTEM.md`
@@ -253,64 +261,139 @@ Core loop:
 - `apps/011-family-life-os/PROJECT_STATE.md`
 - `apps/011-family-life-os/prototype/README.md`
 
-App-specific project state is the authoritative handoff for #011 until its own implementation repository is created.
+`apps/011-family-life-os/PROJECT_STATE.md` is the authoritative #011 handoff until its own implementation repository exists.
 
-### First executable implementation
+### Executable implementation
 
-Because the connected GitHub tooling does not expose repository creation, the executable prototype currently lives temporarily under:
+The executable prototype currently lives temporarily under:
 
 `apps/011-family-life-os/prototype/`
 
-It contains a standalone `FamilyLifePrototype.xcodeproj`, shared scheme, separated domain/data/view files and a dedicated CI workflow. It must move to an app-specific repository once repository creation is available.
+It contains:
 
-Implemented interactive surfaces:
+- standalone `FamilyLifePrototype.xcodeproj`
+- shared scheme
+- separated domain/data/view files
+- dedicated iOS Simulator CI workflow
+- provisional bundle id `de.kamilunavo.familyprototype`
+- iOS/iPadOS 18.0 target
+- iPhone + iPad target families
 
-- native four-tab shell: Heute / Inbox / Plan / Familie
-- realistic Familie Berger fixture household
-- Today attention/brief/timeline/preparation UI
-- Inbox filters and upload/processing/review/partial/done/failed states
-- capture menu entry points
+The connected GitHub tooling does not currently expose repository creation. Move the implementation to an app-specific repository once repository creation becomes available.
+
+### Current interactive surfaces
+
+- Heute
+- Inbox
+- Plan
+- Familie
 - interactive `Import prüfen`
-- original school-letter source preview
+- realistic Familie Berger fixture household
+- school-letter source preview
 - independent proposal selection/editing
 - unresolved child assignment blocks confirmation
 - assignment/date/reminder editing
 - confirmation converts proposals into canonical in-memory PlanItems
-- Plan agenda, day grouping, member filters and provenance indicator
-- Family member/role/permission presentation
+- Plan agenda/member filtering/provenance
+- Family roles/permission presentation
 
-### Build gate
+### Adaptive iPad pass — complete
+
+Compact width keeps the four-tab shell.
+
+Regular width now uses a genuine `NavigationSplitView` with:
+
+- persistent sidebar for Heute / Inbox / Plan / Familie
+- selected destination in detail
+- constrained content widths rather than stretched phone cards
+
+`Import prüfen` now adapts on regular width to:
+
+- source/original column
+- proposal/review column
+- persistent confirmation area
+
+The initial sidebar implementation was caught by CI because the targeted iOS `List(selection:)` API required an optional selection binding. It was corrected to an explicit `Binding<AppSection?>`.
+
+### Accessibility / appearance baseline — implemented
+
+- Dynamic Type-aware layouts
+- Agenda rows reflow vertically at accessibility text sizes
+- member rows reflow at accessibility text sizes
+- Import Review date controls reflow at accessibility sizes
+- critical controls have VoiceOver labels/hints
+- stable accessibility identifiers added for important interactions
+- member identity does not rely only on color
+- practical 44pt completion target
+- non-actionable Inbox states are not fake/dead buttons
+- meaningful empty states
+- semantic Light/Dark system surfaces
+- Dark Mode previews
+- accessibility-size previews
+- regular-width previews
+
+This is an implementation baseline, not a claim that manual physical-device/VoiceOver QA is finished.
+
+### Expanded deterministic QA state coverage
+
+Inbox now includes:
+
+- `Wartet auf Upload`
+- `Wird hochgeladen`
+- `Wird analysiert`
+- `Prüfen`
+- `Teilweise übernommen`
+- `Erledigt`
+- `Analyse fehlgeschlagen`
+
+Offline queued state copy:
+
+`Wird synchronisiert, sobald du wieder online bist.`
+
+Today now has deterministic scenarios for:
+
+- busy / standard
+- calm
+- conflict
+
+Conflict scenario includes real overlap detection for events sharing a household member and surfaces both an attention item and row-level indicators.
+
+Import Review includes both unresolved and ready-to-confirm deterministic states.
+
+### Build gates
 
 Dedicated workflow:
 
 `.github/workflows/family-life-os-prototype-build.yml`
 
-First compile run `32180375921` found one Swift `foregroundStyle` type-inference issue in `ImportReviewView`. That was corrected by using explicit `Color` values.
+Prototype history:
 
-Second compile run `32180561109` completed **SUCCESS** on prototype head `c0d19f94074c7288bb1838541638d2d49b329331`.
+- run `32180375921` — failed on one Swift `foregroundStyle` type mismatch; fixed
+- run `32180561109` — SUCCESS; PR #4 then merged
 
-PR #4 was squash-merged only after the successful iOS Simulator build.
+Adaptive quality history:
 
-### Locked UX direction
+- run `32182317924` — failed on iOS-incompatible non-optional sidebar `List(selection:)`; fixed
+- run `32182408384` — SUCCESS after functional sidebar fix
+- preview hygiene pass replaced ignored `.previewDevice(...)` usage with regular-width environment previews
+- final run `32182627951` — **SUCCESS** on head `fc957da0e5f55adf6f5f71d5834a7905c6359e43`
+- app-source log check: no Swift compile warnings and no remaining preview warnings; build ended `BUILD SUCCEEDED`
+- remaining warnings are external to app source: no AppIntents dependency and GitHub Actions Node-version notice from `actions/checkout@v4`
 
-Primary destinations:
+PR #5 was squash-merged only after the final successful build.
 
-1. Heute
-2. Inbox
-3. Plan
-4. Familie
-
-Capture is an action, not a fifth tab. Settings/account is not a permanent fifth destination.
+### Locked trust rules
 
 `Import prüfen` remains the signature trust-boundary screen:
 
 - source remains reachable
 - extracted proposals are independently editable
 - unresolved fields are explicitly marked
-- AI does not silently create canonical family data
+- AI/extraction does not silently create canonical family data
+- explicit confirmation is required
 - confirmed items retain source provenance
 
-Today is a calm briefing/timeline, not a duplicate calendar dashboard. Plan starts agenda-first. Child/guest roles are architected from day one.
+Today remains a calm briefing/timeline, not a duplicate calendar dashboard. Plan remains agenda-first. Child/guest roles remain architected from day one.
 
 ### Technical architecture direction
 
@@ -327,22 +410,27 @@ Today is a calm briefing/timeline, not a duplicate calendar dashboard. Plan star
 - APNs-backed notification path
 - local cache/offline queue where appropriate
 
-Canonical collaborative household data lives on the backend. Views do not issue raw Supabase queries directly. Service-role/AI secrets never ship in the app.
+Canonical collaborative household data lives on the backend. Views must not issue raw Supabase queries directly. Service-role/AI secrets never ship in the app.
 
-### First vertical-slice fixture
+### First real backend vertical slice — next
 
-The executable prototype uses a German school-letter import that produces exactly four proposals:
+Prove this exact data path first:
 
-1. Klassenfahrt event
-2. permission-slip deadline/task
-3. 35 EUR payment reminder
-4. lunchpack/preparation action
+1. household/member records
+2. create plain-text school-letter source
+3. persist structured proposal records
+4. fetch proposals through repository/service boundary
+5. review/edit in current `Import prüfen`
+6. transactionally confirm accepted proposals
+7. create canonical plan items + assignees
+8. preserve source provenance
+9. Today/Plan refresh from repository data
 
-The user resolves an ambiguous child assignment and can edit fields before confirmation. Confirmed items become PlanItems and retain source provenance.
+Photo/PDF/private Storage/OCR follows only after the text contract works. Real AI extraction follows only after structured proposal validation is in place.
 
 ### Brand guardrail
 
-`Family Life OS` is an internal codename only. Current competitor Famiqo uses `Family Life Operating System`, so that phrase is not treated as distinctive public positioning.
+`Family Life OS` is an internal codename only. It is not locked public positioning.
 
 First-pass rejected naming directions include Famiqo, Kinora, Familoop and Kinbox. Final public name requires current App Store/web plus EUIPO/DPMA/domain checks.
 
@@ -376,14 +464,14 @@ Preferred icon concept direction: **Gather -> Order** — loose rounded pieces c
 
 ### Immediate next steps
 
-1. Run dedicated visual/interaction QA against the locked fixture matrix.
-2. Add previews for busy/calm/error/unresolved states and regular-width iPad.
-3. Refine genuine iPad split-view adaptation.
-4. Run Dark Mode, Dynamic Type and VoiceOver passes.
-5. Move to an app-specific repository once repository creation is available.
-6. Implement Supabase schema/RLS and repository interfaces.
-7. Prove real text-fixture ingestion before photo/PDF/OCR.
-8. Keep real AI output structured, reviewable and non-canonical until explicit confirmation.
+1. Implement Supabase schema and RLS for households, members, sources, proposals and plan items.
+2. Introduce repository/service interfaces so the UI is no longer coupled to `DemoStore` as the eventual source of truth.
+3. Prove the plain-text school-letter ingestion/persistence/confirmation path end to end.
+4. Add the minimum secure auth/household membership needed for collaborative data.
+5. Add private Storage + photo/PDF/OCR only after text data contracts are proven.
+6. Add real AI extraction only behind validated structured output and explicit review.
+7. Perform physical iPhone/iPad + manual VoiceOver QA before any TestFlight readiness claim.
+8. Move to an app-specific repository when repository creation becomes available.
 9. Update both #011 project state and this master state after every major pass.
 
 ## Handoff rule for new chats
@@ -393,5 +481,5 @@ When continuing the App Factory:
 1. Read `acciento89-bot/appideenchatgpt/docs/APP_FACTORY_STATE.md`.
 2. Read the selected app's project state (`acciento89-bot/keepmeter/docs/PROJECT_STATE.md` for #001; `apps/011-family-life-os/PROJECT_STATE.md` for #011 until its own repo exists).
 3. Inspect current repo branch/commit/build state before coding.
-4. Continue from recorded next steps.
+4. If the user selected #011, continue from the Supabase/repository-interface vertical slice recorded above.
 5. Update only the relevant candidate section while preserving all concurrent project sections.
