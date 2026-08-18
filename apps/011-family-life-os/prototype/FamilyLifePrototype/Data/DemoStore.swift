@@ -1,6 +1,13 @@
 import Foundation
 import Observation
 
+enum DemoScenario: Sendable {
+    case standard
+    case calmToday
+    case conflictToday
+    case readyImport
+}
+
 @MainActor
 @Observable
 final class DemoStore {
@@ -12,8 +19,9 @@ final class DemoStore {
     var selectedSourceID: UUID?
     var lastConfirmationCount = 0
 
-    init() {
-        let fixture = Self.makeFixture()
+    init(scenario: DemoScenario = .standard) {
+        var fixture = Self.makeFixture()
+        Self.apply(scenario, to: &fixture)
         members = fixture.members
         planItems = fixture.planItems
         inboxItems = fixture.inboxItems
@@ -115,6 +123,43 @@ final class DemoStore {
         return components.date ?? .now
     }
 
+    private static func apply(_ scenario: DemoScenario, to fixture: inout Fixture) {
+        switch scenario {
+        case .standard:
+            break
+
+        case .calmToday:
+            guard
+                let lina = fixture.members.first(where: { $0.name == "Lina" }),
+                let ben = fixture.members.first(where: { $0.name == "Ben" })
+            else { return }
+
+            fixture.planItems = [
+                PlanItem(id: UUID(), kind: .event, title: "Kita", startsAt: date(2026, 8, 18, 8, 0), endsAt: nil, dueAt: nil, memberIDs: [ben.id], location: nil, note: nil, amountMinor: nil, currency: nil, sourceID: nil, isCompleted: false),
+                PlanItem(id: UUID(), kind: .event, title: "Lina bei Oma", startsAt: date(2026, 8, 18, 16, 30), endsAt: nil, dueAt: nil, memberIDs: [lina.id], location: nil, note: nil, amountMinor: nil, currency: nil, sourceID: nil, isCompleted: false)
+            ]
+
+        case .conflictToday:
+            guard
+                let mara = fixture.members.first(where: { $0.name == "Mara" }),
+                let lina = fixture.members.first(where: { $0.name == "Lina" }),
+                let ben = fixture.members.first(where: { $0.name == "Ben" })
+            else { return }
+
+            fixture.planItems = [
+                PlanItem(id: UUID(), kind: .event, title: "Zahnarzt Lina", startsAt: date(2026, 8, 18, 16, 0), endsAt: date(2026, 8, 18, 16, 45), dueAt: nil, memberIDs: [mara.id, lina.id], location: "Praxis Dr. Klein", note: nil, amountMinor: nil, currency: nil, sourceID: nil, isCompleted: false),
+                PlanItem(id: UUID(), kind: .event, title: "Elterngespräch Ben", startsAt: date(2026, 8, 18, 16, 15), endsAt: date(2026, 8, 18, 17, 0), dueAt: nil, memberIDs: [mara.id, ben.id], location: "Kita", note: nil, amountMinor: nil, currency: nil, sourceID: nil, isCompleted: false)
+            ]
+
+        case .readyImport:
+            guard let lina = fixture.members.first(where: { $0.name == "Lina" }) else { return }
+            if let index = fixture.proposals.firstIndex(where: { $0.requiresMemberResolution }) {
+                fixture.proposals[index].memberIDs = [lina.id]
+                fixture.proposals[index].requiresMemberResolution = false
+            }
+        }
+    }
+
     private static func makeFixture() -> Fixture {
         let mara = FamilyMember(id: UUID(), name: "Mara", initials: "MB", role: .owner, accent: .indigo)
         let jonas = FamilyMember(id: UUID(), name: "Jonas", initials: "JB", role: .adult, accent: .teal)
@@ -125,6 +170,8 @@ final class DemoStore {
         let screenshotID = UUID()
         let voiceID = UUID()
         let failedID = UUID()
+        let partialID = UUID()
+        let queuedID = UUID()
 
         let sourceText = """
         Liebe Eltern der Klasse 6b,
@@ -141,8 +188,10 @@ final class DemoStore {
         let inbox = [
             InboxSource(id: schoolLetterID, title: "Klassenfahrt 6b", kind: .pdf, createdAt: date(2026, 8, 18, 19, 42), status: .review, proposalCount: 4, sourceText: sourceText, errorMessage: nil),
             InboxSource(id: screenshotID, title: "Screenshot Elternchat", kind: .image, createdAt: date(2026, 8, 18, 20, 3), status: .processing, proposalCount: 0, sourceText: nil, errorMessage: nil),
+            InboxSource(id: queuedID, title: "Foto vom Elternbrief", kind: .image, createdAt: date(2026, 8, 18, 20, 12), status: .queued, proposalCount: 0, sourceText: nil, errorMessage: "Wird synchronisiert, sobald du wieder online bist."),
             InboxSource(id: voiceID, title: "Zahnarzt Lina", kind: .voice, createdAt: date(2026, 8, 17, 18, 12), status: .done, proposalCount: 1, sourceText: nil, errorMessage: nil),
-            InboxSource(id: failedID, title: "Schulfest Foto", kind: .image, createdAt: date(2026, 8, 17, 17, 54), status: .failed, proposalCount: 0, sourceText: nil, errorMessage: "Text konnte nicht zuverlässig erkannt werden.")
+            InboxSource(id: failedID, title: "Schulfest Foto", kind: .image, createdAt: date(2026, 8, 17, 17, 54), status: .failed, proposalCount: 0, sourceText: nil, errorMessage: "Text konnte nicht zuverlässig erkannt werden."),
+            InboxSource(id: partialID, title: "Theater-AG Info", kind: .text, createdAt: date(2026, 8, 16, 21, 10), status: .partial, proposalCount: 3, sourceText: "Theater-AG: 12 € bis Donnerstag. Aufführung am Freitag um 17 Uhr.", errorMessage: nil)
         ]
 
         let existingPlan = [
