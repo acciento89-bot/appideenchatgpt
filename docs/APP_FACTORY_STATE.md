@@ -32,7 +32,7 @@ Repository purpose: Persistent handoff/state repository for the full App Factory
 | 008 | BeforeAfter | Guided repeat photography/alignment/comparison | Pro / Lifetime | QUEUED |
 | 009 | ScamLens | Analyze screenshots/messages for suspicious indicators | Credits / Pro | QUEUED |
 | 010 | SwipeOrDie | Fast portrait reaction/high-score game | Ads + IAP | QUEUED |
-| 011 | Family Life OS (INTERNAL CODENAME) | Family Inbox: photo/PDF/text/voice -> reviewed events/tasks/deadlines/payments/preparation | Freemium + Family Pro subscription | REPOSITORY CONTRACT GREEN / SUPABASE SQL PENDING DB VALIDATION |
+| 011 | Family Life OS (INTERNAL CODENAME) | Family Inbox: photo/PDF/text/voice -> reviewed events/tasks/deadlines/payments/preparation | Freemium + Family Pro subscription | LOCAL SUPABASE DB CONTRACT GREEN / LIVE BACKEND NEXT |
 
 # Portfolio app #001 — KeepMeter
 
@@ -126,7 +126,7 @@ Build gates:
 
 # Candidate #011 — Family Life OS
 
-Status: REPOSITORY CONTRACT GREEN / SUPABASE SCHEMA SOURCE-CONTROLLED / DB VALIDATION PENDING
+Status: LOCAL SUPABASE DB CONTRACT GREEN / LIVE BACKEND NEXT
 Internal codename only; public brand not locked.
 
 ## Current checkpoints
@@ -140,10 +140,14 @@ Internal codename only; public brand not locked.
 - Adaptive merge `aa70b24ebb21d472c66ac13d790096510f65a309`
 - Final adaptive run `32182627951` — SUCCESS
 - Backend contract/repository PR #6 — MERGED
-- Final backend branch head before squash `ab68d1f25883886715d7892d6b90a5578c193924`
-- Final backend Swift CI run `32184778802` — SUCCESS
+- Final backend Swift head `ab68d1f25883886715d7892d6b90a5578c193924`
+- Final backend Swift run `32184778802` — SUCCESS
 - Backend merge `cb0a3f99f749ee46ce8b3b6d39c79d50bfe3341b`
-- App-specific state after backend pass `ce224ebe19c4a94d3a932492f164b918eac317ac`
+- Supabase DB validation PR #7 — MERGED
+- Final DB validation head `f2ecc11881af78896e5cba4f7f75c3409f5e2d02`
+- Final DB validation run `32185816675` — SUCCESS
+- DB validation merge `ff9b4695efb4fa49d605e05a53b18bd352872fe3`
+- App-specific state after DB pass `d918d89b0e31654cc960cbf26be0a7ca697cdbc5`
 
 Authoritative #011 handoff until an app-specific repo exists:
 
@@ -210,7 +214,7 @@ Implemented:
 - source provenance
 - editable school-letter review flow
 
-## Swift repository boundary — merged
+## Swift repository boundary — GREEN
 
 Current boundary:
 
@@ -233,14 +237,11 @@ Repository operations:
 
 The deterministic `FixtureTextExtractionService` is explicitly not AI. It exists only to prove the locked text source -> proposals -> review -> confirmation contract without credentials/network dependency.
 
-Domain now includes:
-
-- proposal review status
-- `sourceProposalID` canonical provenance/idempotency key
+Domain now includes proposal review status plus `sourceProposalID` as the provenance/idempotency key.
 
 Inbox has a visible `Text-Beispiel importieren` path that exercises the repository boundary.
 
-## Supabase SQL contract — source controlled, not yet executed
+## Supabase SQL / RLS / RPC contract — GREEN LOCALLY
 
 Backend contract:
 
@@ -253,7 +254,7 @@ Migrations:
 - `20260818224700_private_helper_permissions.sql`
 - `20260818225000_tighten_client_write_surface.sql`
 
-Core schema includes:
+Core schema:
 
 - households
 - household_members
@@ -269,94 +270,90 @@ Security/integrity decisions:
 
 - RLS enabled across client-exposed collaborative tables.
 - Multiple children/guests without login are allowed per household.
-- linked login user uniqueness applies only when `user_id` is non-null.
+- login-user uniqueness applies only when `user_id` is non-null.
 - private membership helpers have restricted execution and empty `search_path`.
 - authenticated client update privileges are narrowed to product-editable columns.
 - processing/review/provenance fields remain server/RPC-owned.
 - machine extraction rows are trusted-server-owned.
 - canonical plan provenance must resolve within the same household.
 
-## Atomic proposal confirmation
-
-RPC:
+Atomic confirmation RPC:
 
 `public.confirm_action_proposals(source_item_id, proposal_ids)`
 
-Contract:
+Contract is locally validated for owner/adult authorization, source/proposal matching, unresolved rejection, same-household assignees, source status transitions and idempotent retry via unique `source_proposal_id`.
 
-1. require authenticated owner/adult in source household
-2. verify all proposals belong to source
-3. reject excluded/rejected/unresolved proposals
-4. create/reuse one canonical plan item per proposal
-5. unique `source_proposal_id` prevents duplicate canonical rows on retry
-6. copy same-household assignees
-7. mark proposals confirmed
-8. mark source partial/done
-9. confirmation retry is idempotent
+## Real local database gate — GREEN
 
-The final RPC is a tightly scoped `SECURITY DEFINER` because it must write server-owned review/status/provenance columns that authenticated clients cannot update directly. It retains explicit user/household checks, empty `search_path`, and restricted execution.
+Supabase workspace:
 
-## pgTAP tests — written, not yet run
+`apps/011-family-life-os/supabase/config.toml`
 
-Test:
+Database workflow:
 
-`supabase/tests/database/family_core_rls.test.sql`
+`.github/workflows/family-life-os-database-tests.yml`
 
-Current 12 assertions cover:
+Final run:
 
-- core tables
-- multiple no-login children
-- household isolation
-- unresolved confirmation failure
-- valid confirmation success
-- idempotent confirmation retry
-- one canonical item after retry
-- child denied adult-management permission
+- `32185816675`
+- SUCCESS
+- Supabase CLI `2.115.0`
+- Postgres image `ghcr.io/supabase/postgres:15.8.1.085`
+- all four migrations applied successfully to a fresh local database
+- pgTAP: `family_core_rls.test.sql .. ok`
+- `Files=1, Tests=12`
+- `All tests successful.`
+- `Result: PASS`
+
+The project-owned deprecated Inbucket warning and missing seed warning were removed before the final run. Only the external GitHub `actions/checkout@v4` Node-version notice remains.
+
+The 12 assertions cover core tables, multiple no-login children, cross-household read isolation, unresolved confirm rejection, valid confirmation, idempotent retry, no duplicate canonical item and child denial of adult-management permission.
 
 ## #011 validation boundary
 
 Validated:
 
-- Swift repository/data refactor compiles in GitHub's macOS/Xcode simulator gate.
-- exact final branch head `ab68d1f25883886715d7892d6b90a5578c193924`
-- run `32184778802` — SUCCESS
-- PR #6 merged only after exact-head green CI
-- backend merge `cb0a3f99f749ee46ce8b3b6d39c79d50bfe3341b`
+- executable SwiftUI and repository client compile in GitHub macOS/Xcode CI
+- final repository/data run `32184778802` — SUCCESS
+- clean local Supabase/Postgres migration from scratch
+- local RLS/RPC pgTAP contract
+- final database run `32185816675` — SUCCESS / 12 tests PASS
+- PR #7 merged to `ff9b4695efb4fa49d605e05a53b18bd352872fe3`
 
 Not yet validated:
 
-- SQL migrations applied to clean Supabase/Postgres
-- pgTAP suite executed successfully
-- live Auth
-- live Data API RLS
-- live confirmation RPC
-- Realtime
-- Storage
+- hosted Supabase dev/prod project
+- actual Auth session from iOS
+- live Data API requests from app
+- `SupabaseFamilyRepository`
+- hosted confirmation RPC
+- multi-device Realtime
+- private Storage
+- photo/PDF ingestion
 - OCR
 - real AI extraction
+- physical-device/manual VoiceOver QA
 
-The current execution environment did not provide an initialized Supabase/Postgres/Docker stack. Therefore SQL/RLS is deliberately **not called green yet**.
+The correct statement is therefore: **local clean-database Supabase contract is green; live hosted backend is not connected yet.**
 
-## First real backend vertical slice — next
+## Next real backend vertical slice
 
-Prove exactly this against a real Supabase database before adding OCR/AI:
-
-1. initialize/connect Supabase development environment
-2. apply migrations from clean DB
-3. run `supabase test db`
-4. fix every SQL/RLS/pgTAP failure
-5. implement `SupabaseFamilyRepository`
-6. minimum Auth + household membership
-7. create plain-text school-letter source
-8. persist/read proposals
-9. review/edit in existing `Import prüfen`
-10. atomic confirm -> canonical plan items + assignees + provenance
-11. Today/Plan refresh from live repository data
+1. create/connect hosted Supabase development project in EU/Frankfurt
+2. apply the green migration set to hosted dev
+3. implement `SupabaseFamilyRepository`
+4. add minimum Auth + household bootstrap
+5. create the plain-text school-letter source through the live client
+6. persist/read proposals
+7. review/edit through existing `Import prüfen`
+8. atomic hosted confirm -> plan items + assignees + provenance
+9. refresh Today/Plan from live repository data
+10. verify household isolation with two authenticated users over the actual Data API
 
 Only after that is green:
 
+- Realtime
 - private Storage
-- photo/PDF ingestion
+- photo/PDF
 - OCR
 - real AI provider with validated structured output
 
@@ -364,7 +361,7 @@ Only after that is green:
 
 `Family Life OS` is internal only.
 
-Rejected first-pass naming directions:
+Rejected first-pass names:
 
 - Famiqo
 - Kinora
@@ -395,6 +392,7 @@ Avoid generic house/checkmark, cartoon family, or robot/AI sparkle identity.
 1. Read this file.
 2. Read the selected app-specific state.
 3. For #011, continue from `apps/011-family-life-os/PROJECT_STATE.md` and `BACKEND_CONTRACT.md`.
-4. Inspect current `main` + CI before code changes.
-5. Do not jump to photo/OCR/AI before the real Supabase text contract is migrated and tested green.
-6. Preserve other candidate sections when updating one workstream.
+4. Inspect current `main` + both Swift/DB CI states before code changes.
+5. Continue with hosted Supabase + `SupabaseFamilyRepository`.
+6. Do not jump to Storage/OCR/AI before the hosted text path is green.
+7. Preserve other candidate sections when updating one workstream.
