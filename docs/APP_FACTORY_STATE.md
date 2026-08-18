@@ -32,7 +32,7 @@ Repository purpose: Persistent handoff/state repository for the full App Factory
 | 008 | BeforeAfter | Guided repeat photography with overlay/alignment, comparison, collage/video | Pro / Lifetime | QUEUED |
 | 009 | ScamLens | Analyze screenshots/messages for suspicious indicators and explain risk factors | Credits / Pro | QUEUED |
 | 010 | SwipeOrDie | Very fast portrait reaction/high-score game with short sessions | Ads + IAP | QUEUED |
-| 011 | Family Life OS (INTERNAL CODENAME) | Family Inbox: photo/PDF/text/voice -> reviewed events, tasks, deadlines, payments and preparation actions | Freemium + Family Pro subscription | FOUNDATION — UX locked; architecture selected |
+| 011 | Family Life OS (INTERNAL CODENAME) | Family Inbox: photo/PDF/text/voice -> reviewed events, tasks, deadlines, payments and preparation actions | Freemium + Family Pro subscription | FIRST EXECUTABLE UI SLICE GREEN |
 
 ## Current active app — #001 KeepMeter
 
@@ -223,10 +223,14 @@ Preliminary exact-name searching found no obvious exact consumer-app collision, 
 
 ## Candidate #011 — Family Life OS
 
-Status: FOUNDATION / UX LOCKED / ARCHITECTURE SELECTED
+Status: FIRST EXECUTABLE UI VERTICAL SLICE GREEN
 Internal codename only; public brand not locked.
 Foundation PR: `acciento89-bot/appideenchatgpt#3` — merged 2026-08-18.
 Foundation merge commit: `cd86aa4980133020b05629f9930aff598d9f9b35`.
+UI prototype PR: `acciento89-bot/appideenchatgpt#4` — merged 2026-08-18.
+UI prototype merge commit: `2c9ad0a3400321bc692cafaa9b492c30e9bbb8ec`.
+Green prototype workflow run: `32180561109`.
+App-specific project state checkpoint after prototype: `c6855780d8ec1602afb25394f3881df52b2ba980`.
 
 ### Product thesis
 
@@ -247,8 +251,45 @@ Core loop:
 - `apps/011-family-life-os/TECH_ARCHITECTURE.md`
 - `apps/011-family-life-os/UI_FIXTURES.md`
 - `apps/011-family-life-os/PROJECT_STATE.md`
+- `apps/011-family-life-os/prototype/README.md`
 
 App-specific project state is the authoritative handoff for #011 until its own implementation repository is created.
+
+### First executable implementation
+
+Because the connected GitHub tooling does not expose repository creation, the executable prototype currently lives temporarily under:
+
+`apps/011-family-life-os/prototype/`
+
+It contains a standalone `FamilyLifePrototype.xcodeproj`, shared scheme, separated domain/data/view files and a dedicated CI workflow. It must move to an app-specific repository once repository creation is available.
+
+Implemented interactive surfaces:
+
+- native four-tab shell: Heute / Inbox / Plan / Familie
+- realistic Familie Berger fixture household
+- Today attention/brief/timeline/preparation UI
+- Inbox filters and upload/processing/review/partial/done/failed states
+- capture menu entry points
+- interactive `Import prüfen`
+- original school-letter source preview
+- independent proposal selection/editing
+- unresolved child assignment blocks confirmation
+- assignment/date/reminder editing
+- confirmation converts proposals into canonical in-memory PlanItems
+- Plan agenda, day grouping, member filters and provenance indicator
+- Family member/role/permission presentation
+
+### Build gate
+
+Dedicated workflow:
+
+`.github/workflows/family-life-os-prototype-build.yml`
+
+First compile run `32180375921` found one Swift `foregroundStyle` type-inference issue in `ImportReviewView`. That was corrected by using explicit `Color` values.
+
+Second compile run `32180561109` completed **SUCCESS** on prototype head `c0d19f94074c7288bb1838541638d2d49b329331`.
+
+PR #4 was squash-merged only after the successful iOS Simulator build.
 
 ### Locked UX direction
 
@@ -261,7 +302,7 @@ Primary destinations:
 
 Capture is an action, not a fifth tab. Settings/account is not a permanent fifth destination.
 
-`Import prüfen` is the signature trust-boundary screen:
+`Import prüfen` remains the signature trust-boundary screen:
 
 - source remains reachable
 - extracted proposals are independently editable
@@ -290,14 +331,14 @@ Canonical collaborative household data lives on the backend. Views do not issue 
 
 ### First vertical-slice fixture
 
-The first executable prototype is locked around a German school-letter import that produces exactly four proposals:
+The executable prototype uses a German school-letter import that produces exactly four proposals:
 
 1. Klassenfahrt event
 2. permission-slip deadline/task
 3. 35 EUR payment reminder
 4. lunchpack/preparation action
 
-The user must resolve an ambiguous child assignment and edit at least one proposed field before confirmation. Confirmed items then appear in Plan/Heute and link back to the source.
+The user resolves an ambiguous child assignment and can edit fields before confirmation. Confirmed items become PlanItems and retain source provenance.
 
 ### Brand guardrail
 
@@ -335,13 +376,15 @@ Preferred icon concept direction: **Gather -> Order** — loose rounded pieces c
 
 ### Immediate next steps
 
-1. Create the app-specific implementation repository when repository creation is available.
-2. Scaffold native SwiftUI shell and domain/service boundaries.
-3. Implement fixture-driven Heute, Inbox and Import prüfen before real AI integration.
-4. Implement Supabase schema/RLS and text-fixture ingestion path.
-5. Validate end-to-end vertical slice on iPhone/iPad, Dark Mode and Dynamic Type.
-6. Only after the core loop is excellent, expand Plan/calendar and adjacent family modules.
-7. Update both #011 project state and this master state after every major pass.
+1. Run dedicated visual/interaction QA against the locked fixture matrix.
+2. Add previews for busy/calm/error/unresolved states and regular-width iPad.
+3. Refine genuine iPad split-view adaptation.
+4. Run Dark Mode, Dynamic Type and VoiceOver passes.
+5. Move to an app-specific repository once repository creation is available.
+6. Implement Supabase schema/RLS and repository interfaces.
+7. Prove real text-fixture ingestion before photo/PDF/OCR.
+8. Keep real AI output structured, reviewable and non-canonical until explicit confirmation.
+9. Update both #011 project state and this master state after every major pass.
 
 ## Handoff rule for new chats
 
