@@ -1,0 +1,2 @@
+-- Intentionally empty for the Family Life OS database contract gate.
+-- pgTAP test fixtures are created transactionally inside supabase/tests/database.
