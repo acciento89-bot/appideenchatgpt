@@ -14,6 +14,7 @@ extension MemberAccent {
 extension InboxStatus {
     var tint: Color {
         switch self {
+        case .queued: .gray
         case .uploading, .processing: .blue
         case .review, .partial: .orange
         case .done: .green
