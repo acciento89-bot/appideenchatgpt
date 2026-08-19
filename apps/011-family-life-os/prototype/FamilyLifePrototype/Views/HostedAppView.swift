@@ -31,9 +31,18 @@ struct HostedAppView: View {
             }
         }
         .onOpenURL { url in
+            guard SupabaseEnvironment.isExpectedAuthRedirect(url) else {
+                authErrorMessage = "Dieser Anmeldelink gehört nicht zu dieser App."
+                hasReceivedInitialAuthState = true
+                return
+            }
+
             Task {
                 do {
-                    try await SupabaseEnvironment.client.auth.session(from: url)
+                    _ = try await SupabaseEnvironment.client.auth.session(from: url)
+                    isAuthenticated = true
+                    hasReceivedInitialAuthState = true
+                    authErrorMessage = nil
                 } catch {
                     authErrorMessage = error.localizedDescription
                     hasReceivedInitialAuthState = true
@@ -133,6 +142,8 @@ private struct SupabaseAuthView: View {
         errorMessage = nil
 
         Task {
+            defer { isSending = false }
+
             do {
                 try await SupabaseEnvironment.client.auth.signInWithOTP(
                     email: trimmed,
@@ -142,7 +153,6 @@ private struct SupabaseAuthView: View {
             } catch {
                 errorMessage = error.localizedDescription
             }
-            isSending = false
         }
     }
 }
