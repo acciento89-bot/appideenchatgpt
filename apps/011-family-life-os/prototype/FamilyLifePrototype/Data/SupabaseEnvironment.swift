@@ -10,4 +10,18 @@ enum SupabaseEnvironment {
     )
 
     static let authRedirectURL = URL(string: "de.kamilunavo.familyprototype://login-callback")!
+
+    static func isExpectedAuthRedirect(_ url: URL) -> Bool {
+        guard
+            let expectedScheme = authRedirectURL.scheme,
+            let expectedHost = authRedirectURL.host,
+            let scheme = url.scheme,
+            let host = url.host
+        else {
+            return false
+        }
+
+        return scheme.caseInsensitiveCompare(expectedScheme) == .orderedSame
+            && host.caseInsensitiveCompare(expectedHost) == .orderedSame
+    }
 }
