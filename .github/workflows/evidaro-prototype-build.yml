@@ -1,0 +1,56 @@
+name: Evidaro Prototype Build
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'apps/002-evidaro/**'
+      - '.github/workflows/evidaro-prototype-build.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'apps/002-evidaro/**'
+      - '.github/workflows/evidaro-prototype-build.yml'
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Show Xcode version
+        run: xcodebuild -version
+
+      - name: Run Evidaro foundation preflight
+        run: python3 apps/002-evidaro/ci/preflight.py
+
+      - name: Build Evidaro prototype for iOS Simulator
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -project apps/002-evidaro/prototype/EvidaroPrototype.xcodeproj \
+            -scheme EvidaroPrototype \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO \
+            build 2>&1 | tee /tmp/evidaro-build.log
+
+      - name: Extract compiler diagnostics
+        if: failure()
+        run: |
+          grep -E '(^|[[:space:]])(error|warning):|\.swift:[0-9]+:[0-9]+: (error|warning):' /tmp/evidaro-build.log > /tmp/evidaro-diagnostics.txt || true
+          cat /tmp/evidaro-diagnostics.txt
+
+      - name: Upload Xcode diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: evidaro-xcode-diagnostics
+          path: |
+            /tmp/evidaro-build.log
+            /tmp/evidaro-diagnostics.txt
+          if-no-files-found: warn
+          retention-days: 3
