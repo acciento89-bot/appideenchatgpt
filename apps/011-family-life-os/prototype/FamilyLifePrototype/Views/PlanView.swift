@@ -76,7 +76,7 @@ struct PlanView: View {
                                 AgendaRow(
                                     item: item,
                                     members: store.members,
-                                    showsCompletion: item.kind == .task || item.kind == .preparation,
+                                    showsCompletion: item.kind != .event,
                                     onToggleCompletion: { store.toggleCompletion(item.id) }
                                 )
 
