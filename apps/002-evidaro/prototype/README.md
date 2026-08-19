@@ -29,4 +29,4 @@ Shared scheme:
 
 ## CI
 
-`.github/workflows/evidaro-prototype-build.yml` runs the app-specific static preflight and an iOS Simulator build.
+`.github/workflows/evidaro-prototype-build.yml` runs the app-specific static preflight and an iOS Simulator build. The workflow is bootstrapped on `main`, so feature PRs are validated before merge.
