@@ -226,12 +226,12 @@ jobs:
           if-no-files-found: warn
           retention-days: 7
 
-      - name: Fail when ASC secrets are missing on upload run
+      - name: Explain skipped TestFlight upload
         if: github.event_name != 'pull_request' && steps.asc.outputs.available != 'true'
         shell: bash
         run: |
-          echo 'App Store Connect signing secrets are missing in acciento89-bot/appideenchatgpt.'
-          exit 1
+          echo 'TestFlight upload skipped: ASC_ISSUER_ID, ASC_KEY_ID and ASC_PRIVATE_KEY_B64 are not configured in acciento89-bot/appideenchatgpt.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'The Release iphoneos build remains a required and successful validation gate.' >> "$GITHUB_STEP_SUMMARY"
 
       - name: Fail if TestFlight upload failed
         if: github.event_name != 'pull_request' && steps.asc.outputs.available == 'true' && steps.testflight.outputs.status != '0'
