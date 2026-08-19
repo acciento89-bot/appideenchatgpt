@@ -4,7 +4,7 @@ import SwiftUI
 struct FamilyLifePrototypeApp: App {
     var body: some Scene {
         WindowGroup {
-            HostedAppView()
+            HostedCompleteV1View()
         }
     }
 }
