@@ -16,6 +16,7 @@ on:
       - main
     paths:
       - '.github/workflows/family-life-os-testflight.yml'
+      - 'apps/011-family-life-os/prototype/**'
 
 permissions:
   contents: read
