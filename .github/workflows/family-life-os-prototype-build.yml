@@ -33,4 +33,21 @@ jobs:
             -sdk iphonesimulator \
             -destination 'generic/platform=iOS Simulator' \
             CODE_SIGNING_ALLOWED=NO \
-            build
+            build 2>&1 | tee /tmp/family-life-os-build.log
+
+      - name: Extract compiler diagnostics
+        if: failure()
+        run: |
+          grep -E '(^|[[:space:]])(error|warning):|\.swift:[0-9]+:[0-9]+: (error|warning):' /tmp/family-life-os-build.log > /tmp/family-life-os-diagnostics.txt || true
+          cat /tmp/family-life-os-diagnostics.txt
+
+      - name: Upload Xcode diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: family-life-os-xcode-diagnostics
+          path: |
+            /tmp/family-life-os-build.log
+            /tmp/family-life-os-diagnostics.txt
+          if-no-files-found: error
+          retention-days: 3
