@@ -36,6 +36,15 @@ final class DemoStore {
         repository = InMemoryFamilyRepository(snapshot: snapshot)
     }
 
+    init(repository: any FamilyRepository, snapshot: FamilySnapshot) {
+        members = snapshot.members
+        planItems = snapshot.planItems
+        inboxItems = snapshot.inboxItems
+        proposals = snapshot.proposals
+        allProposals = snapshot.proposals
+        self.repository = repository
+    }
+
     var children: [FamilyMember] {
         members.filter { $0.role == .child }
     }
@@ -155,6 +164,24 @@ final class DemoStore {
                 }
                 repositoryErrorMessage = error.localizedDescription
             }
+        }
+    }
+
+    func addChild(named name: String) {
+        let cleanName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !cleanName.isEmpty else { return }
+
+        isRepositoryBusy = true
+        repositoryErrorMessage = nil
+
+        Task {
+            do {
+                let snapshot = try await repository.addChild(named: cleanName)
+                apply(snapshot)
+            } catch {
+                repositoryErrorMessage = error.localizedDescription
+            }
+            isRepositoryBusy = false
         }
     }
 
