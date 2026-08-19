@@ -32,7 +32,7 @@ Repository purpose: persistent handoff/state repository for the full App Factory
 | 008 | BeforeAfter | Guided repeat photography/alignment/comparison | Pro / Lifetime | QUEUED |
 | 009 | ScamLens | Analyze screenshots/messages for suspicious indicators | Credits / Pro | QUEUED |
 | 010 | SwipeOrDie | Fast portrait reaction/high-score game | Ads + IAP | QUEUED |
-| 011 | Family Life OS (INTERNAL CODENAME) | Family Inbox: photo/PDF/text/voice -> reviewed events/tasks/deadlines/payments/preparation | Freemium + Family Pro subscription | DEVICE RELEASE BUILD GREEN / TESTFLIGHT ASC SECRETS NEXT |
+| 011 | Family Life OS (INTERNAL CODENAME) | Family Inbox: photo/PDF/text/voice -> reviewed events/tasks/deadlines/payments/preparation | Freemium + Family Pro subscription | APP STORE CONNECT APP RECORD REQUIRED / BUNDLE ID VERIFIED |
 
 # Portfolio app #001 — KeepMeter
 
@@ -116,58 +116,50 @@ Authoritative app state:
 
 ## Current checkpoint
 
-Latest major pass: Release physical-device build + safe TestFlight pipeline.
+Latest major pass: real Apple/TestFlight credential + registration-path probe.
 
-### PR #8 — hosted Supabase vertical slice
+### Already green before Apple registration probe
 
-- MERGED
-- tested head `13297c5fd40705509dce298d741229ccd26b76bb`
-- merge `747d5bed505ef527501d24b9a24144ffb04a24f1`
-- iOS run `32221107674` / #17 — SUCCESS
-- DB run `32221107641` / #8 — SUCCESS
-
-### PR #9 — Auth/RLS hardening
-
-- MERGED
-- tested head `a884bf8f36dfdc560c5aa4e5fde2d98cefb33ee9`
-- merge `649f2104353154e199b3844ec79ca6e8d23a60ad`
-- iOS run `32222381445` / #19 — SUCCESS
-- DB run `32222381440` / #10 — SUCCESS
-- exact callback validation
-- 14-assertion two-household pgTAP test
-- direct hosted Frankfurt isolation smoke green
-- temporary test data fully removed
-- hosted Security Advisor clean at last check
-
-### PR #10 — hosted authenticated E2E smoke harness
-
-- MERGED
-- tested head `eb4b14998d630ec9c1951548fcaac71671ff625b`
-- merge `a56f0776ea701a50b549e4167415d4b0056afde1`
-- Xcode/iOS Simulator run `32225259430` / #21 — SUCCESS
-- no DB workflow required because database contract did not change
-- in-app diagnostics now exercise authenticated hosted school-letter flow and cleanup
-
-### PR #11 — physical-device Release/TestFlight pipeline
-
-- MERGED
-- tested head `546722579458b5caef23641b181810de10ce9eee`
-- merge `727f2cdceae6cd0f527a766879a8d0517fbdb742`
-- workflow `.github/workflows/family-life-os-testflight.yml`
-- PR run `32228406465` / #2 — SUCCESS
+- PR #8 hosted Supabase vertical slice — MERGED / iOS + DB green
+- PR #9 Auth/RLS hardening — MERGED / iOS + DB green / two-household isolation green
+- PR #10 authenticated hosted E2E smoke harness — MERGED / compile green
+- PR #11 physical-device Release/TestFlight pipeline — MERGED
 - Release generic `iphoneos` build — SUCCESS
 - unsigned physical-device artifact — SUCCESS
-- TestFlight upload disabled on PRs
-- absent ASC secrets skip upload cleanly while preserving Release-device gate
-- real Apple signing/upload failure remains a hard failure with diagnostics
+- hosted Supabase callback allow-list — USER-CONFIRMED configured
 
-Verified GitHub Actions credential state for `acciento89-bot/appideenchatgpt` during PR #11:
+### Apple/TestFlight credential + registration probe — 2026-08-19
 
-- `ASC_ISSUER_ID` absent
-- `ASC_KEY_ID` absent
-- `ASC_PRIVATE_KEY_B64` absent
+The previous `ASC SECRETS NEXT` assumption is obsolete.
 
-No secret values were exposed. The connected GitHub tool surface cannot create/copy repository Actions secrets.
+A secure bridge in `acciento89-bot/onemorefloor` reused that repository's existing working App Store Connect API credentials without exposing or copying secret values.
+
+Bridge evidence:
+
+- bridge workflow: `acciento89-bot/onemorefloor/.github/workflows/family-life-os-testflight-bridge.yml`
+- draft probe PR: `acciento89-bot/onemorefloor#84`
+- decisive run: `32247708814`
+- job: `96051837747`
+- Family Life OS package resolution — SUCCESS
+- unsigned Release device build — SUCCESS
+- ASC credential presence — SUCCESS
+- API key preparation — SUCCESS
+- Release archive creation — SUCCESS
+- export/upload path — FAILED with raw `xcodebuild` exit status `70`
+- exact decisive Xcode diagnostic: `No profiles for 'de.kamilunavo.familyprototype' were found`
+- no successful TestFlight upload occurred
+
+Apple App Store Connect API probe evidence:
+
+- probe run: `32248236864`
+- handoff issue: `acciento89-bot/onemorefloor#88`
+- bundle identifier: `de.kamilunavo.familyprototype`
+- Bundle ID matches: `1`
+- Apple Bundle ID resource id: `2NV99ZM2PM`
+- App Store Connect app records: `0`
+- provisioning profiles: `0`
+
+**Current verified blocker:** the explicit Bundle ID is already registered, but the App Store Connect app record does not exist yet. The public App Store Connect API cannot create a brand-new app record, so this one record must be created once in App Store Connect before the signed TestFlight path can continue.
 
 ## Auth redirect state
 
@@ -177,7 +169,7 @@ Callback:
 
 The user confirmed on **2026-08-19** that this redirect URL has been added in hosted Supabase Auth URL Configuration.
 
-This removes the known hosted configuration blocker. Physical-device callback/session establishment is still unverified until the app is installed and Magic Link is exercised.
+Do not regress to “Auth redirect not configured”. Physical-device callback/session establishment remains unverified until the internal build is installed and Magic Link is exercised.
 
 ## Product thesis / trust boundary
 
@@ -250,25 +242,34 @@ The diagnostics UI is intentionally allowed for the first **internal TestFlight/
 
 ## Apple/TestFlight path
 
-Family Life OS now has a dedicated cloud-signing pipeline based on the existing Kamilunavo Apple setup.
+Known Apple team:
 
-Known team:
+- Team ID `TKG684N5GL`
 
-- Apple Team ID `TKG684N5GL`
-
-Workflow:
+Canonical workflow:
 
 `.github/workflows/family-life-os-testflight.yml`
 
-Current blocker:
+Current Apple state:
 
-Add these repository Actions secrets to `acciento89-bot/appideenchatgpt`:
+- explicit Bundle ID `de.kamilunavo.familyprototype` — REGISTERED
+- Apple Bundle ID resource `2NV99ZM2PM`
+- App Store Connect app record — MISSING
+- provisioning profile — NONE
+- working ASC credentials — VERIFIED through bridge
+- Release archive — VERIFIED through bridge
+- signed TestFlight upload — NOT YET SUCCESSFUL
 
-- `ASC_ISSUER_ID`
-- `ASC_KEY_ID`
-- `ASC_PRIVATE_KEY_B64`
+One-time manual App Store Connect record values:
 
-The same App Store Connect API credentials already used by the working Kamilunavo/ONE MORE FLOOR upload pipeline may be reused if appropriate. Never commit them to Git or source files.
+- Platform: iOS
+- Name: `Family Life OS` as temporary internal name; public brand remains unlocked
+- Primary Language: German
+- Bundle ID: `de.kamilunavo.familyprototype`
+- SKU: `KAMILUNAVO-FAMILY-001`
+- User Access: Full Access unless intentionally restricted
+
+After app-record creation, rerun TestFlight build `1`; use automatic/cloud signing and only react to a new exact Apple diagnostic if it still fails.
 
 Do not claim a Family Life OS TestFlight upload succeeded until an actual signed workflow run reports success.
 
@@ -288,11 +289,17 @@ Validated:
 - PR #11 Release generic physical-device `iphoneos` build green
 - PR #11 physical-device artifact packaging green
 - TestFlight pipeline merged
+- existing working ASC credentials proven against Family Life OS bridge
+- Release archive proven through bridge
+- Bundle ID existence proven via Apple API
+- missing app record proven via Apple API
+- zero provisioning profiles proven via Apple API
 
 Not yet release-validated:
 
+- App Store Connect app record creation
+- automatic distribution provisioning after record creation
 - signed Family Life OS TestFlight upload
-- Apple bundle/app-record/provisioning path for the provisional bundle
 - physical-device Magic Link callback/session
 - one-button hosted smoke report from a real authenticated iPhone/iPad
 - two real authenticated devices/sessions over Data API
@@ -307,8 +314,8 @@ Not yet release-validated:
 
 ## #011 next steps
 
-1. Configure `ASC_ISSUER_ID`, `ASC_KEY_ID`, `ASC_PRIVATE_KEY_B64` in the `appideenchatgpt` repository Actions secrets.
-2. Run `Family Life OS TestFlight` manually with build `1`; require signed upload success or fix the exact Apple diagnostic.
+1. Create the iOS app record in App Store Connect for `de.kamilunavo.familyprototype` using the values above.
+2. Rerun signed internal TestFlight build `1`; require actual upload success or fix the new exact Apple diagnostic.
 3. Install the internal TestFlight build on a physical iPhone/iPad.
 4. Execute Magic Link and verify authenticated return through the configured callback.
 5. Open **Backend-Diagnose** -> **Hosted E2E jetzt prüfen** and require every step including cleanup to pass.
@@ -355,7 +362,9 @@ Avoid generic house/checkmark, cartoon family, or robot/AI sparkle identity.
 2. Read the selected app-specific state.
 3. For #011 read `apps/011-family-life-os/PROJECT_STATE.md` and `BACKEND_CONTRACT.md`.
 4. Inspect current `main` and latest relevant CI gates before code changes.
-5. Continue #011 from ASC secrets -> signed internal TestFlight -> physical-device Magic Link -> authenticated hosted E2E smoke.
-6. Do not regress to “Auth redirect not configured” — user confirmed it configured on 2026-08-19.
-7. Do not jump to Realtime/Storage/OCR/AI before the authenticated physical-device hosted text smoke is proven.
-8. Preserve every other portfolio entry when updating one workstream.
+5. Continue #011 from **App Store Connect app record -> signed internal TestFlight -> physical-device Magic Link -> authenticated hosted E2E smoke**.
+6. Do not regress to “ASC secrets missing” — working credentials were proven through the secure bridge on 2026-08-19.
+7. Do not regress to “Bundle ID missing” — Apple API probe found resource `2NV99ZM2PM`.
+8. Do not regress to “Auth redirect not configured” — user confirmed it configured on 2026-08-19.
+9. Do not jump to Realtime/Storage/OCR/AI before the authenticated physical-device hosted text smoke is proven.
+10. Preserve every other portfolio entry when updating one workstream.
