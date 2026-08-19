@@ -1,6 +1,6 @@
 import Foundation
 
-enum EvidenceCaseKind: String, CaseIterable, Identifiable, Codable {
+enum EvidenceCaseKind: String, CaseIterable, Identifiable, Codable, Hashable {
     case property = "Property"
     case delivery = "Delivery"
     case vehicle = "Vehicle"
@@ -24,7 +24,7 @@ enum EvidenceCaseKind: String, CaseIterable, Identifiable, Codable {
     }
 }
 
-enum EvidenceItemKind: String, CaseIterable, Identifiable, Codable {
+enum EvidenceItemKind: String, CaseIterable, Identifiable, Codable, Hashable {
     case observation = "Observation"
     case photo = "Photo"
     case document = "Document"
