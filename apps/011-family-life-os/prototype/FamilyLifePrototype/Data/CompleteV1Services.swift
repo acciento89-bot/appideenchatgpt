@@ -8,14 +8,19 @@ import StoreKit
 import Supabase
 import UIKit
 import UserNotifications
-import Vision
+@preconcurrency import Vision
 
 @MainActor
 extension DemoStore {
     func applyExternalSnapshot(_ snapshot: FamilySnapshot) {
+        household = snapshot.household
         members = snapshot.members
         planItems = snapshot.planItems
         inboxItems = snapshot.inboxItems
+        reminders = snapshot.reminders
+        activity = snapshot.activity
+        entitlement = snapshot.entitlement
+        notificationPreferences = snapshot.notificationPreferences
         if let selectedSourceID {
             proposals = snapshot.proposals.filter { $0.sourceID == selectedSourceID }
         } else {
@@ -25,7 +30,7 @@ extension DemoStore {
 
     func refreshHosted() async {
         do {
-            applyExternalSnapshot(try await SupabaseFamilyRepository().currentSnapshot())
+            applyExternalSnapshot(try await SupabaseFamilyRepository().completeSnapshot())
             repositoryErrorMessage = nil
         } catch {
             repositoryErrorMessage = error.localizedDescription
@@ -37,7 +42,7 @@ extension DemoStore {
         repositoryErrorMessage = nil
         Task {
             do {
-                let snapshot = try await SupabaseFamilyRepository().currentSnapshot()
+                let snapshot = try await SupabaseFamilyRepository().completeSnapshot()
                 applyExternalSnapshot(snapshot)
                 selectedSourceID = sourceID
                 proposals = snapshot.proposals.filter { $0.sourceID == sourceID }
@@ -341,10 +346,17 @@ final class VoiceCaptureModel: NSObject, AVAudioRecorderDelegate {
 
     func start() async {
         do {
-            let speech = await SFSpeechRecognizer.requestAuthorization()
+            let speech: SFSpeechRecognizerAuthorizationStatus = await withCheckedContinuation { continuation in
+                SFSpeechRecognizer.requestAuthorization { status in
+                    continuation.resume(returning: status)
+                }
+            }
             guard speech == .authorized else { throw VoiceError.permission }
+
             let granted = await withCheckedContinuation { continuation in
-                AVAudioApplication.requestRecordPermission { continuation.resume(returning: $0) }
+                AVAudioApplication.requestRecordPermission { allowed in
+                    continuation.resume(returning: allowed)
+                }
             }
             guard granted else { throw VoiceError.permission }
 
