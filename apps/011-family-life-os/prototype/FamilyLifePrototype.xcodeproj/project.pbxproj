@@ -24,6 +24,7 @@
 		A1100000000000000000000F /* SupabaseFamilyRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = B11000000000000000000010 /* SupabaseFamilyRepository.swift */; };
 		A11000000000000000000010 /* HostedAppView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B11000000000000000000011 /* HostedAppView.swift */; };
 		A11000000000000000000011 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = H11000000000000000000001 /* Supabase */; };
+		A11000000000000000000012 /* HostedSmokeTestService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B11000000000000000000013 /* HostedSmokeTestService.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -45,6 +46,7 @@
 		B11000000000000000000010 /* SupabaseFamilyRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseFamilyRepository.swift; sourceTree = "<group>"; };
 		B11000000000000000000011 /* HostedAppView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HostedAppView.swift; sourceTree = "<group>"; };
 		B11000000000000000000012 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		B11000000000000000000013 /* HostedSmokeTestService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HostedSmokeTestService.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -96,6 +98,7 @@
 				B1100000000000000000000E /* InMemoryFamilyRepository.swift */,
 				B1100000000000000000000F /* SupabaseEnvironment.swift */,
 				B11000000000000000000010 /* SupabaseFamilyRepository.swift */,
+				B11000000000000000000013 /* HostedSmokeTestService.swift */,
 			);
 			path = Data;
 			sourceTree = "<group>";
@@ -206,6 +209,7 @@
 				A1100000000000000000000D /* InMemoryFamilyRepository.swift in Sources */,
 				A1100000000000000000000E /* SupabaseEnvironment.swift in Sources */,
 				A1100000000000000000000F /* SupabaseFamilyRepository.swift in Sources */,
+				A11000000000000000000012 /* HostedSmokeTestService.swift in Sources */,
 				A11000000000000000000004 /* RootView.swift in Sources */,
 				A11000000000000000000005 /* Components.swift in Sources */,
 				A11000000000000000000006 /* TodayView.swift in Sources */,
