@@ -7,25 +7,42 @@ final class EvidenceStore: ObservableObject {
 
     init(seedDemoData: Bool = true) {
         if seedDemoData {
+            let now = Date()
             let caseID = UUID()
+            let caseCreatedAt = now.addingTimeInterval(-7_400)
+            let firstRecordedAt = now.addingTimeInterval(-7_200)
+            let secondRecordedAt = now.addingTimeInterval(-6_900)
+
             let firstNote = "Package arrived with a crushed upper-right corner and a visible tear along the seam."
+            let firstSource = "Front door delivery"
             let firstItem = EvidenceItem(
                 id: UUID(),
                 kind: .observation,
-                recordedAt: Date().addingTimeInterval(-7_200),
-                source: "Front door delivery",
+                recordedAt: firstRecordedAt,
+                source: firstSource,
                 note: firstNote,
-                contentHash: EvidenceHasher.itemHash(kind: .observation, source: "Front door delivery", note: firstNote, recordedAt: Date().addingTimeInterval(-7_200))
+                contentHash: EvidenceHasher.itemHash(
+                    kind: .observation,
+                    source: firstSource,
+                    note: firstNote,
+                    recordedAt: firstRecordedAt
+                )
             )
 
             let secondNote = "Outer packaging retained. Contents not yet discarded."
+            let secondSource = "Follow-up note"
             let secondItem = EvidenceItem(
                 id: UUID(),
                 kind: .observation,
-                recordedAt: Date().addingTimeInterval(-6_900),
-                source: "Follow-up note",
+                recordedAt: secondRecordedAt,
+                source: secondSource,
                 note: secondNote,
-                contentHash: EvidenceHasher.itemHash(kind: .observation, source: "Follow-up note", note: secondNote, recordedAt: Date().addingTimeInterval(-6_900))
+                contentHash: EvidenceHasher.itemHash(
+                    kind: .observation,
+                    source: secondSource,
+                    note: secondNote,
+                    recordedAt: secondRecordedAt
+                )
             )
 
             cases = [
@@ -33,7 +50,7 @@ final class EvidenceStore: ObservableObject {
                     id: caseID,
                     title: "Damaged delivery",
                     kind: .delivery,
-                    createdAt: Date().addingTimeInterval(-7_400),
+                    createdAt: caseCreatedAt,
                     evidence: [firstItem, secondItem],
                     seals: []
                 )
