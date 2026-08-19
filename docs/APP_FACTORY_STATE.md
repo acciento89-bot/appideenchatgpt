@@ -32,7 +32,7 @@ Repository purpose: persistent handoff/state repository for the full App Factory
 | 008 | BeforeAfter | Guided repeat photography/alignment/comparison | Pro / Lifetime | QUEUED |
 | 009 | ScamLens | Analyze screenshots/messages for suspicious indicators | Credits / Pro | QUEUED |
 | 010 | SwipeOrDie | Fast portrait reaction/high-score game | Ads + IAP | QUEUED |
-| 011 | Family Life OS (INTERNAL CODENAME) | Family Inbox: photo/PDF/text/voice -> reviewed events/tasks/deadlines/payments/preparation | Freemium + Family Pro subscription | HOSTED E2E HARNESS GREEN / DEVICE AUTH ALLOWLIST NEXT |
+| 011 | Family Life OS (INTERNAL CODENAME) | Family Inbox: photo/PDF/text/voice -> reviewed events/tasks/deadlines/payments/preparation | Freemium + Family Pro subscription | DEVICE RELEASE BUILD GREEN / TESTFLIGHT ASC SECRETS NEXT |
 
 # Portfolio app #001 — KeepMeter
 
@@ -116,7 +116,7 @@ Authoritative app state:
 
 ## Current checkpoint
 
-Latest major pass: hosted authenticated E2E smoke harness.
+Latest major pass: Release physical-device build + safe TestFlight pipeline.
 
 ### PR #8 — hosted Supabase vertical slice
 
@@ -139,30 +139,45 @@ Latest major pass: hosted authenticated E2E smoke harness.
 - temporary test data fully removed
 - hosted Security Advisor clean at last check
 
-### PR #10 — hosted E2E smoke harness
+### PR #10 — hosted authenticated E2E smoke harness
 
 - MERGED
 - tested head `eb4b14998d630ec9c1951548fcaac71671ff625b`
 - merge `a56f0776ea701a50b549e4167415d4b0056afde1`
 - Xcode/iOS Simulator run `32225259430` / #21 — SUCCESS
-- no DB workflow triggered because PR #10 changed no database schema/policies/functions
+- no DB workflow required because database contract did not change
+- in-app diagnostics now exercise authenticated hosted school-letter flow and cleanup
 
-The in-app diagnostics harness now tests through the normal authenticated RLS client path:
+### PR #11 — physical-device Release/TestFlight pipeline
 
-- Auth session
-- household load
-- child resolution
-- hosted canonical school-letter import
-- exactly 4 proposals
-- review readiness
-- canonical confirmation
-- exactly 4 PlanItems
-- source + proposal provenance
-- source `done`
-- confirm retry/idempotency
-- cleanup of temporary data
+- MERGED
+- tested head `546722579458b5caef23641b181810de10ce9eee`
+- merge `727f2cdceae6cd0f527a766879a8d0517fbdb742`
+- workflow `.github/workflows/family-life-os-testflight.yml`
+- PR run `32228406465` / #2 — SUCCESS
+- Release generic `iphoneos` build — SUCCESS
+- unsigned physical-device artifact — SUCCESS
+- TestFlight upload disabled on PRs
+- absent ASC secrets skip upload cleanly while preserving Release-device gate
+- real Apple signing/upload failure remains a hard failure with diagnostics
 
-The harness itself is compiled/merged but has **not yet been run through a real physical-device authenticated Magic Link session**.
+Verified GitHub Actions credential state for `acciento89-bot/appideenchatgpt` during PR #11:
+
+- `ASC_ISSUER_ID` absent
+- `ASC_KEY_ID` absent
+- `ASC_PRIVATE_KEY_B64` absent
+
+No secret values were exposed. The connected GitHub tool surface cannot create/copy repository Actions secrets.
+
+## Auth redirect state
+
+Callback:
+
+`de.kamilunavo.familyprototype://login-callback`
+
+The user confirmed on **2026-08-19** that this redirect URL has been added in hosted Supabase Auth URL Configuration.
+
+This removes the known hosted configuration blocker. Physical-device callback/session establishment is still unverified until the app is installed and Magic Link is exercised.
 
 ## Product thesis / trust boundary
 
@@ -197,6 +212,7 @@ Target:
 - iOS/iPadOS 18+
 - iPhone + iPad
 - provisional bundle id `de.kamilunavo.familyprototype`
+- internal version path `0.1.0 (1)`
 
 Data boundary:
 
@@ -228,21 +244,33 @@ Hosted client capabilities:
 - canonical confirm RPC
 - remote completion
 - remote child profile creation
-- one-button hosted E2E diagnostics harness
+- one-button authenticated hosted E2E diagnostics harness
 
-Before TestFlight, the diagnostics UI must be removed or gated to DEBUG/internal builds.
+The diagnostics UI is intentionally allowed for the first **internal TestFlight/device smoke** and must be gated before external TestFlight/App Store distribution.
 
-## External Auth gate
+## Apple/TestFlight path
 
-Exact callback:
+Family Life OS now has a dedicated cloud-signing pipeline based on the existing Kamilunavo Apple setup.
 
-`de.kamilunavo.familyprototype://login-callback`
+Known team:
 
-Must be present in:
+- Apple Team ID `TKG684N5GL`
 
-**Supabase Dashboard -> Auth -> URL Configuration -> Additional Redirect URLs**
+Workflow:
 
-The connected Supabase tool surface cannot mutate that setting and the repository contains no existing `SUPABASE_ACCESS_TOKEN` management workflow. Do not invent or expose credentials to automate it.
+`.github/workflows/family-life-os-testflight.yml`
+
+Current blocker:
+
+Add these repository Actions secrets to `acciento89-bot/appideenchatgpt`:
+
+- `ASC_ISSUER_ID`
+- `ASC_KEY_ID`
+- `ASC_PRIVATE_KEY_B64`
+
+The same App Store Connect API credentials already used by the working Kamilunavo/ONE MORE FLOOR upload pipeline may be reused if appropriate. Never commit them to Git or source files.
+
+Do not claim a Family Life OS TestFlight upload succeeded until an actual signed workflow run reports success.
 
 ## #011 validation boundary
 
@@ -255,12 +283,16 @@ Validated:
 - two-identity RLS isolation green in local pgTAP
 - direct hosted SQL isolation green
 - PR #9 Xcode + DB gates green on same head
-- PR #10 hosted smoke harness Xcode run #21 green
-- PR #10 merged
+- PR #10 hosted smoke harness compile green
+- Supabase callback allow-list user-confirmed configured
+- PR #11 Release generic physical-device `iphoneos` build green
+- PR #11 physical-device artifact packaging green
+- TestFlight pipeline merged
 
 Not yet release-validated:
 
-- callback presence in hosted Auth allow-list
+- signed Family Life OS TestFlight upload
+- Apple bundle/app-record/provisioning path for the provisional bundle
 - physical-device Magic Link callback/session
 - one-button hosted smoke report from a real authenticated iPhone/iPad
 - two real authenticated devices/sessions over Data API
@@ -271,21 +303,21 @@ Not yet release-validated:
 - real AI extraction
 - physical-device/manual VoiceOver QA
 - StoreKit/subscription
-- TestFlight readiness
+- external TestFlight/App Store readiness
 
 ## #011 next steps
 
-1. Add/confirm `de.kamilunavo.familyprototype://login-callback` in hosted Supabase Auth Additional Redirect URLs.
-2. Run the app on a physical iPhone/iPad.
-3. Execute Magic Link login and verify authenticated return to app.
-4. Open the stethoscope **Backend-Diagnose** control.
-5. Run **Hosted E2E jetzt prüfen** and require every step including cleanup to pass.
-6. Repeat with a second real authenticated session for the final Auth/Data-API isolation surface if needed.
-7. Add Realtime only after the device smoke is green.
+1. Configure `ASC_ISSUER_ID`, `ASC_KEY_ID`, `ASC_PRIVATE_KEY_B64` in the `appideenchatgpt` repository Actions secrets.
+2. Run `Family Life OS TestFlight` manually with build `1`; require signed upload success or fix the exact Apple diagnostic.
+3. Install the internal TestFlight build on a physical iPhone/iPad.
+4. Execute Magic Link and verify authenticated return through the configured callback.
+5. Open **Backend-Diagnose** -> **Hosted E2E jetzt prüfen** and require every step including cleanup to pass.
+6. Repeat with a second real authenticated session for final Auth/Data-API isolation coverage.
+7. Add Realtime only after physical-device hosted text smoke is green.
 8. Add private Storage + photo/PDF share intake.
 9. Add OCR.
 10. Add real AI extraction last while retaining explicit proposal review/confirmation.
-11. Remove/gate diagnostics and perform physical-device + VoiceOver QA before TestFlight.
+11. Gate diagnostics before external distribution and perform physical-device + VoiceOver QA before release readiness.
 
 ## #011 brand guardrail
 
@@ -323,6 +355,7 @@ Avoid generic house/checkmark, cartoon family, or robot/AI sparkle identity.
 2. Read the selected app-specific state.
 3. For #011 read `apps/011-family-life-os/PROJECT_STATE.md` and `BACKEND_CONTRACT.md`.
 4. Inspect current `main` and latest relevant CI gates before code changes.
-5. Continue #011 from hosted Auth allow-list + real physical-device E2E smoke.
-6. Do not jump to Realtime/Storage/OCR/AI before the authenticated hosted text smoke is proven on device.
-7. Preserve every other portfolio entry when updating one workstream.
+5. Continue #011 from ASC secrets -> signed internal TestFlight -> physical-device Magic Link -> authenticated hosted E2E smoke.
+6. Do not regress to “Auth redirect not configured” — user confirmed it configured on 2026-08-19.
+7. Do not jump to Realtime/Storage/OCR/AI before the authenticated physical-device hosted text smoke is proven.
+8. Preserve every other portfolio entry when updating one workstream.
