@@ -378,36 +378,48 @@ struct TodayView: View {
         formatter.dateFormat = "EEEE, d. MMM"
         return formatter.string(from: date)
     }
+
+    static func previewDate(_ year: Int, _ month: Int, _ day: Int, _ hour: Int, _ minute: Int) -> Date {
+        var components = DateComponents()
+        components.calendar = Calendar(identifier: .gregorian)
+        components.timeZone = TimeZone(identifier: "Europe/Berlin")
+        components.year = year
+        components.month = month
+        components.day = day
+        components.hour = hour
+        components.minute = minute
+        return components.date ?? .now
+    }
 }
 
 #Preview("Heute – Busy") {
     NavigationStack {
-        TodayView(store: DemoStore(), referenceDate: DemoStore.previewDate(2026, 8, 18, 18, 30))
+        TodayView(store: DemoStore(), referenceDate: TodayView.previewDate(2026, 8, 18, 18, 30))
     }
 }
 
 #Preview("Heute – Calm") {
     NavigationStack {
-        TodayView(store: DemoStore(scenario: .calmToday), referenceDate: DemoStore.previewDate(2026, 8, 18, 18, 30))
+        TodayView(store: DemoStore(scenario: .calmToday), referenceDate: TodayView.previewDate(2026, 8, 18, 18, 30))
     }
 }
 
 #Preview("Heute – Conflict") {
     NavigationStack {
-        TodayView(store: DemoStore(scenario: .conflictToday), referenceDate: DemoStore.previewDate(2026, 8, 18, 18, 30))
+        TodayView(store: DemoStore(scenario: .conflictToday), referenceDate: TodayView.previewDate(2026, 8, 18, 18, 30))
     }
 }
 
 #Preview("Heute – Dark") {
     NavigationStack {
-        TodayView(store: DemoStore(), referenceDate: DemoStore.previewDate(2026, 8, 18, 18, 30))
+        TodayView(store: DemoStore(), referenceDate: TodayView.previewDate(2026, 8, 18, 18, 30))
     }
     .preferredColorScheme(.dark)
 }
 
 #Preview("Heute – Accessibility") {
     NavigationStack {
-        TodayView(store: DemoStore(), referenceDate: DemoStore.previewDate(2026, 8, 18, 18, 30))
+        TodayView(store: DemoStore(), referenceDate: TodayView.previewDate(2026, 8, 18, 18, 30))
     }
     .environment(\.dynamicTypeSize, .accessibility3)
 }
