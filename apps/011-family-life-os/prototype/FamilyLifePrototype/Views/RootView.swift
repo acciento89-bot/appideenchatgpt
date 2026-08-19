@@ -29,7 +29,14 @@ struct RootView: View {
     }
 
     private var sidebarSelection: Binding<AppSection?> {
-        Binding(get: { selectedSection }, set: { if let $0 { selectedSection = $0 } })
+        Binding(
+            get: { selectedSection },
+            set: { newValue in
+                if let newValue {
+                    selectedSection = newValue
+                }
+            }
+        )
     }
 
     private var showsRepositoryError: Binding<Bool> {
