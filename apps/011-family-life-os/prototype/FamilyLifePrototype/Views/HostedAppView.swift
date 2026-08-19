@@ -161,6 +161,9 @@ private struct HostedFamilyLoaderView: View {
     @State private var store: DemoStore?
     @State private var errorMessage: String?
     @State private var retryToken = UUID()
+    @State private var isShowingDiagnostics = false
+    @State private var isRunningSmokeTest = false
+    @State private var smokeReport: HostedSmokeTestReport?
 
     private let repository = SupabaseFamilyRepository()
 
@@ -199,6 +202,135 @@ private struct HostedFamilyLoaderView: View {
                 errorMessage = error.localizedDescription
             }
         }
+        .overlay(alignment: .bottomTrailing) {
+            if store != nil {
+                Button {
+                    isShowingDiagnostics = true
+                } label: {
+                    Image(systemName: "stethoscope")
+                        .font(.headline)
+                        .frame(width: 44, height: 44)
+                }
+                .buttonStyle(.borderedProminent)
+                .clipShape(Circle())
+                .padding(18)
+                .accessibilityLabel("Hosted Backend testen")
+                .accessibilityIdentifier("hosted.openDiagnostics")
+            }
+        }
+        .sheet(isPresented: $isShowingDiagnostics) {
+            HostedDiagnosticsView(
+                isRunning: isRunningSmokeTest,
+                report: smokeReport,
+                run: runSmokeTest
+            )
+        }
+    }
+
+    private func runSmokeTest() {
+        guard !isRunningSmokeTest else { return }
+        isRunningSmokeTest = true
+        smokeReport = nil
+
+        Task {
+            let service = HostedSmokeTestService(repository: repository)
+            let report = await service.run()
+            smokeReport = report
+            isRunningSmokeTest = false
+        }
+    }
+}
+
+private struct HostedDiagnosticsView: View {
+    @Environment(\.dismiss) private var dismiss
+
+    let isRunning: Bool
+    let report: HostedSmokeTestReport?
+    let run: () -> Void
+
+    var body: some View {
+        NavigationStack {
+            List {
+                Section {
+                    Label("Frankfurt / EU", systemImage: "server.rack")
+                    Label("Publishable Client Key", systemImage: "key.horizontal")
+                    Label(
+                        SupabaseEnvironment.authRedirectURL.absoluteString,
+                        systemImage: "link"
+                    )
+                    .font(.footnote.monospaced())
+                    .textSelection(.enabled)
+                } header: {
+                    Text("Hosted-Konfiguration")
+                } footer: {
+                    Text("Der Test nutzt nur die angemeldete Session und die normalen RLS-geschützten Client-Rechte. Keine Service-Role-Credentials werden verwendet.")
+                }
+
+                Section {
+                    Button(action: run) {
+                        HStack {
+                            if isRunning {
+                                ProgressView()
+                            } else {
+                                Image(systemName: "play.fill")
+                            }
+                            Text(isRunning ? "Hosted E2E läuft …" : "Hosted E2E jetzt prüfen")
+                                .frame(maxWidth: .infinity)
+                        }
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(isRunning)
+                    .accessibilityIdentifier("hosted.runSmokeTest")
+                } footer: {
+                    Text("Der Test legt temporäre Daten an, prüft Import, Review, Confirm, Provenance und Idempotenz und räumt seine Testdaten danach wieder auf.")
+                }
+
+                if let report {
+                    Section {
+                        Label(
+                            report.passed ? "Hosted E2E bestanden" : "Hosted E2E fehlgeschlagen",
+                            systemImage: report.passed ? "checkmark.seal.fill" : "xmark.octagon.fill"
+                        )
+                        .font(.headline)
+                        .foregroundStyle(report.passed ? .green : .red)
+
+                        Text(report.finishedAt, format: .dateTime.day().month().year().hour().minute().second())
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    Section("Prüfschritte") {
+                        ForEach(report.steps) { step in
+                            HStack(alignment: .top, spacing: 12) {
+                                Image(systemName: step.passed ? "checkmark.circle.fill" : "xmark.circle.fill")
+                                    .foregroundStyle(step.passed ? .green : .red)
+                                    .accessibilityHidden(true)
+
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(step.title)
+                                        .font(.body.weight(.semibold))
+                                    Text(step.detail)
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                }
+                            }
+                            .accessibilityElement(children: .combine)
+                        }
+                    }
+                }
+            }
+            .navigationTitle("Backend-Diagnose")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Fertig") {
+                        dismiss()
+                    }
+                }
+            }
+        }
+        .presentationDetents([.medium, .large])
     }
 }
 
