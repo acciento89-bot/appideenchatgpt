@@ -2,12 +2,13 @@ import SwiftUI
 
 struct TodayView: View {
     @Bindable var store: DemoStore
+    var referenceDate: Date = .now
 
     private var todayItems: [PlanItem] {
         store.planItems
             .filter { item in
                 guard let date = item.startsAt ?? item.dueAt else { return false }
-                return Self.isFixtureToday(date)
+                return Calendar.autoupdatingCurrent.isDate(date, inSameDayAs: referenceDate)
             }
             .sorted { ($0.startsAt ?? $0.dueAt ?? .distantFuture) < ($1.startsAt ?? $1.dueAt ?? .distantFuture) }
     }
@@ -22,12 +23,16 @@ struct TodayView: View {
     }
 
     private var tomorrowPreparationItems: [PlanItem] {
-        store.planItems
+        guard let tomorrow = Calendar.autoupdatingCurrent.date(byAdding: .day, value: 1, to: referenceDate) else {
+            return []
+        }
+
+        return store.planItems
             .filter { !$0.isCompleted }
             .filter { $0.kind == .deadline || $0.kind == .preparation || $0.kind == .task }
             .filter { item in
                 guard let date = item.dueAt ?? item.startsAt else { return false }
-                return Self.isFixtureTomorrow(date)
+                return Calendar.autoupdatingCurrent.isDate(date, inSameDayAs: tomorrow)
             }
             .sorted { ($0.dueAt ?? $0.startsAt ?? .distantFuture) < ($1.dueAt ?? $1.startsAt ?? .distantFuture) }
     }
@@ -78,11 +83,35 @@ struct TodayView: View {
             return "\(names.isEmpty ? "Eine Person" : names) hat zwei überlappende Termine. Bitte prüft, wer welchen Termin übernimmt."
         }
 
-        if todayItems.count <= 2 && attentionItems.isEmpty {
-            return "Heute ist alles im grünen Bereich. Es gibt nur wenige Termine und keine offenen Fristen."
+        if let nextAttention = attentionItems.first {
+            let countText = attentionItems.count == 1
+                ? "Ein offener Punkt braucht Aufmerksamkeit."
+                : "\(attentionItems.count) offene Punkte brauchen Aufmerksamkeit."
+            let dueText = nextAttention.dueAt.map { " Fällig am \(Self.shortDate($0))." } ?? ""
+            return "\(countText) Als Nächstes: \(nextAttention.title).\(dueText)"
         }
 
-        return "Ab 15:30 wird es voller: Lina hat Zahnarzt, danach muss Ben vom Training abgeholt werden. Für morgen ist noch die Einverständniserklärung offen."
+        if todayItems.isEmpty {
+            return "Heute steht aktuell nichts im Plan. Neue Infos kannst du über die Inbox hinzufügen."
+        }
+
+        if todayItems.count == 1, let item = todayItems.first {
+            return "Heute steht ein Eintrag im Plan: \(item.title)."
+        }
+
+        return "Heute stehen \(todayItems.count) Einträge im Plan. Der nächste ist \(todayItems.first?.title ?? "bereits vorbereitet")."
+    }
+
+    private var greeting: String {
+        let hour = Calendar.autoupdatingCurrent.component(.hour, from: referenceDate)
+        switch hour {
+        case 5..<12:
+            return "Guten Morgen"
+        case 12..<18:
+            return "Guten Tag"
+        default:
+            return "Guten Abend"
+        }
     }
 
     var body: some View {
@@ -97,7 +126,7 @@ struct TodayView: View {
                 familyBrief
 
                 VStack(alignment: .leading, spacing: 6) {
-                    SectionHeader(title: "Heute", trailing: "18. August")
+                    SectionHeader(title: "Heute", trailing: Self.dayMonth(referenceDate))
 
                     if todayItems.isEmpty {
                         ContentUnavailableView {
@@ -106,7 +135,7 @@ struct TodayView: View {
                             Text("Neue Infos kannst du direkt über die Inbox hinzufügen.")
                         } actions: {
                             Button("Etwas hinzufügen") {
-                                store.openSignatureReview()
+                                startInternalAddFlow()
                             }
                             .buttonStyle(.borderedProminent)
                         }
@@ -116,7 +145,7 @@ struct TodayView: View {
                                 AgendaRow(
                                     item: item,
                                     members: store.members,
-                                    showsCompletion: item.kind == .task,
+                                    showsCompletion: item.kind != .event,
                                     onToggleCompletion: { store.toggleCompletion(item.id) }
                                 )
 
@@ -149,12 +178,12 @@ struct TodayView: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
-                    store.openSignatureReview()
+                    startInternalAddFlow()
                 } label: {
                     Image(systemName: "plus")
                 }
                 .accessibilityLabel("Etwas hinzufügen")
-                .accessibilityHint("Öffnet einen Beispielimport zum Prüfen")
+                .accessibilityHint("Öffnet einen offenen Import oder startet den internen Text-Testimport")
                 .accessibilityIdentifier("today-add")
             }
         }
@@ -162,10 +191,10 @@ struct TodayView: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("Dienstag, 18. August")
+            Text(Self.longDate(referenceDate))
                 .font(.subheadline.weight(.medium))
                 .foregroundStyle(.secondary)
-            Text("Guten Abend")
+            Text(greeting)
                 .font(.largeTitle.bold())
                 .fixedSize(horizontal: false, vertical: true)
         }
@@ -200,16 +229,17 @@ struct TodayView: View {
                                 .font(.subheadline.weight(.semibold))
                                 .fixedSize(horizontal: false, vertical: true)
                             if let due = item.dueAt {
-                                Text(due, format: .dateTime.weekday(.wide).day().month())
+                                Text(Self.shortDate(due))
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                             }
                         }
+                        .accessibilityElement(children: .combine)
 
                         Spacer(minLength: 0)
+                        completionButton(for: item)
                     }
                     .padding(14)
-                    .accessibilityElement(children: .combine)
 
                     if item.id != attentionItems.last?.id {
                         Divider().padding(.leading, 54)
@@ -286,10 +316,12 @@ struct TodayView: View {
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
+                        .accessibilityElement(children: .combine)
+
                         Spacer(minLength: 0)
+                        completionButton(for: item)
                     }
                     .padding(14)
-                    .accessibilityElement(children: .combine)
 
                     if item.id != tomorrowPreparationItems.last?.id {
                         Divider().padding(.leading, 54)
@@ -300,47 +332,82 @@ struct TodayView: View {
         }
     }
 
-    private static func isFixtureToday(_ date: Date) -> Bool {
-        let calendar = Calendar(identifier: .gregorian)
-        let components = calendar.dateComponents([.year, .month, .day], from: date)
-        return components.year == 2026 && components.month == 8 && components.day == 18
+    private func completionButton(for item: PlanItem) -> some View {
+        Button {
+            store.toggleCompletion(item.id)
+        } label: {
+            Image(systemName: item.isCompleted ? "checkmark.circle.fill" : "circle")
+                .font(.title3)
+                .foregroundStyle(item.isCompleted ? .green : .secondary)
+                .frame(width: 44, height: 44)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(item.isCompleted ? "Als offen markieren" : "Als erledigt markieren")
+        .accessibilityIdentifier("today-item-completion")
     }
 
-    private static func isFixtureTomorrow(_ date: Date) -> Bool {
-        let calendar = Calendar(identifier: .gregorian)
-        let components = calendar.dateComponents([.year, .month, .day], from: date)
-        return components.year == 2026 && components.month == 8 && components.day == 19
+    private func startInternalAddFlow() {
+        if let pending = store.inboxItems
+            .filter({ $0.status == .review || $0.status == .partial })
+            .sorted(by: { $0.createdAt > $1.createdAt })
+            .first {
+            store.openReview(sourceID: pending.id)
+        } else {
+            store.ingestSchoolLetterText()
+        }
+    }
+
+    private static func longDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "de_DE")
+        formatter.dateFormat = "EEEE, d. MMMM"
+        return formatter.string(from: date)
+    }
+
+    private static func dayMonth(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "de_DE")
+        formatter.dateFormat = "d. MMMM"
+        return formatter.string(from: date)
+    }
+
+    private static func shortDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "de_DE")
+        formatter.dateFormat = "EEEE, d. MMM"
+        return formatter.string(from: date)
     }
 }
 
 #Preview("Heute – Busy") {
     NavigationStack {
-        TodayView(store: DemoStore())
+        TodayView(store: DemoStore(), referenceDate: DemoStore.previewDate(2026, 8, 18, 18, 30))
     }
 }
 
 #Preview("Heute – Calm") {
     NavigationStack {
-        TodayView(store: DemoStore(scenario: .calmToday))
+        TodayView(store: DemoStore(scenario: .calmToday), referenceDate: DemoStore.previewDate(2026, 8, 18, 18, 30))
     }
 }
 
 #Preview("Heute – Conflict") {
     NavigationStack {
-        TodayView(store: DemoStore(scenario: .conflictToday))
+        TodayView(store: DemoStore(scenario: .conflictToday), referenceDate: DemoStore.previewDate(2026, 8, 18, 18, 30))
     }
 }
 
 #Preview("Heute – Dark") {
     NavigationStack {
-        TodayView(store: DemoStore())
+        TodayView(store: DemoStore(), referenceDate: DemoStore.previewDate(2026, 8, 18, 18, 30))
     }
     .preferredColorScheme(.dark)
 }
 
 #Preview("Heute – Accessibility") {
     NavigationStack {
-        TodayView(store: DemoStore())
+        TodayView(store: DemoStore(), referenceDate: DemoStore.previewDate(2026, 8, 18, 18, 30))
     }
     .environment(\.dynamicTypeSize, .accessibility3)
 }
