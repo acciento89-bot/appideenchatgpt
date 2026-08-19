@@ -2,48 +2,30 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-    <key>CFBundleDevelopmentRegion</key>
-    <string>$(DEVELOPMENT_LANGUAGE)</string>
-    <key>CFBundleDisplayName</key>
-    <string>Familie</string>
-    <key>CFBundleExecutable</key>
-    <string>$(EXECUTABLE_NAME)</string>
-    <key>CFBundleIdentifier</key>
-    <string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
-    <key>CFBundleIconName</key>
-    <string>AppIcon</string>
-    <key>CFBundleInfoDictionaryVersion</key>
-    <string>6.0</string>
-    <key>CFBundleName</key>
-    <string>$(PRODUCT_NAME)</string>
-    <key>CFBundlePackageType</key>
-    <string>$(PRODUCT_BUNDLE_PACKAGE_TYPE)</string>
-    <key>CFBundleShortVersionString</key>
-    <string>$(MARKETING_VERSION)</string>
-    <key>CFBundleVersion</key>
-    <string>$(CURRENT_PROJECT_VERSION)</string>
+    <key>CFBundleDevelopmentRegion</key><string>$(DEVELOPMENT_LANGUAGE)</string>
+    <key>CFBundleDisplayName</key><string>Familie</string>
+    <key>CFBundleExecutable</key><string>$(EXECUTABLE_NAME)</string>
+    <key>CFBundleIdentifier</key><string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+    <key>CFBundleIconName</key><string>AppIcon</string>
+    <key>CFBundleInfoDictionaryVersion</key><string>6.0</string>
+    <key>CFBundleName</key><string>$(PRODUCT_NAME)</string>
+    <key>CFBundlePackageType</key><string>$(PRODUCT_BUNDLE_PACKAGE_TYPE)</string>
+    <key>CFBundleShortVersionString</key><string>$(MARKETING_VERSION)</string>
+    <key>CFBundleVersion</key><string>$(CURRENT_PROJECT_VERSION)</string>
     <key>CFBundleURLTypes</key>
-    <array>
-        <dict>
-            <key>CFBundleTypeRole</key>
-            <string>Editor</string>
-            <key>CFBundleURLName</key>
-            <string>de.kamilunavo.familyprototype.auth</string>
-            <key>CFBundleURLSchemes</key>
-            <array>
-                <string>de.kamilunavo.familyprototype</string>
-            </array>
-        </dict>
-    </array>
-    <key>LSApplicationCategoryType</key>
-    <string>public.app-category.productivity</string>
-    <key>UIApplicationSceneManifest</key>
-    <dict>
-        <key>UIApplicationSupportsMultipleScenes</key>
-        <false/>
-    </dict>
-    <key>UILaunchScreen</key>
-    <dict/>
+    <array><dict>
+        <key>CFBundleTypeRole</key><string>Editor</string>
+        <key>CFBundleURLName</key><string>de.kamilunavo.familyprototype</string>
+        <key>CFBundleURLSchemes</key><array><string>de.kamilunavo.familyprototype</string></array>
+    </dict></array>
+    <key>LSApplicationCategoryType</key><string>public.app-category.productivity</string>
+    <key>NSCameraUsageDescription</key><string>Family Life OS nutzt die Kamera, damit du Elternbriefe, Aushänge und andere Familieninformationen direkt in die private Inbox aufnehmen kannst.</string>
+    <key>NSPhotoLibraryUsageDescription</key><string>Family Life OS benötigt Zugriff auf ausgewählte Fotos und Screenshots, um daraus prüfbare Familienaktionen zu erstellen.</string>
+    <key>NSMicrophoneUsageDescription</key><string>Family Life OS nutzt das Mikrofon für freiwillige Spracheingaben in die Familien-Inbox.</string>
+    <key>NSSpeechRecognitionUsageDescription</key><string>Family Life OS transkribiert freiwillige Spracheingaben, damit Termine und Aufgaben daraus vorgeschlagen werden können.</string>
+    <key>NSFaceIDUsageDescription</key><string>Family Life OS kann sensible Familieninformationen auf Wunsch mit Face ID schützen.</string>
+    <key>UIApplicationSceneManifest</key><dict><key>UIApplicationSupportsMultipleScenes</key><false/></dict>
+    <key>UILaunchScreen</key><dict/>
     <key>UISupportedInterfaceOrientations</key>
     <array>
         <string>UIInterfaceOrientationPortrait</string>
