@@ -29,4 +29,4 @@ Shared scheme:
 
 ## CI
 
-`.github/workflows/evidaro-prototype-build.yml` runs the app-specific static preflight and an iOS Simulator build. The workflow is bootstrapped on `main` and pinned to the explicit macOS 26 ARM64 runner used by the factory's current iOS pipelines.
+`.github/workflows/evidaro-prototype-build.yml` runs the app-specific static preflight and an iOS Simulator build on GitHub's supported `macos-26` runner label, matching the current KeepMeter iOS pipeline.
