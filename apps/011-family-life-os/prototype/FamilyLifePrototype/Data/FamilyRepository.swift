@@ -18,6 +18,9 @@ enum FamilyRepositoryError: LocalizedError, Sendable {
     case sourceNotFound
     case proposalsNotReady
     case invalidProposalSource
+    case unauthenticated
+    case householdUnavailable
+    case invalidResponse
 
     var errorDescription: String? {
         switch self {
@@ -29,12 +32,18 @@ enum FamilyRepositoryError: LocalizedError, Sendable {
             "Mindestens ein ausgewählter Vorschlag muss noch geprüft werden."
         case .invalidProposalSource:
             "Ein Vorschlag gehört nicht zu dieser Importquelle."
+        case .unauthenticated:
+            "Bitte zuerst anmelden."
+        case .householdUnavailable:
+            "Der Haushalt konnte nicht geladen werden."
+        case .invalidResponse:
+            "Die Serverantwort konnte nicht verarbeitet werden."
         }
     }
 }
 
 protocol FamilyRepository: Sendable {
-    func currentSnapshot() async -> FamilySnapshot
+    func currentSnapshot() async throws -> FamilySnapshot
 
     func ingestText(_ request: TextIngestionRequest) async throws -> FamilySnapshot
 
@@ -47,6 +56,8 @@ protocol FamilyRepository: Sendable {
         _ itemID: UUID,
         isCompleted: Bool
     ) async throws -> FamilySnapshot
+
+    func addChild(named name: String) async throws -> FamilySnapshot
 }
 
 protocol TextExtractionService: Sendable {

@@ -20,6 +20,10 @@
 		A1100000000000000000000B /* FamilyRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1100000000000000000000C /* FamilyRepository.swift */; };
 		A1100000000000000000000C /* FixtureTextExtractionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1100000000000000000000D /* FixtureTextExtractionService.swift */; };
 		A1100000000000000000000D /* InMemoryFamilyRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1100000000000000000000E /* InMemoryFamilyRepository.swift */; };
+		A1100000000000000000000E /* SupabaseEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1100000000000000000000F /* SupabaseEnvironment.swift */; };
+		A1100000000000000000000F /* SupabaseFamilyRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = B11000000000000000000010 /* SupabaseFamilyRepository.swift */; };
+		A11000000000000000000010 /* HostedAppView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B11000000000000000000011 /* HostedAppView.swift */; };
+		A11000000000000000000011 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = H11000000000000000000001 /* Supabase */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -37,6 +41,10 @@
 		B1100000000000000000000C /* FamilyRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FamilyRepository.swift; sourceTree = "<group>"; };
 		B1100000000000000000000D /* FixtureTextExtractionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FixtureTextExtractionService.swift; sourceTree = "<group>"; };
 		B1100000000000000000000E /* InMemoryFamilyRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InMemoryFamilyRepository.swift; sourceTree = "<group>"; };
+		B1100000000000000000000F /* SupabaseEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseEnvironment.swift; sourceTree = "<group>"; };
+		B11000000000000000000010 /* SupabaseFamilyRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseFamilyRepository.swift; sourceTree = "<group>"; };
+		B11000000000000000000011 /* HostedAppView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HostedAppView.swift; sourceTree = "<group>"; };
+		B11000000000000000000012 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -44,6 +52,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A11000000000000000000011 /* Supabase in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -62,6 +71,7 @@
 			isa = PBXGroup;
 			children = (
 				B11000000000000000000001 /* FamilyLifePrototypeApp.swift */,
+				B11000000000000000000012 /* Info.plist */,
 				D11000000000000000000003 /* Domain */,
 				D11000000000000000000004 /* Data */,
 				D11000000000000000000005 /* Views */,
@@ -84,6 +94,8 @@
 				B1100000000000000000000C /* FamilyRepository.swift */,
 				B1100000000000000000000D /* FixtureTextExtractionService.swift */,
 				B1100000000000000000000E /* InMemoryFamilyRepository.swift */,
+				B1100000000000000000000F /* SupabaseEnvironment.swift */,
+				B11000000000000000000010 /* SupabaseFamilyRepository.swift */,
 			);
 			path = Data;
 			sourceTree = "<group>";
@@ -98,6 +110,7 @@
 				B11000000000000000000008 /* ImportReviewView.swift */,
 				B11000000000000000000009 /* PlanView.swift */,
 				B1100000000000000000000A /* FamilyView.swift */,
+				B11000000000000000000011 /* HostedAppView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -126,6 +139,9 @@
 			dependencies = (
 			);
 			name = FamilyLifePrototype;
+			packageProductDependencies = (
+				H11000000000000000000001 /* Supabase */,
+			);
 			productName = FamilyLifePrototype;
 			productReference = B1100000000000000000000B /* FamilyLifePrototype.app */;
 			productType = "com.apple.product-type.application";
@@ -155,6 +171,9 @@
 				de,
 			);
 			mainGroup = D11000000000000000000001;
+			packageReferences = (
+				I11000000000000000000001 /* XCRemoteSwiftPackageReference "supabase-swift" */,
+			);
 			productRefGroup = D11000000000000000000006 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -185,6 +204,8 @@
 				A1100000000000000000000B /* FamilyRepository.swift in Sources */,
 				A1100000000000000000000C /* FixtureTextExtractionService.swift in Sources */,
 				A1100000000000000000000D /* InMemoryFamilyRepository.swift in Sources */,
+				A1100000000000000000000E /* SupabaseEnvironment.swift in Sources */,
+				A1100000000000000000000F /* SupabaseFamilyRepository.swift in Sources */,
 				A11000000000000000000004 /* RootView.swift in Sources */,
 				A11000000000000000000005 /* Components.swift in Sources */,
 				A11000000000000000000006 /* TodayView.swift in Sources */,
@@ -192,10 +213,30 @@
 				A11000000000000000000008 /* ImportReviewView.swift in Sources */,
 				A11000000000000000000009 /* PlanView.swift in Sources */,
 				A1100000000000000000000A /* FamilyView.swift in Sources */,
+				A11000000000000000000010 /* HostedAppView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		I11000000000000000000001 /* XCRemoteSwiftPackageReference "supabase-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/supabase/supabase-swift.git";
+			requirement = {
+				kind = exactVersion;
+				version = 2.54.1;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		H11000000000000000000001 /* Supabase */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = I11000000000000000000001 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Supabase;
+		};
+/* End XCSwiftPackageProductDependency section */
 
 /* Begin XCBuildConfiguration section */
 		F12000000000000000000001 /* Debug */ = {
@@ -268,12 +309,8 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_PREVIEWS = YES;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = "Family Prototype";
-				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
-				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
-				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = FamilyLifePrototype/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				MARKETING_VERSION = 0.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = de.kamilunavo.familyprototype;
@@ -291,12 +328,8 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_PREVIEWS = YES;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = "Family Prototype";
-				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
-				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
-				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = FamilyLifePrototype/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				MARKETING_VERSION = 0.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = de.kamilunavo.familyprototype;

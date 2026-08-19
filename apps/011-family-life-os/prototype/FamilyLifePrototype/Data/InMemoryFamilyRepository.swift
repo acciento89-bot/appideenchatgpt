@@ -126,4 +126,28 @@ actor InMemoryFamilyRepository: FamilyRepository {
         snapshot.planItems[index].isCompleted = isCompleted
         return snapshot
     }
+
+    func addChild(named name: String) async throws -> FamilySnapshot {
+        let cleanName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !cleanName.isEmpty else { return snapshot }
+
+        let initials = cleanName
+            .split(separator: " ")
+            .prefix(2)
+            .compactMap(\.first)
+            .map(String.init)
+            .joined()
+            .uppercased()
+
+        snapshot.members.append(
+            FamilyMember(
+                id: UUID(),
+                name: cleanName,
+                initials: initials.isEmpty ? "K" : initials,
+                role: .child,
+                accent: .orange
+            )
+        )
+        return snapshot
+    }
 }
