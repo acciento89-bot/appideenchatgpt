@@ -5,7 +5,7 @@ Status: ACTIVE
 Current user-selected workstream: #011 Family Life OS
 Repository purpose: persistent handoff/state repository for the full App Factory so work can continue across chat limits and new conversations without losing decisions or progress.
 
-> This file is the portfolio-level single source of truth. Detailed historical states remain preserved in Git history and in each app-specific project state.
+> This file is the portfolio-level single source of truth. Detailed historical states remain in Git history and each app-specific state.
 
 ## Mandatory workflow
 
@@ -14,7 +14,7 @@ Repository purpose: persistent handoff/state repository for the full App Factory
 3. Read this file first in a new chat, then the selected app's project state.
 4. Major source passes must pass CI/regression gates before merge/TestFlight.
 5. Do not weaken a core product loop by adding adjacent features.
-6. Do not force subscriptions where lifetime/one-time monetization better fits economics.
+6. Do not force subscriptions where lifetime/one-time better fits economics.
 7. Re-check current App Store/web and appropriate trademark/domain sources before locking a public name.
 8. Never overwrite another candidate's state while updating one workstream.
 
@@ -32,7 +32,7 @@ Repository purpose: persistent handoff/state repository for the full App Factory
 | 008 | BeforeAfter | Guided repeat photography/alignment/comparison | Pro / Lifetime | QUEUED |
 | 009 | ScamLens | Analyze screenshots/messages for suspicious indicators | Credits / Pro | QUEUED |
 | 010 | SwipeOrDie | Fast portrait reaction/high-score game | Ads + IAP | QUEUED |
-| 011 | Family Life OS (INTERNAL CODENAME) | Family Inbox: photo/PDF/text/voice -> reviewed events/tasks/deadlines/payments/preparation | Freemium + Family Pro subscription | HOSTED TEXT + TWO-USER RLS GREEN / DEVICE MAGIC LINK VALIDATION NEXT |
+| 011 | Family Life OS (INTERNAL CODENAME) | Family Inbox: photo/PDF/text/voice -> reviewed events/tasks/deadlines/payments/preparation | Freemium + Family Pro subscription | HOSTED E2E HARNESS GREEN / DEVICE AUTH ALLOWLIST NEXT |
 
 # Portfolio app #001 — KeepMeter
 
@@ -116,29 +116,53 @@ Authoritative app state:
 
 ## Current checkpoint
 
-Latest major pass: hosted Auth callback hardening + two-user household isolation.
+Latest major pass: hosted authenticated E2E smoke harness.
 
 ### PR #8 — hosted Supabase vertical slice
 
-- PR `#8` — MERGED
+- MERGED
 - tested head `13297c5fd40705509dce298d741229ccd26b76bb`
-- merge commit `747d5bed505ef527501d24b9a24144ffb04a24f1`
-- final Xcode/iOS Simulator run `32221107674` / run #17 — SUCCESS
-- final Supabase/Postgres/pgTAP run `32221107641` / run #8 — SUCCESS
+- merge `747d5bed505ef527501d24b9a24144ffb04a24f1`
+- iOS run `32221107674` / #17 — SUCCESS
+- DB run `32221107641` / #8 — SUCCESS
 
 ### PR #9 — Auth/RLS hardening
 
-- PR `#9` — MERGED
+- MERGED
 - tested head `a884bf8f36dfdc560c5aa4e5fde2d98cefb33ee9`
-- merge commit `649f2104353154e199b3844ec79ca6e8d23a60ad`
-- final Xcode/iOS Simulator run `32222381445` / run #19 — SUCCESS
-- final Supabase/Postgres/pgTAP run `32222381440` / run #10 — SUCCESS
-- both required gates passed on the same tested head before merge
-- new callback guard accepts only the expected app scheme + `login-callback` host
-- new 14-assertion pgTAP test validates two authenticated households remain isolated
-- direct hosted SQL smoke in Frankfurt also proved cross-household read/update isolation
-- temporary hosted smoke-test users/households were fully removed afterwards
-- hosted security advisor currently reports no lints
+- merge `649f2104353154e199b3844ec79ca6e8d23a60ad`
+- iOS run `32222381445` / #19 — SUCCESS
+- DB run `32222381440` / #10 — SUCCESS
+- exact callback validation
+- 14-assertion two-household pgTAP test
+- direct hosted Frankfurt isolation smoke green
+- temporary test data fully removed
+- hosted Security Advisor clean at last check
+
+### PR #10 — hosted E2E smoke harness
+
+- MERGED
+- tested head `eb4b14998d630ec9c1951548fcaac71671ff625b`
+- merge `a56f0776ea701a50b549e4167415d4b0056afde1`
+- Xcode/iOS Simulator run `32225259430` / #21 — SUCCESS
+- no DB workflow triggered because PR #10 changed no database schema/policies/functions
+
+The in-app diagnostics harness now tests through the normal authenticated RLS client path:
+
+- Auth session
+- household load
+- child resolution
+- hosted canonical school-letter import
+- exactly 4 proposals
+- review readiness
+- canonical confirmation
+- exactly 4 PlanItems
+- source + proposal provenance
+- source `done`
+- confirm retry/idempotency
+- cleanup of temporary data
+
+The harness itself is compiled/merged but has **not yet been run through a real physical-device authenticated Magic Link session**.
 
 ## Product thesis / trust boundary
 
@@ -151,15 +175,15 @@ Core loop:
 `Import prüfen` remains the signature trust boundary:
 
 - source stays reachable
-- proposals remain editable/includable
+- proposals stay editable/includable
 - unresolved required fields block confirmation
 - extraction/AI cannot silently create canonical family data
-- explicit confirmation is mandatory
+- explicit confirmation mandatory
 - confirmed items retain source + proposal provenance
 
-## Executable client
+## Hosted backend / client state
 
-Temporary implementation path:
+Implementation path:
 
 `apps/011-family-life-os/prototype/`
 
@@ -174,25 +198,7 @@ Target:
 - iPhone + iPad
 - provisional bundle id `de.kamilunavo.familyprototype`
 
-Implemented UI/UX:
-
-- Heute / Inbox / Plan / Familie
-- adaptive iPad `NavigationSplitView`
-- compact iPhone tabs
-- two-column iPad Import Review
-- busy/calm/conflict Today fixtures
-- shared-member schedule overlap detection
-- queued/processing/review/partial/done/failed Inbox states
-- Dynamic Type adaptation
-- VoiceOver labels/hints + accessibility IDs
-- semantic light/dark surfaces
-- source/proposal provenance
-- editable school-letter review flow
-- family roles + real child-profile creation through hosted repository
-
-## Repository / hosted backend state
-
-Boundary:
+Data boundary:
 
 `SwiftUI View -> DemoStore -> FamilyRepository -> data source`
 
@@ -201,119 +207,85 @@ Implementations:
 - `InMemoryFamilyRepository` for previews/regression fixtures
 - `SupabaseFamilyRepository` for hosted data
 
-Hosted development project:
+Hosted Supabase:
 
-- ref `bqctetqraszsvknczjjr`
-- `eu-central-1` / Frankfurt
-- observed state `ACTIVE_HEALTHY`
-- Supabase Swift / `Supabase` pinned to `2.54.1`
-- publishable client key only in app
-- no service-role secret shipped
+- project ref `bqctetqraszsvknczjjr`
+- Frankfurt / `eu-central-1`
+- last observed `ACTIVE_HEALTHY`
+- Supabase Swift pinned `2.54.1`
+- publishable client key only
+- no service-role secret in app
 
-Hosted migrations present:
-
-- `20260819040837` family core
-- `20260819041003` member uniqueness + confirmation retry
-- `20260819041013` private helper permissions
-- `20260819041031` tighten client write surface
-- `20260819041232` hosted advisor hardening
-- `20260819041753` hosted text vertical slice
-
-Hosted client capabilities implemented:
+Hosted client capabilities:
 
 - Magic Link auth/session gate
 - custom app redirect handling
-- exact callback validation before session exchange
+- exact callback validation
 - household bootstrap
-- members / Inbox sources / proposals / assignees / Plan reads from hosted Postgres/RLS
-- server fixture text import via `ingest_text_fixture`
+- hosted members/Inbox/proposals/assignees/Plan reads
+- deterministic server fixture text import
 - reviewed proposal edits + assignee persistence
-- canonical confirmation RPC
-- remote task completion
-- remote child-profile creation
+- canonical confirm RPC
+- remote completion
+- remote child profile creation
+- one-button hosted E2E diagnostics harness
 
-External Auth configuration still required:
+Before TestFlight, the diagnostics UI must be removed or gated to DEBUG/internal builds.
+
+## External Auth gate
+
+Exact callback:
 
 `de.kamilunavo.familyprototype://login-callback`
 
-must be confirmed/added in hosted Supabase Auth -> URL Configuration -> Additional Redirect URLs before physical-device Magic Link validation.
+Must be present in:
 
-The currently connected Supabase tool surface cannot mutate this hosted Dashboard allow-list setting.
+**Supabase Dashboard -> Auth -> URL Configuration -> Additional Redirect URLs**
 
-## Database contract
-
-Core schema remains:
-
-- households
-- household_members
-- source_items
-- extraction_runs
-- action_proposals
-- action_proposal_assignees
-- plan_items
-- plan_item_assignees
-- reminders
-
-Security baseline:
-
-- RLS across client-exposed collaborative tables
-- multiple child/guest profiles without login allowed
-- restricted membership helpers / empty `search_path`
-- client write surface narrowed to product-editable columns
-- processing/review/provenance server-owned where required
-- canonical provenance constrained to same household
-- two-user isolation coverage is now a mandatory regression gate
-
-Atomic RPC:
-
-`public.confirm_action_proposals(source_item_id, proposal_ids)`
-
-remains responsible for authorization, proposal/source validation, unresolved rejection, canonical plan creation/reuse, same-household assignees, proposal finalization, source status transition and idempotent retry.
+The connected Supabase tool surface cannot mutate that setting and the repository contains no existing `SUPABASE_ACCESS_TOKEN` management workflow. Do not invent or expose credentials to automate it.
 
 ## #011 validation boundary
 
-Validated now:
+Validated:
 
-- hosted migrations/hardening rolled out
-- hosted security advisor clean
-- `SupabaseFamilyRepository` + hosted auth/client code compiles
-- exact callback scheme/host validation compiles
-- final iOS CI is green
-- fresh local Supabase/Postgres migration + pgTAP gate is green
-- two authenticated household identities are isolated in local pgTAP coverage
-- direct hosted SQL smoke under authenticated identities proved one-household/one-source visibility and zero-row foreign UPDATE behavior
-- hosted test cleanup returned zero remaining test users/households
-- PR #9 merged to main
+- hosted migrations rolled out
+- hosted Security Advisor clean at last check
+- `SupabaseFamilyRepository` compiles
+- fresh local Supabase/Postgres + pgTAP green
+- two-identity RLS isolation green in local pgTAP
+- direct hosted SQL isolation green
+- PR #9 Xcode + DB gates green on same head
+- PR #10 hosted smoke harness Xcode run #21 green
+- PR #10 merged
 
 Not yet release-validated:
 
-- real-device Magic Link after redirect allow-list confirmation
-- full authenticated school-letter vertical slice manually exercised from iPhone/iPad
-- two-real-user household isolation over the actual Supabase Data API/session path
+- callback presence in hosted Auth allow-list
+- physical-device Magic Link callback/session
+- one-button hosted smoke report from a real authenticated iPhone/iPad
+- two real authenticated devices/sessions over Data API
 - Realtime
 - private Storage
 - photo/PDF ingestion
 - OCR
 - real AI extraction
 - physical-device/manual VoiceOver QA
-- StoreKit/subscription implementation
+- StoreKit/subscription
 - TestFlight readiness
-
-Do not regress to the old statement “live backend next.” Hosted Supabase is connected and the database-level two-user isolation is now tested. The remaining gate is the real authenticated device/session path.
 
 ## #011 next steps
 
-1. Confirm/add the custom Magic Link redirect in hosted Supabase Auth settings.
-2. Execute Magic Link login on a physical iPhone/iPad.
-3. Execute the authenticated German school-letter fixture from the iOS client end to end.
-4. Verify hosted Inbox -> proposals -> edits/assignees -> confirmation -> Plan/Today + provenance.
-5. Verify retry/idempotency against hosted data from the real client.
-6. Validate isolation with two real authenticated sessions over the Supabase Data API.
-7. Add Realtime only after the hosted text flow is proven.
+1. Add/confirm `de.kamilunavo.familyprototype://login-callback` in hosted Supabase Auth Additional Redirect URLs.
+2. Run the app on a physical iPhone/iPad.
+3. Execute Magic Link login and verify authenticated return to app.
+4. Open the stethoscope **Backend-Diagnose** control.
+5. Run **Hosted E2E jetzt prüfen** and require every step including cleanup to pass.
+6. Repeat with a second real authenticated session for the final Auth/Data-API isolation surface if needed.
+7. Add Realtime only after the device smoke is green.
 8. Add private Storage + photo/PDF share intake.
 9. Add OCR.
 10. Add real AI extraction last while retaining explicit proposal review/confirmation.
-11. Physical-device + VoiceOver QA before a TestFlight checkpoint.
+11. Remove/gate diagnostics and perform physical-device + VoiceOver QA before TestFlight.
 
 ## #011 brand guardrail
 
@@ -351,6 +323,6 @@ Avoid generic house/checkmark, cartoon family, or robot/AI sparkle identity.
 2. Read the selected app-specific state.
 3. For #011 read `apps/011-family-life-os/PROJECT_STATE.md` and `BACKEND_CONTRACT.md`.
 4. Inspect current `main` and latest relevant CI gates before code changes.
-5. Continue #011 from hosted Auth redirect + real authenticated device E2E validation.
-6. Do not jump to Realtime/Storage/OCR/AI before the hosted text path is proven manually.
+5. Continue #011 from hosted Auth allow-list + real physical-device E2E smoke.
+6. Do not jump to Realtime/Storage/OCR/AI before the authenticated hosted text smoke is proven on device.
 7. Preserve every other portfolio entry when updating one workstream.
