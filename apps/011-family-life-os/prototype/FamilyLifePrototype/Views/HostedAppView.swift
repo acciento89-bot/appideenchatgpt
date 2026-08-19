@@ -71,7 +71,7 @@ private struct SupabaseAuthView: View {
                     .padding(.vertical, 8)
                 }
 
-                Section("E-Mail") {
+                Section {
                     TextField("name@beispiel.de", text: $email)
                         .textContentType(.emailAddress)
                         .textInputAutocapitalization(.never)
@@ -93,6 +93,8 @@ private struct SupabaseAuthView: View {
                     .buttonStyle(.borderedProminent)
                     .disabled(!isValidEmail || isSending)
                     .accessibilityIdentifier("auth.sendMagicLink")
+                } header: {
+                    Text("E-Mail")
                 } footer: {
                     Text("Du erhältst einen einmal verwendbaren Link. Nach dem Öffnen kehrst du direkt in die App zurück.")
                 }
