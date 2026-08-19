@@ -25,6 +25,7 @@
 		A11000000000000000000010 /* HostedAppView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B11000000000000000000011 /* HostedAppView.swift */; };
 		A11000000000000000000011 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = H11000000000000000000001 /* Supabase */; };
 		A11000000000000000000012 /* HostedSmokeTestService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B11000000000000000000013 /* HostedSmokeTestService.swift */; };
+		A11000000000000000000013 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B11000000000000000000014 /* Assets.xcassets */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -47,6 +48,7 @@
 		B11000000000000000000011 /* HostedAppView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HostedAppView.swift; sourceTree = "<group>"; };
 		B11000000000000000000012 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		B11000000000000000000013 /* HostedSmokeTestService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HostedSmokeTestService.swift; sourceTree = "<group>"; };
+		B11000000000000000000014 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -74,6 +76,7 @@
 			children = (
 				B11000000000000000000001 /* FamilyLifePrototypeApp.swift */,
 				B11000000000000000000012 /* Info.plist */,
+				B11000000000000000000014 /* Assets.xcassets */,
 				D11000000000000000000003 /* Domain */,
 				D11000000000000000000004 /* Data */,
 				D11000000000000000000005 /* Views */,
@@ -191,6 +194,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A11000000000000000000013 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -310,6 +314,7 @@
 		F12000000000000000000003 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_PREVIEWS = YES;
@@ -329,6 +334,7 @@
 		F12000000000000000000004 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_PREVIEWS = YES;
