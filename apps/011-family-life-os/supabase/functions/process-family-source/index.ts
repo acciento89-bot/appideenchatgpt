@@ -1,6 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 
-type ProposalCandidate = {
+type Candidate = {
   kind: "event" | "task" | "deadline" | "payment" | "preparation";
   title: string;
   starts_at: string | null;
@@ -16,14 +16,10 @@ type ProposalCandidate = {
   reminder_at: string | null;
 };
 
-const jsonHeaders = {
-  "Content-Type": "application/json; charset=utf-8",
-  "Cache-Control": "no-store",
-};
+const headers = { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" };
+const kinds = new Set(["event", "task", "deadline", "payment", "preparation"]);
 
-const allowedKinds = new Set(["event", "task", "deadline", "payment", "preparation"]);
-
-const actionSchema = {
+const schema = {
   type: "object",
   additionalProperties: false,
   properties: {
@@ -46,157 +42,113 @@ const actionSchema = {
           currency: { type: ["string", "null"] },
           assignee_names: { type: "array", items: { type: "string" } },
           unresolved_fields: { type: "array", items: { type: "string" } },
-          reminder_at: { type: ["string", "null"] },
+          reminder_at: { type: ["string", "null"] }
         },
-        required: [
-          "kind", "title", "starts_at", "ends_at", "due_at", "all_day",
-          "location", "notes", "amount_minor", "currency", "assignee_names",
-          "unresolved_fields", "reminder_at",
-        ],
-      },
-    },
+        required: ["kind", "title", "starts_at", "ends_at", "due_at", "all_day", "location", "notes", "amount_minor", "currency", "assignee_names", "unresolved_fields", "reminder_at"]
+      }
+    }
   },
-  required: ["proposals"],
+  required: ["proposals"]
 };
 
-Deno.serve(async (req: Request) => {
-  if (req.method === "OPTIONS") return new Response(null, { status: 204 });
-  if (req.method !== "POST") return response({ error: "method_not_allowed" }, 405);
+Deno.serve(async (req) => {
+  if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
 
-  let serviceClient: ReturnType<typeof createClient> | null = null;
+  let admin: any = null;
   let sourceID: string | null = null;
   let runID: string | null = null;
 
   try {
-    const authorization = req.headers.get("Authorization");
-    if (!authorization?.startsWith("Bearer ")) return response({ error: "authentication_required" }, 401);
+    const auth = req.headers.get("Authorization") ?? "";
+    if (!auth.startsWith("Bearer ")) return json({ error: "authentication_required" }, 401);
 
     const body = await req.json().catch(() => ({}));
     sourceID = typeof body.source_item_id === "string" ? body.source_item_id : null;
     const textOverride = typeof body.text_override === "string" ? body.text_override.trim() : "";
-    if (!sourceID) return response({ error: "source_item_id_required" }, 400);
+    if (!sourceID) return json({ error: "source_item_id_required" }, 400);
 
-    const supabaseURL = requiredEnv("SUPABASE_URL");
-    const anonKey = requiredEnv("SUPABASE_ANON_KEY");
-    const serviceKey = requiredEnv("SUPABASE_SERVICE_ROLE_KEY");
+    const url = env("SUPABASE_URL");
+    const anon = env("SUPABASE_ANON_KEY");
+    const service = env("SUPABASE_SERVICE_ROLE_KEY");
+    const user = createClient(url, anon, { global: { headers: { Authorization: auth } }, auth: { persistSession: false } });
+    admin = createClient(url, service, { auth: { persistSession: false } });
 
-    const userClient = createClient(supabaseURL, anonKey, {
-      global: { headers: { Authorization: authorization } },
-      auth: { persistSession: false, autoRefreshToken: false },
-    });
-    serviceClient = createClient(supabaseURL, serviceKey, {
-      auth: { persistSession: false, autoRefreshToken: false },
-    });
+    const { data: authData, error: authError } = await user.auth.getUser();
+    if (authError || !authData.user) return json({ error: "invalid_session" }, 401);
 
-    const { data: userData, error: userError } = await userClient.auth.getUser();
-    if (userError || !userData.user) return response({ error: "invalid_session" }, 401);
-
-    const { data: source, error: sourceError } = await userClient
+    const { data: source, error: sourceError } = await user
       .from("source_items")
       .select("id, household_id, source_type, display_title, original_text, extracted_text, storage_path, content_type, file_name")
       .eq("id", sourceID)
       .single();
-    if (sourceError || !source) return response({ error: "source_not_found_or_forbidden" }, 404);
+    if (sourceError || !source) return json({ error: "source_not_found_or_forbidden" }, 404);
 
-    const { data: household, error: householdError } = await userClient
-      .from("households")
-      .select("id, locale, timezone")
-      .eq("id", source.household_id)
-      .single();
-    if (householdError || !household) return response({ error: "household_not_available" }, 403);
-
-    const { data: members, error: membersError } = await userClient
+    const { data: household } = await user.from("households").select("locale, timezone").eq("id", source.household_id).single();
+    const { data: members, error: memberError } = await user
       .from("household_members")
-      .select("id, display_name, role, invite_status")
+      .select("id, display_name, role")
       .eq("household_id", source.household_id)
       .eq("invite_status", "active");
-    if (membersError) throw new Error("member_lookup_failed");
+    if (memberError) throw new Error("member_lookup_failed");
 
-    const providerKey = Deno.env.get("OPENAI_API_KEY")?.trim() ?? "";
-    const configuredModel = Deno.env.get("OPENAI_MODEL")?.trim() || "gpt-5.6-luna";
-    const provider = providerKey ? "openai" : "rules";
-    const model = providerKey ? configuredModel : "family-rules-v1";
+    await admin.from("source_items").update({ processing_status: "processing", processing_error_code: null, last_processing_started_at: new Date().toISOString() }).eq("id", sourceID);
+    await admin.from("action_proposals").update({ review_status: "rejected", is_included: false }).eq("source_item_id", sourceID).eq("review_status", "proposed");
 
-    await serviceClient
-      .from("source_items")
-      .update({
-        processing_status: "processing",
-        processing_error_code: null,
-        last_processing_started_at: new Date().toISOString(),
-      })
-      .eq("id", sourceID);
-
-    // A retry never overwrites extraction history. Old unconfirmed proposals stay
-    // auditable but are retired before the new extraction run is created.
-    await serviceClient
-      .from("action_proposals")
-      .update({ review_status: "rejected", is_included: false })
-      .eq("source_item_id", sourceID)
-      .eq("review_status", "proposed");
-
-    const { data: run, error: runError } = await serviceClient
+    const apiKey = Deno.env.get("OPENAI_API_KEY")?.trim() ?? "";
+    const model = Deno.env.get("OPENAI_MODEL")?.trim() || "gpt-5.6-luna";
+    const provider = apiKey ? "openai" : "rules";
+    const { data: run, error: runError } = await admin
       .from("extraction_runs")
-      .insert({
-        source_item_id: sourceID,
-        provider,
-        model,
-        schema_version: 2,
-        status: "processing",
-      })
+      .insert({ source_item_id: sourceID, provider, model: apiKey ? model : "family-rules-v1", schema_version: 2, status: "processing" })
       .select("id")
       .single();
     if (runError || !run) throw new Error("extraction_run_create_failed");
     runID = run.id;
 
-    const sourceText = firstNonEmpty(textOverride, source.extracted_text, source.original_text);
-    let candidates: ProposalCandidate[];
+    const text = first(textOverride, source.extracted_text, source.original_text);
+    let proposals: Candidate[];
     let usedFileInput = false;
 
-    if (providerKey) {
+    if (apiKey) {
       let signedURL: string | null = null;
-      if (!sourceText && source.storage_path) {
-        const signed = await serviceClient.storage
-          .from("family-sources")
-          .createSignedUrl(source.storage_path, 300);
+      if (!text && source.storage_path) {
+        const signed = await admin.storage.from("family-sources").createSignedUrl(source.storage_path, 300);
         signedURL = signed.data?.signedUrl ?? null;
       }
-
-      const result = await extractWithOpenAI({
-        apiKey: providerKey,
-        model: configuredModel,
-        sourceTitle: source.display_title,
-        sourceText,
-        sourceType: source.source_type,
+      proposals = await openAIExtract({
+        apiKey,
+        model,
+        text,
+        signedURL,
         contentType: source.content_type,
         fileName: source.file_name,
-        signedURL,
-        locale: household.locale ?? "de-DE",
-        timezone: household.timezone ?? "Europe/Berlin",
-        members: (members ?? []).map((member: any) => ({ name: member.display_name, role: member.role })),
+        title: source.display_title,
+        sourceType: source.source_type,
+        locale: household?.locale ?? "de-DE",
+        timezone: household?.timezone ?? "Europe/Berlin",
+        members: (members ?? []).map((m: any) => ({ name: m.display_name, role: m.role }))
       });
-      candidates = result;
-      usedFileInput = !sourceText && !!signedURL;
+      usedFileInput = !text && !!signedURL;
     } else {
-      candidates = fallbackExtract(sourceText || "", household.locale ?? "de-DE");
+      if (!text) throw new Error("ocr_or_provider_required");
+      proposals = rulesExtract(text, household?.locale ?? "de-DE");
     }
 
-    const validated = candidates.map(validateCandidate).filter((value): value is ProposalCandidate => value !== null);
-    const memberMap = new Map<string, any>();
-    for (const member of members ?? []) memberMap.set(normalizeName(member.display_name), member);
+    const memberByName = new Map((members ?? []).map((m: any) => [normalize(m.display_name), m]));
+    let count = 0;
 
-    let insertedCount = 0;
-    for (const candidate of validated) {
+    for (const raw of proposals) {
+      const candidate = validate(raw);
+      if (!candidate) continue;
       const unresolved: Record<string, string> = {};
-      for (const field of candidate.unresolved_fields) unresolved[field] = "required";
-
-      const matchedMemberIDs: string[] = [];
-      for (const requestedName of candidate.assignee_names) {
-        const match = memberMap.get(normalizeName(requestedName));
-        if (match) matchedMemberIDs.push(match.id);
-        else unresolved.member = "required";
+      candidate.unresolved_fields.forEach((field) => unresolved[field] = "required");
+      const memberIDs: string[] = [];
+      for (const name of candidate.assignee_names) {
+        const member: any = memberByName.get(normalize(name));
+        if (member) memberIDs.push(member.id); else unresolved.member = "required";
       }
 
-      const { data: proposal, error: proposalError } = await serviceClient
+      const { data: proposal, error: proposalError } = await admin
         .from("action_proposals")
         .insert({
           source_item_id: sourceID,
@@ -214,420 +166,164 @@ Deno.serve(async (req: Request) => {
           unresolved_fields: unresolved,
           is_included: true,
           review_status: "proposed",
-          suggested_reminder_at: candidate.reminder_at,
+          suggested_reminder_at: candidate.reminder_at
         })
         .select("id")
         .single();
       if (proposalError || !proposal) throw new Error("proposal_insert_failed");
 
-      if (matchedMemberIDs.length > 0) {
-        const rows = [...new Set(matchedMemberIDs)].map((memberID) => ({
-          proposal_id: proposal.id,
-          member_id: memberID,
-        }));
-        const { error: assigneeError } = await serviceClient.from("action_proposal_assignees").insert(rows);
-        if (assigneeError) throw new Error("proposal_assignee_insert_failed");
+      if (memberIDs.length) {
+        const rows = [...new Set(memberIDs)].map((member_id) => ({ proposal_id: proposal.id, member_id }));
+        const { error } = await admin.from("action_proposal_assignees").insert(rows);
+        if (error) throw new Error("proposal_assignee_insert_failed");
       }
-      insertedCount += 1;
+      count += 1;
     }
 
-    const finishedAt = new Date().toISOString();
-    await serviceClient
-      .from("extraction_runs")
-      .update({
-        status: "succeeded",
-        completed_at: finishedAt,
-        normalized_output: {
-          schema_version: 2,
-          proposal_count: insertedCount,
-          provider,
-          model,
-          used_file_input: usedFileInput,
-        },
-      })
-      .eq("id", runID);
+    const finished = new Date().toISOString();
+    await admin.from("extraction_runs").update({
+      status: "succeeded",
+      completed_at: finished,
+      normalized_output: { schema_version: 2, proposal_count: count, provider, model: apiKey ? model : "family-rules-v1", used_file_input: usedFileInput }
+    }).eq("id", runID);
+    await admin.from("source_items").update({ processing_status: count ? "review" : "done", processing_error_code: null, processed_at: finished }).eq("id", sourceID);
 
-    await serviceClient
-      .from("source_items")
-      .update({
-        processing_status: insertedCount > 0 ? "review" : "done",
-        processing_error_code: null,
-        processed_at: finishedAt,
-      })
-      .eq("id", sourceID);
-
-    await incrementUsage(serviceClient, source.household_id, providerKey ? 1 : 0);
-
-    return response({
-      source_item_id: sourceID,
-      proposal_count: insertedCount,
-      provider,
-      model,
-      used_file_input: usedFileInput,
-    });
+    return json({ source_item_id: sourceID, proposal_count: count, provider, model: apiKey ? model : "family-rules-v1" });
   } catch (error) {
-    const errorCode = safeErrorCode(error);
-    if (serviceClient && runID) {
-      await serviceClient
-        .from("extraction_runs")
-        .update({ status: "failed", error_code: errorCode, completed_at: new Date().toISOString() })
-        .eq("id", runID);
-    }
-    if (serviceClient && sourceID) {
-      await serviceClient
-        .from("source_items")
-        .update({ processing_status: "failed", processing_error_code: errorCode })
-        .eq("id", sourceID);
-    }
-    return response({ error: errorCode }, 500);
+    const code = safe(error);
+    if (admin && runID) await admin.from("extraction_runs").update({ status: "failed", error_code: code, completed_at: new Date().toISOString() }).eq("id", runID);
+    if (admin && sourceID) await admin.from("source_items").update({ processing_status: "failed", processing_error_code: code }).eq("id", sourceID);
+    return json({ error: code }, 500);
   }
 });
 
-async function extractWithOpenAI(input: {
-  apiKey: string;
-  model: string;
-  sourceTitle: string;
-  sourceText: string;
-  sourceType: string;
-  contentType: string | null;
-  fileName: string | null;
-  signedURL: string | null;
-  locale: string;
-  timezone: string;
-  members: { name: string; role: string }[];
-}): Promise<ProposalCandidate[]> {
-  const today = new Date().toISOString();
-  const memberText = input.members.length
-    ? input.members.map((m) => `${m.name} (${m.role})`).join(", ")
-    : "keine bekannten Personen";
-
-  const developerInstruction = [
-    "Du extrahierst ausschließlich konkrete Familienaktionen aus einer Quelle.",
+async function openAIExtract(input: any): Promise<Candidate[]> {
+  const people = input.members.length ? input.members.map((m: any) => `${m.name} (${m.role})`).join(", ") : "keine";
+  const instruction = [
+    "Extrahiere ausschließlich konkrete Familienaktionen aus der Quelle.",
     "Erfinde niemals Datum, Uhrzeit, Betrag, Ort oder Person.",
-    "Wenn ein erforderliches Feld unklar ist, setze es auf null und nenne das Feld in unresolved_fields.",
-    "assignee_names darf nur exakt Namen aus der bereitgestellten Mitgliederliste enthalten; sonst leer lassen und member als unresolved markieren.",
-    "Mögliche Arten: event, task, deadline, payment, preparation.",
-    "Ein Quelltext kann mehrere Aktionen erzeugen. Keine allgemeinen Ratschläge und kein Chat-Text.",
-    `Haushalts-Locale: ${input.locale}. Zeitzone: ${input.timezone}. Aktueller Referenzzeitpunkt: ${today}.`,
-    `Bekannte Haushaltsmitglieder: ${memberText}.`,
+    "Unklare erforderliche Felder: null setzen und den Feldnamen in unresolved_fields aufnehmen.",
+    "assignee_names darf nur exakte Namen aus der bekannten Mitgliederliste enthalten; sonst member als unresolved markieren.",
+    "Arten: event, task, deadline, payment, preparation. Keine Ratschläge und kein Chat-Text.",
+    `Locale ${input.locale}, Zeitzone ${input.timezone}, Referenz ${new Date().toISOString()}.`,
+    `Mitglieder: ${people}.`
   ].join("\n");
 
-  const userContent: any[] = [
-    { type: "input_text", text: `Quelle: ${input.sourceTitle}\nTyp: ${input.sourceType}` },
-  ];
+  const content: any[] = [{ type: "input_text", text: `Quelle: ${input.title}\nTyp: ${input.sourceType}` }];
+  if (input.text) content.push({ type: "input_text", text: input.text.slice(0, 60000) });
+  else if (input.signedURL && (input.contentType ?? "").startsWith("image/")) content.push({ type: "input_image", image_url: input.signedURL, detail: "high" });
+  else if (input.signedURL) content.push({ type: "input_file", file_url: input.signedURL, filename: input.fileName || "familienquelle.pdf" });
+  else throw new Error("source_content_missing");
 
-  if (input.sourceText) {
-    userContent.push({ type: "input_text", text: input.sourceText.slice(0, 60000) });
-  } else if (input.signedURL) {
-    if ((input.contentType ?? "").startsWith("image/")) {
-      userContent.push({ type: "input_image", image_url: input.signedURL, detail: "high" });
-    } else {
-      userContent.push({
-        type: "input_file",
-        file_url: input.signedURL,
-        filename: input.fileName || "familienquelle.pdf",
-      });
-    }
-  } else {
-    throw new Error("source_content_missing");
-  }
-
-  const openAIResponse = await fetch("https://api.openai.com/v1/responses", {
+  const res = await fetch("https://api.openai.com/v1/responses", {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${input.apiKey}`,
-      "Content-Type": "application/json",
-    },
+    headers: { Authorization: `Bearer ${input.apiKey}`, "Content-Type": "application/json" },
     body: JSON.stringify({
       model: input.model,
       input: [
-        { role: "developer", content: [{ type: "input_text", text: developerInstruction }] },
-        { role: "user", content: userContent },
+        { role: "developer", content: [{ type: "input_text", text: instruction }] },
+        { role: "user", content }
       ],
-      text: {
-        format: {
-          type: "json_schema",
-          name: "family_action_proposals",
-          strict: true,
-          schema: actionSchema,
-        },
-      },
-      max_output_tokens: 5000,
-    }),
+      text: { format: { type: "json_schema", name: "family_action_proposals", strict: true, schema } },
+      max_output_tokens: 5000
+    })
   });
-
-  if (!openAIResponse.ok) throw new Error(`openai_http_${openAIResponse.status}`);
-  const payload = await openAIResponse.json();
-  const outputText = extractOutputText(payload);
-  if (!outputText) throw new Error("openai_empty_output");
-
-  const decoded = JSON.parse(outputText);
-  if (!decoded || !Array.isArray(decoded.proposals)) throw new Error("openai_schema_decode_failed");
-  return decoded.proposals as ProposalCandidate[];
+  if (!res.ok) throw new Error(`openai_http_${res.status}`);
+  const payload = await res.json();
+  const output = typeof payload.output_text === "string"
+    ? payload.output_text
+    : (payload.output ?? []).flatMap((item: any) => item.content ?? []).find((part: any) => part.type === "output_text")?.text;
+  if (!output) throw new Error("openai_empty_output");
+  const decoded = JSON.parse(output);
+  if (!Array.isArray(decoded?.proposals)) throw new Error("openai_schema_decode_failed");
+  return decoded.proposals;
 }
 
-function extractOutputText(payload: any): string | null {
-  if (typeof payload?.output_text === "string" && payload.output_text.trim()) return payload.output_text;
-  for (const item of payload?.output ?? []) {
-    for (const content of item?.content ?? []) {
-      if (content?.type === "output_text" && typeof content.text === "string") return content.text;
-    }
-  }
-  return null;
-}
-
-function validateCandidate(candidate: any): ProposalCandidate | null {
-  if (!candidate || !allowedKinds.has(candidate.kind)) return null;
-  const title = typeof candidate.title === "string" ? candidate.title.trim().slice(0, 240) : "";
-  if (!title) return null;
-
-  const currency = typeof candidate.currency === "string" && /^[A-Z]{3}$/.test(candidate.currency)
-    ? candidate.currency
-    : null;
-  const amountMinor = Number.isInteger(candidate.amount_minor) && candidate.amount_minor >= 0
-    ? candidate.amount_minor
-    : null;
-
-  return {
-    kind: candidate.kind,
-    title,
-    starts_at: validDateString(candidate.starts_at),
-    ends_at: validDateString(candidate.ends_at),
-    due_at: validDateString(candidate.due_at),
-    all_day: candidate.all_day === true,
-    location: nullableString(candidate.location),
-    notes: nullableString(candidate.notes),
-    amount_minor: amountMinor,
-    currency,
-    assignee_names: Array.isArray(candidate.assignee_names)
-      ? candidate.assignee_names.filter((v: unknown) => typeof v === "string").slice(0, 12)
-      : [],
-    unresolved_fields: Array.isArray(candidate.unresolved_fields)
-      ? candidate.unresolved_fields.filter((v: unknown) => typeof v === "string").slice(0, 12)
-      : [],
-    reminder_at: validDateString(candidate.reminder_at),
-  };
-}
-
-function fallbackExtract(text: string, locale: string): ProposalCandidate[] {
-  const clean = text.replace(/\r/g, "").trim();
+function rulesExtract(text: string, locale: string): Candidate[] {
+  const clean = text.replace(/\r/g, " ").replace(/\s+/g, " ").trim();
   if (!clean) return [];
-
   const dates = extractDates(clean);
   const time = clean.match(/\b([01]?\d|2[0-3])[:.]([0-5]\d)\s*(?:Uhr)?\b/i);
   const amount = clean.match(/\b(\d{1,6})(?:[,.](\d{2}))?\s*(?:€|EUR)\b/i);
-  const proposals: ProposalCandidate[] = [];
+  const result: Candidate[] = [];
 
-  const classTrip = /klassenfahrt|ausflug|fahrt/i.test(clean);
-  if ((classTrip || /zahnarzt|arzt|training|elternabend|termin|aufführung|treffen/i.test(clean)) && dates[0]) {
-    const starts = withTime(dates[0], time ? Number(time[1]) : 9, time ? Number(time[2]) : 0);
-    proposals.push(baseCandidate({
-      kind: "event",
-      title: classTrip ? "Klassenfahrt / Ausflug" : conciseTitle(clean, "Termin"),
-      starts_at: starts,
-      reminder_at: offsetISO(starts, -60),
-      unresolved_fields: time ? [] : ["time"],
-    }));
+  if (/klassenfahrt|ausflug|zahnarzt|arzt|training|elternabend|termin|aufführung|treffen/i.test(clean) && dates[0]) {
+    const starts = atTime(dates[0], time ? +time[1] : 9, time ? +time[2] : 0);
+    result.push(base("event", /klassenfahrt|ausflug/i.test(clean) ? "Klassenfahrt / Ausflug" : short(clean, "Termin"), { starts_at: starts, reminder_at: offset(starts, -60), unresolved_fields: time ? [] : ["time"] }));
   }
 
-  const consentSentence = sentenceContaining(clean, /einverständ|genehmig|unterschr|abgeben/i);
-  const consentDate = extractDates(consentSentence ?? "")[0] ?? (dates.length > 1 ? dates[1] : null);
-  if (consentSentence && consentDate) {
-    proposals.push(baseCandidate({
-      kind: "deadline",
-      title: /einverständ/i.test(consentSentence) ? "Einverständniserklärung abgeben" : conciseTitle(consentSentence, "Frist erledigen"),
-      due_at: endOfDay(consentDate),
-      reminder_at: offsetISO(endOfDay(consentDate), -24 * 60),
-    }));
-  }
+  const consent = sentence(clean, /einverständ|genehmig|unterschr|abgeben/i);
+  const consentDate = extractDates(consent ?? "")[0] ?? dates[1] ?? null;
+  if (consent && consentDate) result.push(base("deadline", /einverständ/i.test(consent) ? "Einverständniserklärung abgeben" : short(consent, "Frist erledigen"), { due_at: endDay(consentDate), reminder_at: offset(endDay(consentDate), -1440) }));
 
   if (amount) {
-    const amountMinor = Number(amount[1]) * 100 + Number(amount[2] ?? "0");
-    const paymentSentence = sentenceContaining(clean, /€|EUR|bezahlen|überweisen|kosten/i) ?? clean;
-    const paymentDates = extractDates(paymentSentence);
-    const due = paymentDates[0] ?? (dates.length > 2 ? dates[2] : dates.at(-1) ?? null);
-    proposals.push(baseCandidate({
-      kind: "payment",
-      title: `${formatEuro(amountMinor, locale)} bezahlen`,
-      due_at: due ? endOfDay(due) : null,
-      amount_minor: amountMinor,
-      currency: "EUR",
-      reminder_at: due ? offsetISO(endOfDay(due), -24 * 60) : null,
-      unresolved_fields: due ? [] : ["due_at"],
-    }));
+    const minor = +amount[1] * 100 + +(amount[2] ?? 0);
+    const paymentText = sentence(clean, /€|EUR|bezahlen|überweisen|kosten/i) ?? clean;
+    const due = extractDates(paymentText)[0] ?? dates.at(-1) ?? null;
+    result.push(base("payment", `${euro(minor, locale)} bezahlen`, { due_at: due ? endDay(due) : null, amount_minor: minor, currency: "EUR", reminder_at: due ? offset(endDay(due), -1440) : null, unresolved_fields: due ? [] : ["due_at"] }));
   }
 
-  const prepSentence = sentenceContaining(clean, /mitbringen|einpacken|vorbereiten|lunchpaket|trinkflasche|kleidung|material/i);
-  if (prepSentence) {
-    const eventDate = dates[0] ?? null;
-    const due = eventDate ? previousEvening(eventDate) : null;
-    proposals.push(baseCandidate({
-      kind: "preparation",
-      title: conciseTitle(prepSentence, "Vorbereitung erledigen"),
-      due_at: due,
-      reminder_at: due ? offsetISO(due, -120) : null,
-      unresolved_fields: due ? [] : ["due_at"],
-    }));
+  const prep = sentence(clean, /mitbringen|einpacken|vorbereiten|lunchpaket|trinkflasche|kleidung|material/i);
+  if (prep) {
+    const due = dates[0] ? previousEvening(dates[0]) : null;
+    result.push(base("preparation", short(prep, "Vorbereitung erledigen"), { due_at: due, reminder_at: due ? offset(due, -120) : null, unresolved_fields: due ? [] : ["due_at"] }));
   }
 
-  if (proposals.length === 0 && /muss|soll|bitte|erledigen|abholen|anrufen/i.test(clean)) {
-    proposals.push(baseCandidate({ kind: "task", title: conciseTitle(clean, "Aufgabe") }));
-  }
-
-  const seen = new Set<string>();
-  return proposals.filter((proposal) => {
-    const key = [proposal.kind, proposal.title, proposal.starts_at, proposal.due_at, proposal.amount_minor].join("|");
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
+  if (!result.length && /muss|soll|bitte|erledigen|abholen|anrufen/i.test(clean)) result.push(base("task", short(clean, "Aufgabe")));
+  return result;
 }
 
-function baseCandidate(overrides: Partial<ProposalCandidate> & Pick<ProposalCandidate, "kind" | "title">): ProposalCandidate {
+function validate(value: any): Candidate | null {
+  if (!value || !kinds.has(value.kind)) return null;
+  const title = typeof value.title === "string" ? value.title.trim().slice(0, 240) : "";
+  if (!title) return null;
   return {
-    kind: overrides.kind,
-    title: overrides.title,
-    starts_at: overrides.starts_at ?? null,
-    ends_at: overrides.ends_at ?? null,
-    due_at: overrides.due_at ?? null,
-    all_day: overrides.all_day ?? false,
-    location: overrides.location ?? null,
-    notes: overrides.notes ?? null,
-    amount_minor: overrides.amount_minor ?? null,
-    currency: overrides.currency ?? null,
-    assignee_names: overrides.assignee_names ?? [],
-    unresolved_fields: overrides.unresolved_fields ?? [],
-    reminder_at: overrides.reminder_at ?? null,
+    kind: value.kind,
+    title,
+    starts_at: iso(value.starts_at),
+    ends_at: iso(value.ends_at),
+    due_at: iso(value.due_at),
+    all_day: value.all_day === true,
+    location: str(value.location),
+    notes: str(value.notes),
+    amount_minor: Number.isInteger(value.amount_minor) && value.amount_minor >= 0 ? value.amount_minor : null,
+    currency: typeof value.currency === "string" && /^[A-Z]{3}$/.test(value.currency) ? value.currency : null,
+    assignee_names: Array.isArray(value.assignee_names) ? value.assignee_names.filter((v: unknown) => typeof v === "string").slice(0, 12) : [],
+    unresolved_fields: Array.isArray(value.unresolved_fields) ? value.unresolved_fields.filter((v: unknown) => typeof v === "string").slice(0, 12) : [],
+    reminder_at: iso(value.reminder_at)
   };
+}
+
+function base(kind: Candidate["kind"], title: string, extra: Partial<Candidate> = {}): Candidate {
+  return { kind, title, starts_at: null, ends_at: null, due_at: null, all_day: false, location: null, notes: null, amount_minor: null, currency: null, assignee_names: [], unresolved_fields: [], reminder_at: null, ...extra };
 }
 
 function extractDates(text: string): string[] {
-  const results: { index: number; iso: string }[] = [];
-  const currentYear = new Date().getUTCFullYear();
-  const numeric = /\b(\d{1,2})[.\-/](\d{1,2})(?:[.\-/](\d{2,4}))?\b/g;
-  for (const match of text.matchAll(numeric)) {
-    let year = match[3] ? Number(match[3]) : currentYear;
-    if (year < 100) year += 2000;
-    const iso = dateOnlyISO(year, Number(match[2]), Number(match[1]));
-    if (iso) results.push({ index: match.index ?? 0, iso });
+  const found: { i: number; d: string }[] = [];
+  const year = new Date().getUTCFullYear();
+  for (const m of text.matchAll(/\b(\d{1,2})[.\-/](\d{1,2})(?:[.\-/](\d{2,4}))?\b/g)) {
+    let y = m[3] ? +m[3] : year; if (y < 100) y += 2000;
+    const d = date(y, +m[2], +m[1]); if (d) found.push({ i: m.index ?? 0, d });
   }
-
-  const monthMap: Record<string, number> = {
-    januar: 1, februar: 2, märz: 3, maerz: 3, april: 4, mai: 5, juni: 6,
-    juli: 7, august: 8, september: 9, oktober: 10, november: 11, dezember: 12,
-  };
-  const named = /\b(\d{1,2})\.\s*(Januar|Februar|März|Maerz|April|Mai|Juni|Juli|August|September|Oktober|November|Dezember)(?:\s+(\d{4}))?/gi;
-  for (const match of text.matchAll(named)) {
-    const month = monthMap[match[2].toLowerCase()];
-    const year = match[3] ? Number(match[3]) : currentYear;
-    const iso = dateOnlyISO(year, month, Number(match[1]));
-    if (iso) results.push({ index: match.index ?? 0, iso });
+  const months: Record<string, number> = { januar:1, februar:2, märz:3, maerz:3, april:4, mai:5, juni:6, juli:7, august:8, september:9, oktober:10, november:11, dezember:12 };
+  for (const m of text.matchAll(/\b(\d{1,2})\.\s*(Januar|Februar|März|Maerz|April|Mai|Juni|Juli|August|September|Oktober|November|Dezember)(?:\s+(\d{4}))?/gi)) {
+    const d = date(m[3] ? +m[3] : year, months[m[2].toLowerCase()], +m[1]); if (d) found.push({ i: m.index ?? 0, d });
   }
-
-  return results.sort((a, b) => a.index - b.index).map((r) => r.iso);
+  return found.sort((a,b) => a.i-b.i).map((x) => x.d);
 }
 
-function dateOnlyISO(year: number, month: number, day: number): string | null {
-  if (month < 1 || month > 12 || day < 1 || day > 31) return null;
-  const date = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
-  if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) return null;
-  return date.toISOString();
-}
-
-function withTime(dateISO: string, hour: number, minute: number): string {
-  const date = new Date(dateISO);
-  date.setUTCHours(hour, minute, 0, 0);
-  return date.toISOString();
-}
-
-function endOfDay(dateISO: string): string {
-  const date = new Date(dateISO);
-  date.setUTCHours(23, 59, 0, 0);
-  return date.toISOString();
-}
-
-function previousEvening(dateISO: string): string {
-  const date = new Date(dateISO);
-  date.setUTCDate(date.getUTCDate() - 1);
-  date.setUTCHours(19, 0, 0, 0);
-  return date.toISOString();
-}
-
-function offsetISO(dateISO: string, minutes: number): string {
-  return new Date(new Date(dateISO).getTime() + minutes * 60_000).toISOString();
-}
-
-function sentenceContaining(text: string, pattern: RegExp): string | null {
-  const parts = text.split(/\n+|(?<=[.!?])\s+/).map((part) => part.trim()).filter(Boolean);
-  return parts.find((part) => pattern.test(part)) ?? null;
-}
-
-function conciseTitle(text: string, fallback: string): string {
-  const clean = text.replace(/\s+/g, " ").trim().replace(/^[\-•]+\s*/, "");
-  if (!clean) return fallback;
-  return clean.length > 100 ? `${clean.slice(0, 97)}…` : clean;
-}
-
-function formatEuro(amountMinor: number, locale: string): string {
-  try {
-    return new Intl.NumberFormat(locale || "de-DE", { style: "currency", currency: "EUR" }).format(amountMinor / 100);
-  } catch {
-    return `${(amountMinor / 100).toFixed(2)} €`;
-  }
-}
-
-function firstNonEmpty(...values: unknown[]): string {
-  for (const value of values) {
-    if (typeof value === "string" && value.trim()) return value.trim();
-  }
-  return "";
-}
-
-function normalizeName(value: string): string {
-  return value.trim().toLocaleLowerCase("de-DE").replace(/\s+/g, " ");
-}
-
-function nullableString(value: unknown): string | null {
-  if (typeof value !== "string") return null;
-  const clean = value.trim();
-  return clean ? clean.slice(0, 1000) : null;
-}
-
-function validDateString(value: unknown): string | null {
-  if (typeof value !== "string" || !value.trim()) return null;
-  const timestamp = Date.parse(value);
-  return Number.isFinite(timestamp) ? value : null;
-}
-
-async function incrementUsage(client: ReturnType<typeof createClient>, householdID: string, aiIncrement: number) {
-  const periodStart = `${new Date().toISOString().slice(0, 7)}-01`;
-  const { data } = await client
-    .from("household_usage_monthly")
-    .select("ai_imports, storage_bytes")
-    .eq("household_id", householdID)
-    .eq("period_start", periodStart)
-    .maybeSingle();
-
-  await client.from("household_usage_monthly").upsert({
-    household_id: householdID,
-    period_start: periodStart,
-    ai_imports: Number(data?.ai_imports ?? 0) + aiIncrement,
-    storage_bytes: Number(data?.storage_bytes ?? 0),
-    updated_at: new Date().toISOString(),
-  });
-}
-
-function requiredEnv(name: string): string {
-  const value = Deno.env.get(name)?.trim();
-  if (!value) throw new Error(`missing_${name.toLowerCase()}`);
-  return value;
-}
-
-function safeErrorCode(error: unknown): string {
-  const raw = error instanceof Error ? error.message : String(error);
-  return raw.toLowerCase().replace(/[^a-z0-9_\-]/g, "_").slice(0, 120) || "processing_failed";
-}
-
-function response(payload: unknown, status = 200): Response {
-  return new Response(JSON.stringify(payload), { status, headers: jsonHeaders });
-}
+function date(y:number,m:number,d:number): string | null { const x = new Date(Date.UTC(y,m-1,d,12)); return x.getUTCFullYear()===y && x.getUTCMonth()===m-1 && x.getUTCDate()===d ? x.toISOString() : null; }
+function atTime(d:string,h:number,m:number){ const x=new Date(d); x.setUTCHours(h,m,0,0); return x.toISOString(); }
+function endDay(d:string){ const x=new Date(d); x.setUTCHours(23,59,0,0); return x.toISOString(); }
+function previousEvening(d:string){ const x=new Date(d); x.setUTCDate(x.getUTCDate()-1); x.setUTCHours(19,0,0,0); return x.toISOString(); }
+function offset(d:string,m:number){ return new Date(new Date(d).getTime()+m*60000).toISOString(); }
+function sentence(t:string,p:RegExp){ return t.split(/(?<=[.!?])\s+/).map(x=>x.trim()).find(x=>p.test(x)) ?? null; }
+function short(t:string,f:string){ const s=t.replace(/\s+/g," ").trim(); return !s?f:s.length>100?`${s.slice(0,97)}…`:s; }
+function euro(v:number,l:string){ try{return new Intl.NumberFormat(l||"de-DE",{style:"currency",currency:"EUR"}).format(v/100)}catch{return `${(v/100).toFixed(2)} €`;} }
+function first(...v:any[]){ return v.find((x)=>typeof x==="string" && x.trim())?.trim() ?? ""; }
+function normalize(v:string){ return v.trim().toLocaleLowerCase("de-DE").replace(/\s+/g," "); }
+function str(v:any){ return typeof v==="string" && v.trim() ? v.trim().slice(0,1000) : null; }
+function iso(v:any){ return typeof v==="string" && Number.isFinite(Date.parse(v)) ? v : null; }
+function env(n:string){ const v=Deno.env.get(n)?.trim(); if(!v) throw new Error(`missing_${n.toLowerCase()}`); return v; }
+function safe(e:any){ return (e instanceof Error?e.message:String(e)).toLowerCase().replace(/[^a-z0-9_\-]/g,"_").slice(0,120)||"processing_failed"; }
+function json(v:any,status=200){ return new Response(JSON.stringify(v),{status,headers}); }
