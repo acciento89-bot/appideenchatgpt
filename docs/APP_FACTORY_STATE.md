@@ -31,7 +31,7 @@ Repository purpose: persistent handoff/state repository for the full App Factory
 | 008 | BeforeAfter | Guided repeat photography/alignment/comparison | Pro / Lifetime | QUEUED |
 | 009 | ScamLens | Analyze screenshots/messages for suspicious indicators | Credits / Pro | QUEUED |
 | 010 | SwipeOrDie | Fast portrait reaction/high-score game | Ads + IAP | QUEUED |
-| 011 | Family Life OS (INTERNAL CODENAME) | Family Inbox: photo/PDF/text/voice -> reviewed events/tasks/deadlines/payments/preparation | Freemium + Family Pro subscription | TESTFLIGHT BUILD VISIBLE / PHYSICAL DEVICE SMOKE NEXT |
+| 011 | Family Life OS (INTERNAL CODENAME) | Family Inbox: photo/PDF/text/voice -> reviewed events/tasks/deadlines/payments/preparation | Freemium + Family Pro subscription | PHYSICAL TESTFLIGHT + HOSTED MANUAL FLOW PROVEN / PR #13 MERGED |
 
 # Portfolio app #001 — KeepMeter
 
@@ -88,19 +88,25 @@ Authoritative app state:
 
 ## Current checkpoint — 2026-08-19
 
-Apple/TestFlight blocker is cleared.
+The first real-device loop is now partially proven beyond App Store Connect visibility.
 
-User-confirmed:
+User-provided physical iPhone screenshots verify:
 
-- App Store Connect app record exists
-- a Family Life OS build is visible in App Store Connect / TestFlight
-- therefore a signed Apple upload successfully reached App Store Connect
+- internal TestFlight build installed and running on real iPhone
+- hosted household surface loads (`Ich`, owner/full access)
+- hosted backend diagnostics sheet is present
+- on-device hosted config shows Frankfurt/EU and callback `de.kamilunavo.familyprototype://login-callback`
+- user manually used Inbox -> text example import
+- resulting hosted import state is visibly present in Inbox and Plan
+- imported canonical Plan items show provenance (`Aus Import`)
 
-Evidence note:
+Evidence boundary:
 
-- PR validation workflows may show green while the upload step is skipped by design
-- the visible App Store Connect build is the decisive evidence that a real upload succeeded
-- exact successful upload workflow/run ID has not yet been matched back to the visible build in this checkpoint
+- physical TestFlight installation — VERIFIED
+- hosted manual data path on device — visibly working
+- fresh Magic Link callback round-trip — NOT explicitly re-verified yet
+- one-button `Hosted E2E jetzt prüfen` result — NOT yet verified
+- second real authenticated user/session — NOT yet verified
 
 ### Existing green checkpoints
 
@@ -109,11 +115,36 @@ Evidence note:
 - PR #10 authenticated hosted E2E smoke harness — MERGED / compile green
 - PR #11 physical-device Release/TestFlight pipeline — MERGED
 - PR #12 App Store bundle validation fixes — MERGED
-- Release generic `iphoneos` build — GREEN
-- unsigned physical-device artifact — GREEN
-- hosted Supabase callback allow-list — USER-CONFIRMED configured
 - App Store Connect app record — EXISTS
-- signed Family Life OS build visible in App Store Connect / TestFlight — YES
+- signed Family Life OS build visible in App Store Connect/TestFlight — YES
+- physical iPhone TestFlight installation — YES
+- manual hosted text import visibly reaches Inbox/Plan on-device — YES
+
+### PR #13 — completion + live Today
+
+- PR `#13` — MERGED
+- tested head `498f5a7a036a038454bbd387100bb32faf4b31e9`
+- squash commit `ce7d5c0b09a1cd5f4944b2b88d7c14d205affa71`
+- Prototype Build run `32278953444` / #26 — SUCCESS
+- TestFlight PR validation run `32278953395` / #7 — SUCCESS
+- PR validation upload step skipped by design
+
+PR #13 implements physical-device feedback:
+
+- deadlines, payments, tasks and preparation items can be marked complete
+- completion available in Plan
+- completion available directly in Today -> `Braucht Aufmerksamkeit`
+- completion available in `Für morgen vorbereiten`
+- existing hosted repository completion path is used, not UI-only state
+- Today now uses actual current date/time instead of hard-coded 18 August
+- greeting follows current time
+- Today/tomorrow filters are real-date based
+- hard-coded Lina/Ben family-summary fixture leakage removed
+- family overview now derives from current hosted plan/attention/conflict state
+- Today `+` opens a pending review or starts the current internal deterministic text-test import
+- deterministic reference date retained for previews
+
+Important: the user's screenshots predate PR #13. The merged completion/live-Today behavior still needs a newer internal device build before physical verification.
 
 ## Product thesis / trust boundary
 
@@ -148,7 +179,7 @@ Target:
 - iOS/iPadOS 18+
 - iPhone + iPad
 - provisional bundle id `de.kamilunavo.familyprototype`
-- internal version path `0.1.0 (1)`
+- internal marketing version `0.1.0`
 
 Data boundary:
 
@@ -163,7 +194,7 @@ Hosted Supabase:
 
 - project ref `bqctetqraszsvknczjjr`
 - Frankfurt / `eu-central-1`
-- last observed `ACTIVE_HEALTHY`
+- last recorded `ACTIVE_HEALTHY`
 - Supabase Swift `2.54.1` pinned
 - publishable client key only
 - no service-role secret in app
@@ -178,11 +209,11 @@ Hosted client capabilities:
 - deterministic server fixture text import
 - reviewed proposal edits + assignee persistence
 - canonical confirm RPC
-- remote completion
+- persisted remote completion
 - remote child profile creation
 - authenticated hosted E2E diagnostics harness
 
-The diagnostics UI is intentionally allowed for the first **internal TestFlight/device smoke** and must be gated before external TestFlight/App Store distribution.
+Diagnostics remain intentionally available for the first **internal TestFlight/device smoke** and must be gated before external TestFlight/App Store distribution.
 
 ## Auth redirect state
 
@@ -192,7 +223,7 @@ Callback:
 
 User confirmed on **2026-08-19** that this redirect URL is configured in hosted Supabase Auth URL Configuration.
 
-Do not regress to “Auth redirect not configured”. Physical-device callback/session establishment remains unverified until exercised from TestFlight.
+Do not regress to “Auth redirect not configured”. A fresh physical-device Magic Link callback/session round-trip still needs explicit verification.
 
 ## Apple/TestFlight state
 
@@ -204,13 +235,14 @@ Canonical workflow:
 
 `.github/workflows/family-life-os-testflight.yml`
 
-Current Apple state:
+Current Apple/device state:
 
 - explicit Bundle ID `de.kamilunavo.familyprototype` — REGISTERED
 - Apple Bundle ID resource previously verified as `2NV99ZM2PM`
 - App Store Connect app record — EXISTS
 - signed build visible in App Store Connect/TestFlight — YES
-- physical-device authenticated smoke — NEXT
+- physical TestFlight installation — YES
+- hosted manual text path on physical device — visibly working
 
 Obsolete blockers:
 
@@ -219,6 +251,7 @@ Obsolete blockers:
 - App Store Connect app record missing
 - provisioning profile as current blocker
 - signed upload not yet successful
+- physical TestFlight install not proven
 
 ## #011 validation boundary
 
@@ -234,17 +267,18 @@ Validated:
 - PR #10 smoke harness compile green
 - Supabase callback allow-list configured
 - Release physical-device `iphoneos` build green
-- device artifact packaging green
-- working ASC credentials previously proven through secure bridge
-- Bundle ID exists
 - App Store Connect app record exists
 - signed build reached App Store Connect/TestFlight
+- physical iPhone TestFlight installation proven
+- manual deterministic hosted text import visibly reaches Inbox/Plan on-device
+- PR #13 Simulator build green
+- PR #13 Release/device PR validation green
 
 Not yet release-validated:
 
-- physical-device install of current TestFlight build
-- Magic Link callback/session on physical device
-- one-button hosted E2E smoke from a real authenticated iPhone/iPad
+- PR #13 completion/live-Today behavior on updated physical device build
+- fresh Magic Link callback/session round-trip
+- one-button hosted E2E result from real authenticated iPhone/iPad
 - second real authenticated Data API session/isolation
 - Realtime
 - private Storage
@@ -257,12 +291,12 @@ Not yet release-validated:
 
 ## #011 next steps
 
-1. Install the current internal TestFlight build on a physical iPhone/iPad.
-2. Request Magic Link and verify authenticated return through `de.kamilunavo.familyprototype://login-callback`.
-3. Open **Backend-Diagnose** -> **Hosted E2E jetzt prüfen**.
-4. Require every smoke step including cleanup to pass.
+1. Produce/install an updated internal build containing PR #13.
+2. Verify deadline/payment/preparation completion persists after navigation/reload.
+3. Run **Backend-Diagnose -> Hosted E2E jetzt prüfen** and require all steps including cleanup to pass.
+4. Explicitly test a fresh Magic Link round-trip through `de.kamilunavo.familyprototype://login-callback`.
 5. Repeat with a second real authenticated session for final Auth/Data-API isolation coverage.
-6. Add Realtime only after physical-device hosted text smoke is green.
+6. Add Realtime only after those physical-device gates are green.
 7. Add private Storage + photo/PDF share intake.
 8. Add OCR.
 9. Add real AI extraction last while retaining explicit proposal review/confirmation.
@@ -304,11 +338,12 @@ Avoid generic house/checkmark, cartoon family, or robot/AI sparkle identity.
 2. Read the selected app-specific state.
 3. For #011 read `apps/011-family-life-os/PROJECT_STATE.md` and `BACKEND_CONTRACT.md`.
 4. Inspect current `main` and latest relevant CI gates before code changes.
-5. Continue #011 from **physical-device TestFlight install -> Magic Link -> authenticated hosted E2E smoke**.
+5. Continue #011 from **updated PR #13 device build -> completion persistence -> Hosted E2E -> fresh Magic Link -> second session**.
 6. Do not regress to “ASC secrets missing”.
 7. Do not regress to “Bundle ID missing”.
 8. Do not regress to “App Store Connect app record missing”.
-9. Do not regress to “signed TestFlight upload not successful” — user confirmed a build visible in App Store Connect on 2026-08-19.
-10. Do not regress to “Auth redirect not configured”.
-11. Do not jump to Realtime/Storage/OCR/AI before the authenticated physical-device hosted text smoke is proven.
-12. Preserve every other portfolio entry when updating one workstream.
+9. Do not regress to “signed TestFlight upload not successful”.
+10. Do not regress to “physical TestFlight not installed” — user provided physical-device screenshots on 2026-08-19.
+11. Do not claim one-button Hosted E2E or fresh Magic Link passed until actually exercised.
+12. Do not jump to Realtime/Storage/OCR/AI before the authenticated physical-device gates are green.
+13. Preserve every other portfolio entry when updating one workstream.
