@@ -1,7 +1,7 @@
 # Family Life OS — Project State
 
 Last updated: 2026-08-19
-Status: DEVICE RELEASE BUILD GREEN / TESTFLIGHT ASC SECRETS NEXT
+Status: APP STORE CONNECT APP RECORD REQUIRED / BUNDLE ID VERIFIED
 Internal portfolio slot: #011
 Public brand/name: NOT LOCKED
 Current canonical branch: `main`
@@ -11,7 +11,9 @@ Implementation location: `apps/011-family-life-os/` in the central App Factory r
 
 ## Current verified checkpoint
 
-Latest major pass: physical-device Release build + safe TestFlight pipeline.
+Latest major pass: real Apple/TestFlight credential + registration-path probe.
+
+The previous `TESTFLIGHT ASC SECRETS NEXT` blocker is obsolete. Existing App Store Connect API credentials from the working `acciento89-bot/onemorefloor` pipeline were reused through a temporary bridge workflow without exposing or copying secret values.
 
 ### PR #8 — hosted Supabase vertical slice
 
@@ -41,8 +43,8 @@ Latest major pass: physical-device Release build + safe TestFlight pipeline.
 - merge: `a56f0776ea701a50b549e4167415d4b0056afde1`
 - iOS run `32225259430` / #21 — SUCCESS
 - no DB workflow required because no database schema/policy/function contract changed
-
-The in-app diagnostics harness uses only the current authenticated Supabase session and normal RLS client rights. It verifies Auth -> household -> child resolution -> hosted school-letter import -> exactly four proposals -> confirmation -> exactly four PlanItems -> provenance -> source done -> idempotent retry -> cleanup.
+- in-app diagnostics use the authenticated Supabase session and normal RLS client rights
+- harness covers Auth -> household -> child -> hosted school-letter import -> 4 proposals -> confirm -> 4 PlanItems -> provenance -> source done -> idempotent retry -> cleanup
 
 ### PR #11 — Release device + TestFlight pipeline
 
@@ -50,23 +52,49 @@ The in-app diagnostics harness uses only the current authenticated Supabase sess
 - tested head: `546722579458b5caef23641b181810de10ce9eee`
 - merge: `727f2cdceae6cd0f527a766879a8d0517fbdb742`
 - workflow: `.github/workflows/family-life-os-testflight.yml`
-- PR workflow run `32228406465` / #2 — SUCCESS
+- PR run `32228406465` / #2 — SUCCESS
 - pinned Supabase package resolution — SUCCESS
 - Release generic `iphoneos` build for physical iPhone/iPad — SUCCESS
 - unsigned physical-device `.app` artifact packaging — SUCCESS
-- TestFlight upload is disabled on pull requests
-- workflow checks App Store Connect credentials without printing secret values
-- when credentials are absent, main/manual runs keep the Release-device validation but explicitly skip TestFlight instead of producing a false CI failure
-- when credentials are present, upload uses Apple cloud distribution signing and must fail visibly if Apple signing/upload fails
+- TestFlight upload disabled on pull requests
+- signing/upload diagnostics preserved
 
-Verified repository credential state during PR #11:
+### Apple/TestFlight bridge checkpoint — 2026-08-19
 
-- `ASC_ISSUER_ID` — absent
-- `ASC_KEY_ID` — absent
-- `ASC_PRIVATE_KEY_B64` — absent
-- no secret values were exposed or copied
+A temporary internal bridge was created in `acciento89-bot/onemorefloor` because that repository already contains working App Store Connect Actions secrets with the same secret names and Apple team.
 
-Because the connected GitHub tool surface does not expose Actions-secret mutation, these credentials cannot be copied from another repository by the assistant without revealing/re-entering them.
+Bridge details:
+
+- bridge workflow: `acciento89-bot/onemorefloor/.github/workflows/family-life-os-testflight-bridge.yml`
+- draft probe PR: `acciento89-bot/onemorefloor#84`
+- decisive bridge run: `32247708814`
+- job: `96051837747`
+- Family Life OS source checked out from `acciento89-bot/appideenchatgpt/main`
+- Swift package resolution — SUCCESS
+- unsigned Release physical-device build — SUCCESS
+- existing `ASC_ISSUER_ID` / `ASC_KEY_ID` / `ASC_PRIVATE_KEY_B64` presence check — SUCCESS
+- API key decode/validation — SUCCESS
+- unsigned Release archive — SUCCESS
+- App Store Connect export — FAILED with raw `xcodebuild` exit status `70`
+- exact decisive diagnostic: `No profiles for 'de.kamilunavo.familyprototype' were found`
+- no secret values were exposed, copied into source, or printed
+- no successful TestFlight upload occurred
+
+A second lightweight Apple registration probe then queried Apple's App Store Connect API using the same short-lived authenticated bridge path.
+
+Probe details:
+
+- probe run: `32248236864`
+- handoff issue: `acciento89-bot/onemorefloor#88`
+- bundle identifier queried: `de.kamilunavo.familyprototype`
+- registered Bundle ID matches: `1`
+- Apple Bundle ID resource id: `2NV99ZM2PM`
+- App Store Connect app records for this bundle id: `0`
+- provisioning profiles for this bundle id: `0`
+
+**Verified current Apple blocker:** the explicit Bundle ID is already registered, but there is no App Store Connect app record for it yet. This supersedes the earlier assumption that missing ASC repository secrets were the next blocker.
+
+Apple's public App Store Connect API can list/manage existing apps but does not create a brand-new app record. The app record therefore requires one manual creation in App Store Connect. After that, the existing automatic/cloud-signing TestFlight path should be retried and its exact result used as the next gate.
 
 ## Auth redirect state
 
@@ -74,13 +102,13 @@ Required callback:
 
 `de.kamilunavo.familyprototype://login-callback`
 
-**Hosted Supabase allow-list configuration is now USER-CONFIRMED DONE on 2026-08-19.**
+**Hosted Supabase allow-list configuration is USER-CONFIRMED DONE on 2026-08-19.**
 
 Expected location:
 
 **Supabase Dashboard -> Authentication -> URL Configuration -> Redirect URLs / Additional Redirect URLs**
 
-This removes the known configuration blocker, but the callback has **not yet been exercised from a physical iPhone/iPad**, so real-device Magic Link/session establishment remains unverified.
+Do not regress to “Auth redirect not configured”. Physical-device Magic Link/session establishment is still unverified until an internal TestFlight/device build is installed and exercised.
 
 ## Product thesis
 
@@ -236,34 +264,38 @@ Known Apple team used by the existing Kamilunavo cloud-signing setup:
 
 - Team ID `TKG684N5GL`
 
-Family Life OS TestFlight workflow:
+Canonical Family Life OS workflow:
 
 `.github/workflows/family-life-os-testflight.yml`
 
-Behavior:
+Existing ONE MORE FLOOR bridge credentials were proven valid for this Family Life OS build without exposing their values.
 
-1. resolve packages
-2. build Release for generic physical iOS device with signing disabled
-3. preserve unsigned device artifact
-4. detect ASC credential presence without logging values
-5. on PR: never upload
-6. on main/manual run with credentials: create archive + App Store Connect export with automatic cloud signing
-7. capture export diagnostics
-8. fail on a real Apple upload/signing failure
-9. if credentials are absent: skip upload while keeping device-build gate meaningful
-10. remove temporary API-key file on every run
+Current Apple state:
 
-Current blocker to an actual TestFlight upload:
+- explicit bundle ID `de.kamilunavo.familyprototype` — REGISTERED
+- Bundle ID resource `2NV99ZM2PM`
+- App Store Connect app record — MISSING
+- provisioning profile — NONE
+- ASC credentials through bridge — VERIFIED WORKING
+- archive creation — VERIFIED WORKING
+- signed TestFlight upload — NOT YET SUCCESSFUL
 
-GitHub Actions repository secrets must be configured in `acciento89-bot/appideenchatgpt`:
+### Required one-time App Store Connect action
 
-- `ASC_ISSUER_ID`
-- `ASC_KEY_ID`
-- `ASC_PRIVATE_KEY_B64`
+Create a new iOS app record in App Store Connect using the already registered bundle ID `de.kamilunavo.familyprototype`.
 
-The same App Store Connect API credentials already used by the user's working Kamilunavo/ONE MORE FLOOR pipeline may be reused if they have the necessary access, but the secret values must never be committed to Git or pasted into source code.
+Suggested internal creation values while the public brand is still unlocked:
 
-Do **not** claim a Family Life OS TestFlight upload has succeeded until a signed workflow run actually reports success.
+- Platform: iOS
+- Name: `Family Life OS` as a temporary internal App Store Connect name; change before review when final brand is locked
+- Primary Language: German
+- Bundle ID: `de.kamilunavo.familyprototype`
+- SKU: `KAMILUNAVO-FAMILY-001`
+- User Access: Full Access unless a narrower access model is intentionally required
+
+After app-record creation, rerun the bridge/TestFlight build `1`. Do not manually invent or commit provisioning material unless automatic signing still fails and Apple returns a new exact diagnostic.
+
+Do **not** claim a Family Life OS TestFlight upload has succeeded until an actual signed workflow run reports success.
 
 ## Validation boundary
 
@@ -283,14 +315,20 @@ Do **not** claim a Family Life OS TestFlight upload has succeeded until a signed
 - PR #11 generic Release `iphoneos` physical-device build green
 - PR #11 unsigned device artifact green
 - safe TestFlight cloud-signing workflow merged to main
+- working App Store Connect API credentials proven through bridge
+- Family Life OS Release archive proven through bridge
+- explicit Apple Bundle ID existence proven through App Store Connect API
+- absence of App Store Connect app record proven through App Store Connect API
+- absence of provisioning profile proven through App Store Connect API
 
 ### Not yet release-validated
 
+- App Store Connect app record creation for Family Life OS
+- automatic distribution provisioning after app-record creation
+- signed TestFlight upload for Family Life OS
 - physical-device Magic Link callback/session establishment
 - in-app hosted E2E smoke report from a real authenticated iPhone/iPad
 - two real authenticated devices/sessions over Data API
-- signed TestFlight upload for Family Life OS
-- Apple bundle/app-record/provisioning path for this provisional bundle id
 - Realtime
 - private Storage
 - photo/PDF share intake
@@ -302,9 +340,9 @@ Do **not** claim a Family Life OS TestFlight upload has succeeded until a signed
 
 ## Immediate next steps
 
-1. Add the three App Store Connect Actions secrets to `acciento89-bot/appideenchatgpt`.
-2. Run `Family Life OS TestFlight` manually with build `1` and require signed upload success; if Apple rejects bundle/app configuration, use captured diagnostics and fix the exact blocker.
-3. Install the internal TestFlight build on a physical iPhone/iPad.
+1. In App Store Connect create the iOS app record for `de.kamilunavo.familyprototype` using the values above.
+2. Rerun the Family Life OS TestFlight bridge with build `1` and require a real signed upload success; if Apple still rejects signing/provisioning, use the new exact diagnostic rather than guessing.
+3. Once uploaded, install the internal TestFlight build on a physical iPhone/iPad.
 4. Request Magic Link and verify `de.kamilunavo.familyprototype://login-callback` returns into the app with an authenticated session.
 5. Open **Backend-Diagnose** and run **Hosted E2E jetzt prüfen**.
 6. Require every smoke step including cleanup to pass.
@@ -367,8 +405,10 @@ For every continuation/new chat:
 2. read this file
 3. inspect current `main`
 4. inspect latest Family Life OS Simulator/DB/Device/TestFlight CI state
-5. continue from ASC-secrets -> signed internal TestFlight -> physical-device Magic Link -> in-app hosted E2E smoke
-6. do not regress to “live backend next” — hosted backend is integrated
-7. do not regress to “Auth redirect not configured” — user confirmed the hosted callback allow-list entry on 2026-08-19
-8. do not regress to “two-user RLS untested” — database/hosted-SQL isolation is green
-9. do not claim TestFlight/device E2E success without the actual signed/device run
+5. continue from **App Store Connect app record -> signed internal TestFlight -> physical-device Magic Link -> in-app hosted E2E smoke**
+6. do not regress to “ASC secrets missing” — existing working credentials were proven through the secure bridge on 2026-08-19
+7. do not regress to “Bundle ID missing” — Apple API probe found bundle resource `2NV99ZM2PM`
+8. do not regress to “Auth redirect not configured” — user confirmed the hosted callback allow-list entry on 2026-08-19
+9. do not regress to “two-user RLS untested” — database/hosted-SQL isolation is green
+10. do not claim TestFlight/device E2E success without the actual signed/device run
+11. do not jump to Realtime/Storage/OCR/AI before the authenticated physical-device hosted text smoke is proven
