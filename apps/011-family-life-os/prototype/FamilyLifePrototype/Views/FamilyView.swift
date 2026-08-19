@@ -90,10 +90,12 @@ struct FamilyView: View {
         .sheet(isPresented: $isAddingChild) {
             NavigationStack {
                 Form {
-                    Section("Kinderprofil") {
+                    Section {
                         TextField("Name", text: $childName)
                             .textContentType(.name)
                             .accessibilityIdentifier("family.childName")
+                    } header: {
+                        Text("Kinderprofil")
                     } footer: {
                         Text("Das Profil gehört zum Haushalt und erhält noch keinen eigenen Account.")
                     }
