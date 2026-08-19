@@ -1,7 +1,7 @@
 # Family Life OS — Project State
 
 Last updated: 2026-08-19
-Status: HOSTED SUPABASE VERTICAL SLICE MERGED / IOS + DB GATES GREEN
+Status: HOSTED TEXT + TWO-USER RLS GREEN / DEVICE MAGIC LINK VALIDATION NEXT
 Internal portfolio slot: #011
 Public brand/name: NOT LOCKED
 Current canonical branch: `main`
@@ -11,22 +11,41 @@ Implementation location: `apps/011-family-life-os/` in the central App Factory r
 
 ## Current verified checkpoint
 
+Latest major pass: Hosted Auth callback hardening + two-user household isolation.
+
 - Hosted Supabase PR `#8` — MERGED
-- Final tested PR head: `13297c5fd40705509dce298d741229ccd26b76bb`
-- Merge commit: `747d5bed505ef527501d24b9a24144ffb04a24f1`
-- iOS Simulator workflow: `Family Life OS Prototype Build`
-- Final iOS run: `32221107674` / run #17 — SUCCESS
-- Database workflow: `Family Life OS Database Tests`
-- Final DB run: `32221107641` / run #8 — SUCCESS
-- Both required gates passed on the same tested head before merge.
+- PR #8 final tested head: `13297c5fd40705509dce298d741229ccd26b76bb`
+- PR #8 merge commit: `747d5bed505ef527501d24b9a24144ffb04a24f1`
+- PR #8 iOS run: `32221107674` / run #17 — SUCCESS
+- PR #8 database run: `32221107641` / run #8 — SUCCESS
+- Auth/RLS hardening PR `#9` — MERGED
+- PR #9 final tested head: `a884bf8f36dfdc560c5aa4e5fde2d98cefb33ee9`
+- PR #9 merge commit: `649f2104353154e199b3844ec79ca6e8d23a60ad`
+- PR #9 iOS Simulator run: `32222381445` / run #19 — SUCCESS
+- PR #9 database run: `32222381440` / run #10 — SUCCESS
+- Both required gates passed on the same PR #9 head before merge.
 
-Compiler issue fixed before merge:
+PR #9 hardening added:
 
-- `FamilyView.swift:93`
-- `HostedAppView.swift:74`
-- cause: SwiftUI `Section` calls combining a title shorthand with a trailing footer closure resolved to the wrong initializer under the CI compiler
-- fix: explicit `header` / `footer` closures
-- CI now preserves Xcode build diagnostics as a short-lived artifact on failure so future compiler failures do not require guesswork.
+- exact auth callback validation for `de.kamilunavo.familyprototype://login-callback`
+- foreign/malformed callback URLs are rejected before session exchange
+- deterministic Magic Link send-state cleanup
+- new `hosted_two_user_isolation.test.sql` with 14 pgTAP assertions
+- two authenticated users bootstrap separate households and import separate school-letter sources
+- cross-household reads remain invisible
+- cross-household source UPDATE attempt affects zero rows
+- switching back to user A proves user B data remains invisible and user A data unchanged
+
+Direct hosted verification was also executed against the Frankfurt Supabase development project:
+
+- user A saw exactly 1 household
+- user A saw exactly 1 own source
+- user A saw exactly 4 own proposals
+- user A saw 0 user-B sources
+- user-B foreign mutation affected 0 rows
+- temporary hosted test users and households were removed afterwards
+- cleanup confirmed 0 remaining test users and 0 remaining test households
+- hosted security advisor returned no lints
 
 ## Product thesis
 
@@ -126,28 +145,28 @@ The deterministic fixture extraction remains intentionally non-AI. It exists to 
 
 Hosted development project:
 
-- region: Frankfurt / EU
+- project ref: `bqctetqraszsvknczjjr`
+- region: Frankfurt / `eu-central-1`
+- current project state observed: `ACTIVE_HEALTHY`
 - client uses only the publishable client key
 - no service-role secret in the iOS bundle
 - Supabase Swift / `Supabase` pinned to `2.54.1`
 
-Hosted hardening / vertical-slice migrations added in PR #8:
+Hosted migrations present:
 
-- `20260819041232`
-- `20260819041753`
+- `20260819040837` — family core
+- `20260819041003` — member uniqueness + confirmation retry
+- `20260819041013` — private helper permissions
+- `20260819041031` — tighten client write surface
+- `20260819041232` — hosted advisor hardening
+- `20260819041753` — hosted text vertical slice
 
-Hosted rollout state recorded by PR #8:
-
-- advisor hardening migration deployed
-- hosted text vertical-slice RPC migration deployed
-- hosted security advisor clean after rollout
-- performance advisor only reported expected INFO-level unused-index notices on the new/empty database
-
-Hosted iOS client now implements:
+Hosted iOS client implements:
 
 - Supabase client environment
 - Magic Link auth/session gate
 - custom app redirect handling
+- exact callback scheme/host validation before session exchange
 - first-household bootstrap
 - hosted reads for members, Inbox sources, proposals, assignees and Plan items
 - deterministic server-side text fixture ingestion through `ingest_text_fixture`
@@ -156,11 +175,13 @@ Hosted iOS client now implements:
 - remote task completion
 - remote child-profile creation to resolve child assignment blockers
 
-Important auth prerequisite still open:
+Important Auth prerequisite still open:
 
 `de.kamilunavo.familyprototype://login-callback`
 
-must be present in the hosted Supabase Auth redirect allow-list before real-device Magic Link login can complete reliably.
+must be present in hosted Supabase Auth -> URL Configuration -> Additional Redirect URLs before a physical-device Magic Link can complete reliably.
+
+The currently connected Supabase tool surface can inspect/query the project but does not expose mutation of that hosted Auth redirect allow-list. This is therefore a real external configuration gate, not an unfinished app-code task.
 
 ## Database contract / security
 
@@ -213,16 +234,18 @@ Contract:
 - Supabase Swift package resolution works with the pinned dependency
 - fresh local Postgres/Supabase migration path is green
 - RLS/RPC pgTAP coverage is green
-- hosted hardening/text migrations were rolled out before PR #8
-- hosted security advisor was clean after rollout
-- final PR #8 iOS and database gates both passed on `13297c5fd40705509dce298d741229ccd26b76bb`
-- PR #8 merged to `747d5bed505ef527501d24b9a24144ffb04a24f1`
+- hosted hardening/text migrations are deployed
+- hosted security advisor is clean
+- direct hosted SQL smoke under two authenticated identities proved household read/update isolation
+- direct hosted test cleanup left no temporary users/households
+- final PR #9 iOS and database gates both passed on `a884bf8f36dfdc560c5aa4e5fde2d98cefb33ee9`
+- PR #9 merged to `649f2104353154e199b3844ec79ca6e8d23a60ad`
 
 ### Not yet release-validated
 
-- real-device Magic Link after redirect allow-list confirmation
+- real-device Magic Link after hosted redirect allow-list confirmation
 - complete live school-letter flow executed manually from an authenticated iPhone/iPad client
-- two-real-user hosted household-isolation E2E test over the Data API
+- two-real-user household isolation over the actual Supabase Data API/session path
 - multi-device Realtime behavior
 - private Storage
 - photo/PDF share ingestion
@@ -233,7 +256,7 @@ Contract:
 - StoreKit/subscription implementation
 - TestFlight/App Store release readiness
 
-Do not claim those open items are finished merely because compile and DB gates are green.
+Do not claim those open items are finished merely because compile, pgTAP and direct hosted SQL isolation gates are green.
 
 ## Signature vertical slice
 
@@ -246,7 +269,7 @@ Expected proposals:
 3. 35 EUR payment reminder
 4. lunchpack/preparation action
 
-Hosted path now intended by the implementation:
+Hosted path implemented:
 
 1. authenticate
 2. bootstrap household
@@ -259,7 +282,7 @@ Hosted path now intended by the implementation:
 9. call canonical confirmation RPC
 10. reload Plan/Today from hosted data with provenance retained
 
-The next validation pass must exercise that exact path on a real authenticated client before Storage/OCR/AI is added.
+The next validation pass must exercise that exact path from a real authenticated iOS client before Realtime/Storage/OCR/AI is added.
 
 ## Regression gates
 
@@ -271,7 +294,8 @@ Before every merge touching the hosted Family Life OS implementation:
 4. no service-role/private backend secret may enter the client bundle
 5. review-before-confirmation and provenance must remain intact
 6. household RLS must not be weakened for convenience
-7. failure diagnostics should remain available through the Xcode CI artifact path
+7. two-user isolation coverage must remain green
+8. failure diagnostics should remain available through the Xcode CI artifact path
 
 ## Brand state
 
@@ -329,14 +353,16 @@ Final public name still requires current App Store/web + EUIPO/DPMA/domain check
 ## Immediate next steps
 
 1. Confirm/add `de.kamilunavo.familyprototype://login-callback` in hosted Supabase Auth redirect URLs.
-2. Run the authenticated hosted school-letter vertical slice from the iOS client end to end.
-3. Verify resulting Inbox/proposals/Plan data and retry/idempotency behavior against hosted Postgres.
-4. Validate household isolation with two real authenticated users.
-5. Add Realtime only after the hosted text path is proven manually.
-6. Then add private Storage + photo/PDF intake.
-7. Add OCR after Storage/share intake is stable.
-8. Add real AI extraction last, retaining editable proposals and explicit confirmation.
-9. Perform physical-device + VoiceOver QA before any TestFlight release checkpoint.
+2. Run Magic Link login on a physical iPhone/iPad and verify callback/session establishment.
+3. Run the authenticated hosted German school-letter flow end to end from the iOS client.
+4. Verify Inbox -> proposals -> edits/assignees -> confirmation -> Plan/Today + provenance on hosted data.
+5. Verify retry/idempotency from the real authenticated client.
+6. Validate household isolation with two real authenticated Supabase sessions over the Data API.
+7. Add Realtime only after the hosted text path is proven manually.
+8. Then add private Storage + photo/PDF intake.
+9. Add OCR after Storage/share intake is stable.
+10. Add real AI extraction last, retaining editable proposals and explicit confirmation.
+11. Perform physical-device + VoiceOver QA before any TestFlight release checkpoint.
 
 ## Handoff rule
 
@@ -348,3 +374,4 @@ For any new chat or continuation:
 4. inspect the latest Family Life OS Xcode + database gate state
 5. continue from the immediate next steps above
 6. do not regress to the pre-PR-#8 statement that the live backend is merely “next”
+7. do not regress to the pre-PR-#9 statement that two-user household isolation is untested at the database/hosted-SQL level
