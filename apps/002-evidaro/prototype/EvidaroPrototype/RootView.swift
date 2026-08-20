@@ -1,4 +1,5 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct RootView: View {
     @ObservedObject var store: EvidenceStore
@@ -6,6 +7,9 @@ struct RootView: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var showsNewCase = false
     @State private var showsSettings = false
+    @State private var showsVerificationImporter = false
+    @State private var verificationResult: EvidenceBundleVerificationResult?
+    @State private var verificationError: String?
 
     var body: some View {
         NavigationStack {
@@ -55,6 +59,14 @@ struct RootView: View {
             .navigationTitle("Evidaro")
             .toolbarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        showsVerificationImporter = true
+                    } label: {
+                        Image(systemName: "checkmark.shield")
+                    }
+                    .accessibilityLabel(Text("bundle.verify_import"))
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         showsSettings = true
@@ -69,6 +81,25 @@ struct RootView: View {
             }
             .sheet(isPresented: $showsSettings) {
                 PrivacySettingsView(appLock: appLock)
+            }
+            .sheet(item: $verificationResult) { result in
+                VerificationResultView(result: result)
+            }
+            .fileImporter(
+                isPresented: $showsVerificationImporter,
+                allowedContentTypes: [.data],
+                allowsMultipleSelection: false,
+                onCompletion: importVerificationBundle
+            )
+            .alert("bundle.verify_failed", isPresented: Binding(
+                get: { verificationError != nil },
+                set: { if !$0 { verificationError = nil } }
+            )) {
+                Button("common.ok", role: .cancel) { verificationError = nil }
+            } message: {
+                if let verificationError {
+                    Text(verificationError)
+                }
             }
         }
     }
@@ -135,6 +166,93 @@ struct RootView: View {
         StatCard(value: "\(store.cases.count)", label: L10n.string("stats.cases"), symbol: "folder")
         StatCard(value: "\(store.totalEvidenceCount)", label: L10n.string("stats.evidence"), symbol: "list.bullet.rectangle")
         StatCard(value: "\(store.totalSealCount)", label: L10n.string("stats.seals"), symbol: "checkmark.seal")
+    }
+
+    private func importVerificationBundle(_ result: Result<[URL], Error>) {
+        switch result {
+        case .failure(let error):
+            verificationError = error.localizedDescription
+        case .success(let urls):
+            guard let url = urls.first else { return }
+            let accessed = url.startAccessingSecurityScopedResource()
+            defer {
+                if accessed { url.stopAccessingSecurityScopedResource() }
+            }
+            do {
+                let data = try Data(contentsOf: url)
+                verificationResult = try EvidenceBundleVerifier.verify(data: data)
+            } catch {
+                verificationError = error.localizedDescription
+            }
+        }
+    }
+}
+
+private struct VerificationResultView: View {
+    let result: EvidenceBundleVerificationResult
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    Label(
+                        result.isValid ? L10n.string("bundle.result_valid") : L10n.string("bundle.result_invalid"),
+                        systemImage: result.isValid ? "checkmark.shield.fill" : "xmark.shield.fill"
+                    )
+                    .font(.headline)
+                    .foregroundStyle(result.isValid ? Color.green : Color.red)
+                    Text(result.caseTitle)
+                        .font(.title3.bold())
+                }
+
+                Section("bundle.result_details") {
+                    LabeledContent("bundle.result_case_id", value: result.caseID)
+                    LabeledContent("bundle.result_items", value: "\(result.itemCount)")
+                    LabeledContent(
+                        "bundle.result_seals",
+                        value: "\(result.verifiedSealCount)/\(result.sealCount)"
+                    )
+                    VStack(alignment: .leading, spacing: 5) {
+                        Text("bundle.result_manifest")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Text(result.currentManifestHash)
+                            .font(.caption2.monospaced())
+                            .textSelection(.enabled)
+                    }
+                    VStack(alignment: .leading, spacing: 5) {
+                        Text("bundle.result_bundle_hash")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Text(result.bundleHash)
+                            .font(.caption2.monospaced())
+                            .textSelection(.enabled)
+                    }
+                }
+
+                if !result.issues.isEmpty {
+                    Section("bundle.result_issues") {
+                        ForEach(Array(result.issues.enumerated()), id: \.offset) { _, issue in
+                            Label(issue, systemImage: "exclamationmark.triangle")
+                                .foregroundStyle(.red)
+                        }
+                    }
+                }
+
+                Section("bundle.result_boundary") {
+                    Text("bundle.result_boundary_text")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .navigationTitle("bundle.verify_title")
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("common.done") { dismiss() }
+                }
+            }
+        }
     }
 }
 
