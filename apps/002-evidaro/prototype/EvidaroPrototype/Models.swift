@@ -57,6 +57,10 @@ final class EvidenceItem {
     var mediaOriginalName: String?
     var mediaUTType: String?
     var mediaHash: String?
+    var recognizedText: String?
+    var recognizedTextAt: Date?
+    var recognizedTextEngine: String?
+    var recognizedTextPageCount: Int?
 
     init(
         id: UUID = UUID(),
@@ -68,7 +72,11 @@ final class EvidenceItem {
         mediaFileName: String? = nil,
         mediaOriginalName: String? = nil,
         mediaUTType: String? = nil,
-        mediaHash: String? = nil
+        mediaHash: String? = nil,
+        recognizedText: String? = nil,
+        recognizedTextAt: Date? = nil,
+        recognizedTextEngine: String? = nil,
+        recognizedTextPageCount: Int? = nil
     ) {
         self.id = id
         self.kindRawValue = kind.rawValue
@@ -80,6 +88,10 @@ final class EvidenceItem {
         self.mediaOriginalName = mediaOriginalName
         self.mediaUTType = mediaUTType
         self.mediaHash = mediaHash
+        self.recognizedText = recognizedText
+        self.recognizedTextAt = recognizedTextAt
+        self.recognizedTextEngine = recognizedTextEngine
+        self.recognizedTextPageCount = recognizedTextPageCount
     }
 
     var kind: EvidenceItemKind {
@@ -88,6 +100,10 @@ final class EvidenceItem {
 
     var hasMedia: Bool {
         mediaFileName != nil && mediaHash != nil
+    }
+
+    var hasRecognizedTextResult: Bool {
+        recognizedTextAt != nil
     }
 }
 
