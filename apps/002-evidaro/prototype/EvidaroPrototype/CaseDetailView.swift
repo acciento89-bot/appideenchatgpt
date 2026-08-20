@@ -110,7 +110,7 @@ struct CaseDetailView: View {
                 .background(.background, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
             } else {
                 ForEach(evidenceCase.evidence.sorted(by: { $0.recordedAt > $1.recordedAt })) { item in
-                    EvidenceRow(item: item)
+                    EvidenceRow(store: store, item: item)
                 }
             }
         }
@@ -137,7 +137,7 @@ struct CaseDetailView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .background(.background, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
             } else {
-                ForEach(evidenceCase.seals.reversed()) { seal in
+                ForEach(evidenceCase.seals.sorted(by: { $0.createdAt > $1.createdAt })) { seal in
                     VStack(alignment: .leading, spacing: 7) {
                         HStack {
                             Label("\(seal.itemCount) item snapshot", systemImage: "checkmark.seal.fill")
@@ -161,6 +161,7 @@ struct CaseDetailView: View {
 }
 
 private struct EvidenceRow: View {
+    @ObservedObject var store: EvidenceStore
     let item: EvidenceItem
 
     var body: some View {
@@ -170,7 +171,7 @@ private struct EvidenceRow: View {
                 .frame(width: 38, height: 38)
                 .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
 
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: 7) {
                 HStack {
                     Text(item.kind.rawValue)
                         .font(.subheadline.bold())
@@ -186,12 +187,41 @@ private struct EvidenceRow: View {
                         .foregroundStyle(.secondary)
                 }
 
-                Text(item.note)
-                    .font(.body)
+                if !item.note.isEmpty {
+                    Text(item.note)
+                        .font(.body)
+                }
+
+                if let originalName = item.mediaOriginalName,
+                   let mediaHash = item.mediaHash {
+                    VStack(alignment: .leading, spacing: 5) {
+                        HStack {
+                            Label(originalName, systemImage: "paperclip")
+                                .font(.caption.bold())
+                                .lineLimit(1)
+                            Spacer()
+                            if let mediaURL = store.mediaURL(for: item) {
+                                ShareLink(item: mediaURL) {
+                                    Image(systemName: "square.and.arrow.up")
+                                }
+                                .buttonStyle(.plain)
+                                .accessibilityLabel("Share original media")
+                            }
+                        }
+
+                        Text("Original SHA-256  \(mediaHash)")
+                            .font(.caption2.monospaced())
+                            .foregroundStyle(.secondary)
+                            .lineLimit(2)
+                            .textSelection(.enabled)
+                    }
+                    .padding(10)
+                    .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                }
 
                 HStack(spacing: 5) {
                     Image(systemName: "number")
-                    Text(item.contentHash)
+                    Text("Record \(item.contentHash)")
                         .lineLimit(1)
                 }
                 .font(.caption2.monospaced())

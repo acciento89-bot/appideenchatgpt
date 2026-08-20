@@ -1,7 +1,7 @@
 # Evidaro — Project State
 
 Last updated: 2026-08-20
-Status: ACTIVE — FOUNDATION PASS 1
+Status: ACTIVE — PASS 2 GREEN / PR #20 MERGE NEXT
 Portfolio slot: #002 (original working title: ProofVault)
 Repository: `acciento89-bot/appideenchatgpt`
 Implementation path: `apps/002-evidaro/prototype/`
@@ -54,44 +54,75 @@ A seal never rewrites previous evidence. Future additions create a newer snapsho
 - hashes are integrity aids, not legal certification
 - v1 stays local-first; no evidence upload to Kamilunavo servers
 
-## Foundation pass 1
+## Foundation pass 1 — GREEN / MERGED
 
-Target:
-- native SwiftUI
-- iOS 17+
-- iPhone first
-- local-first architecture
+PR #15 `Build portfolio app #002 Evidaro foundation` is merged to `main`.
+
+Verified gate:
+- workflow run `32312124275`
+- build job `96257080572`
+- foundation preflight — SUCCESS
+- Xcode iOS Simulator build — SUCCESS
+- merge commit `3dbeef6e786e9d2ad528d34b28f66c4ab3890856`
+
+Foundation includes:
+- native SwiftUI / iOS 17+ / iPhone first
 - provisional bundle id `de.kamilunavo.evidaro.prototype`
-- version `0.1.0 (1)` for internal prototype only
-
-Implemented in this pass:
-- case dashboard
-- case creation
+- case dashboard + case creation
 - evidence timeline
 - note/source evidence capture
 - SHA-256 content hash per evidence item
 - repeatable snapshot sealing
 - shareable text manifest
-- sample data for immediate UI/runtime inspection
-- dedicated Xcode project + shared scheme
+- dedicated Xcode project/shared scheme
 - dedicated GitHub Actions simulator build gate
-- static preflight for identity/core integrity rules
 
-## Intentionally deferred
+## Pass 2 — GREEN / PR #20
 
-1. SwiftData persistence/relaunch gate
-2. camera/photo intake
-3. Files/PDF intake
-4. on-device OCR
-5. immutable media-file hashing on disk
-6. optional location/context metadata
-7. PDF evidence-pack export
-8. Face ID/privacy lock
-9. DE/EN localization
-10. accessibility / Dynamic Type hardening
-11. App Store icon/identity
-12. StoreKit Pro entitlement and final monetization
-13. signed TestFlight / App Store record
+Branch: `agent/002-evidaro-persistence-media`
+PR: #20 `Add Evidaro SwiftData persistence and hashed media intake`
+
+Implemented:
+- SwiftData-backed EvidenceCase / EvidenceItem / EvidenceSeal models
+- persistent ModelContainer / ModelContext instead of in-memory-only state
+- local private media directory in Application Support
+- PhotosPicker intake for existing images
+- Files/PDF intake through fileImporter
+- imported original bytes copied into app-private storage
+- SHA-256 hash of original imported media bytes
+- evidence record hash includes the original-media hash
+- timeline surfaces original filename + original-media hash
+- original imported file can be shared back out
+- app-specific preflight expanded to gate persistence/media integrity
+- `AddEvidenceView` split into smaller SwiftUI components to avoid Xcode 26.6 type-checker timeouts
+
+Verified code gate:
+- successful source head `891c0172d86e5a7477a0ac5f8a93190c3c2b3909`
+- workflow run `32329075367`
+- build job `96306102916`
+- persistence/media preflight — SUCCESS
+- Xcode iOS Simulator build — SUCCESS
+
+Earlier red attempts were not merged:
+- run `32328781825` exposed a SwiftUI type-check timeout in `AddEvidenceView`
+- run `32328949495` confirmed the same bottleneck after a smaller expression-only change
+- the view was then structurally decomposed; run `32329075367` passed completely
+
+A final CI pass on this documentation-updated PR head is required before merge so the recorded state and green source revision stay aligned.
+
+## Intentionally deferred after Pass 2
+
+1. physical/runtime relaunch verification of SwiftData persistence
+2. direct camera capture
+3. on-device OCR
+4. optional location/context metadata
+5. PDF evidence-pack export
+6. Face ID/privacy lock
+7. DE/EN localization
+8. accessibility / Dynamic Type hardening
+9. App Store icon/identity
+10. StoreKit Pro entitlement and final monetization
+11. signed TestFlight / App Store record
 
 ## Monetization direction
 
@@ -99,4 +130,7 @@ Portfolio plan remains Freemium + Pro. Do not force a subscription. Current like
 
 ## Next gate
 
-Foundation CI must be green before merge. After merge, next product pass is persistence + real media intake while preserving the evidence hash/seal semantics.
+1. Run final PR #20 CI on the documentation-updated head.
+2. Merge PR #20 only if that exact head is green.
+3. After merge, record the merge commit in the portfolio handoff.
+4. Then add direct camera capture and a runtime persistence/relaunch smoke before OCR.

@@ -20,10 +20,12 @@ required_files = [
 
 for path in required_files:
     if not path.exists():
-        raise SystemExit(f"Missing required Evidaro foundation file: {path.relative_to(ROOT)}")
+        raise SystemExit(f"Missing required Evidaro file: {path.relative_to(ROOT)}")
 
 project_text = PROJECT.read_text()
+models_text = (APP / "Models.swift").read_text()
 store_text = (APP / "EvidenceStore.swift").read_text()
+add_text = (APP / "AddEvidenceView.swift").read_text()
 state_text = STATE.read_text()
 spec_text = SPEC.read_text()
 
@@ -31,7 +33,13 @@ checks = {
     "provisional bundle id": "de.kamilunavo.evidaro.prototype" in project_text,
     "iOS 17 deployment": "IPHONEOS_DEPLOYMENT_TARGET = 17.0" in project_text,
     "iPhone-only target": "TARGETED_DEVICE_FAMILY = 1" in project_text,
+    "SwiftData models": "import SwiftData" in models_text and models_text.count("@Model") >= 3,
+    "persistent ModelContainer": "ModelContainer" in store_text and "ModelContext" in store_text,
     "SHA-256 item hashing": "SHA256.hash" in store_text and "contentHash" in store_text,
+    "original media SHA-256": "mediaHash" in models_text and "sha256($0.data)" in store_text,
+    "private media storage": "applicationSupportDirectory" in store_text and "EvidaroMedia" in store_text,
+    "photo intake": "PhotosPicker" in add_text and "loadTransferable" in add_text,
+    "file/PDF intake": ".fileImporter" in add_text and ".pdf" in add_text,
     "snapshot sealing": "func seal(caseID:" in store_text and "manifestHash" in store_text,
     "shareable manifest": "EVIDARO EVIDENCE MANIFEST" in store_text,
     "ProofVault retired": "`ProofVault` is retired" in state_text,
@@ -45,4 +53,4 @@ for label, passed in checks.items():
 if failed:
     raise SystemExit("Evidaro preflight failed: " + ", ".join(failed))
 
-print("Evidaro foundation preflight passed")
+print("Evidaro persistence/media preflight passed")
