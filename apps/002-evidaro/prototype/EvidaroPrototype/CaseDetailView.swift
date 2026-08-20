@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct CaseDetailView: View {
     @ObservedObject var store: EvidenceStore
@@ -6,6 +7,9 @@ struct CaseDetailView: View {
 
     @State private var showsAddEvidence = false
     @State private var latestSeal: EvidenceSeal?
+    @State private var isGeneratingEvidencePack = false
+    @State private var evidencePackShareItem: EvidencePackShareItem?
+    @State private var evidencePackError: String?
 
     var body: some View {
         Group {
@@ -25,6 +29,10 @@ struct CaseDetailView: View {
                 .sheet(isPresented: $showsAddEvidence) {
                     AddEvidenceView(store: store, caseID: caseID)
                 }
+                .sheet(item: $evidencePackShareItem) { shareItem in
+                    EvidencePackShareSheet(url: shareItem.url)
+                        .ignoresSafeArea()
+                }
                 .alert("Snapshot sealed", isPresented: Binding(
                     get: { latestSeal != nil },
                     set: { if !$0 { latestSeal = nil } }
@@ -33,6 +41,16 @@ struct CaseDetailView: View {
                 } message: {
                     if let latestSeal {
                         Text("\(latestSeal.itemCount) evidence item(s) are represented by manifest hash \(latestSeal.manifestHash.prefix(12))…")
+                    }
+                }
+                .alert("Evidence pack export failed", isPresented: Binding(
+                    get: { evidencePackError != nil },
+                    set: { if !$0 { evidencePackError = nil } }
+                )) {
+                    Button("OK", role: .cancel) { evidencePackError = nil }
+                } message: {
+                    if let evidencePackError {
+                        Text(evidencePackError)
                     }
                 }
             } else {
@@ -91,6 +109,24 @@ struct CaseDetailView: View {
                 .buttonStyle(.bordered)
                 .disabled(evidenceCase.evidence.isEmpty)
             }
+
+            Button {
+                generateEvidencePack()
+            } label: {
+                HStack(spacing: 8) {
+                    if isGeneratingEvidencePack {
+                        ProgressView()
+                            .controlSize(.small)
+                    }
+                    Label(
+                        isGeneratingEvidencePack ? "Building verified PDF…" : "Build & share PDF evidence pack",
+                        systemImage: "doc.richtext"
+                    )
+                }
+                .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.bordered)
+            .disabled(evidenceCase.evidence.isEmpty || isGeneratingEvidencePack)
         }
     }
 
@@ -155,6 +191,22 @@ struct CaseDetailView: View {
                     .padding(15)
                     .background(.background, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
                 }
+            }
+        }
+    }
+
+    private func generateEvidencePack() {
+        guard !isGeneratingEvidencePack else { return }
+        isGeneratingEvidencePack = true
+        evidencePackError = nil
+
+        Task {
+            defer { isGeneratingEvidencePack = false }
+            do {
+                let result = try await store.generateEvidencePack(caseID: caseID)
+                evidencePackShareItem = EvidencePackShareItem(url: result.url)
+            } catch {
+                evidencePackError = error.localizedDescription
             }
         }
     }
@@ -313,4 +365,19 @@ private struct EvidenceRow: View {
             }
         }
     }
+}
+
+private struct EvidencePackShareItem: Identifiable {
+    let id = UUID()
+    let url: URL
+}
+
+private struct EvidencePackShareSheet: UIViewControllerRepresentable {
+    let url: URL
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: [url], applicationActivities: nil)
+    }
+
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }
