@@ -5,13 +5,24 @@ struct HostedAppView: View {
     @State private var isAuthenticated = false
     @State private var hasReceivedInitialAuthState = false
     @State private var authErrorMessage: String?
+    @State private var sessionUserID: UUID?
+    @State private var sessionEmail: String?
+    @AppStorage("family.lastAuthCallbackUnixTime") private var lastAuthCallbackUnixTime: Double = 0
+    @AppStorage("family.lastAuthCallbackUserID") private var lastAuthCallbackUserID = ""
 
     var body: some View {
         Group {
             if !hasReceivedInitialAuthState {
                 ProgressView("Session wird geprüft …")
             } else if isAuthenticated {
-                HostedFamilyLoaderView()
+                HostedFamilyLoaderView(
+                    userID: sessionUserID,
+                    userEmail: sessionEmail,
+                    lastAuthCallbackAt: lastAuthCallbackUnixTime > 0
+                        ? Date(timeIntervalSince1970: lastAuthCallbackUnixTime)
+                        : nil,
+                    lastAuthCallbackUserID: lastAuthCallbackUserID
+                )
             } else {
                 SupabaseAuthView(errorMessage: $authErrorMessage)
             }
@@ -22,8 +33,14 @@ struct HostedAppView: View {
                 case .initialSession, .signedIn, .signedOut:
                     isAuthenticated = state.session != nil
                     hasReceivedInitialAuthState = true
+                    sessionUserID = state.session?.user.id
+                    sessionEmail = state.session?.user.email
+
                     if state.session != nil {
                         authErrorMessage = nil
+                    } else if state.event == .signedOut {
+                        lastAuthCallbackUnixTime = 0
+                        lastAuthCallbackUserID = ""
                     }
                 default:
                     break
@@ -39,9 +56,13 @@ struct HostedAppView: View {
 
             Task {
                 do {
-                    _ = try await SupabaseEnvironment.client.auth.session(from: url)
+                    let session = try await SupabaseEnvironment.client.auth.session(from: url)
                     isAuthenticated = true
                     hasReceivedInitialAuthState = true
+                    sessionUserID = session.user.id
+                    sessionEmail = session.user.email
+                    lastAuthCallbackUnixTime = Date.now.timeIntervalSince1970
+                    lastAuthCallbackUserID = session.user.id.uuidString
                     authErrorMessage = nil
                 } catch {
                     authErrorMessage = error.localizedDescription
@@ -158,6 +179,11 @@ private struct SupabaseAuthView: View {
 }
 
 private struct HostedFamilyLoaderView: View {
+    let userID: UUID?
+    let userEmail: String?
+    let lastAuthCallbackAt: Date?
+    let lastAuthCallbackUserID: String
+
     @State private var store: DemoStore?
     @State private var errorMessage: String?
     @State private var retryToken = UUID()
@@ -184,9 +210,7 @@ private struct HostedFamilyLoaderView: View {
                     .buttonStyle(.borderedProminent)
 
                     Button("Abmelden", role: .destructive) {
-                        Task {
-                            try? await SupabaseEnvironment.client.auth.signOut()
-                        }
+                        signOut()
                     }
                 }
             } else {
@@ -220,9 +244,14 @@ private struct HostedFamilyLoaderView: View {
         }
         .sheet(isPresented: $isShowingDiagnostics) {
             HostedDiagnosticsView(
+                userID: userID,
+                userEmail: userEmail,
+                lastAuthCallbackAt: lastAuthCallbackAt,
+                lastAuthCallbackUserID: lastAuthCallbackUserID,
                 isRunning: isRunningSmokeTest,
                 report: smokeReport,
-                run: runSmokeTest
+                run: runSmokeTest,
+                signOut: signOut
             )
         }
     }
@@ -239,14 +268,30 @@ private struct HostedFamilyLoaderView: View {
             isRunningSmokeTest = false
         }
     }
+
+    private func signOut() {
+        Task {
+            try? await SupabaseEnvironment.client.auth.signOut()
+        }
+    }
 }
 
 private struct HostedDiagnosticsView: View {
     @Environment(\.dismiss) private var dismiss
 
+    let userID: UUID?
+    let userEmail: String?
+    let lastAuthCallbackAt: Date?
+    let lastAuthCallbackUserID: String
     let isRunning: Bool
     let report: HostedSmokeTestReport?
     let run: () -> Void
+    let signOut: () -> Void
+
+    private var callbackMatchesCurrentSession: Bool {
+        guard let userID, !lastAuthCallbackUserID.isEmpty else { return false }
+        return lastAuthCallbackUserID.caseInsensitiveCompare(userID.uuidString) == .orderedSame
+    }
 
     var body: some View {
         NavigationStack {
@@ -264,6 +309,52 @@ private struct HostedDiagnosticsView: View {
                     Text("Hosted-Konfiguration")
                 } footer: {
                     Text("Der Test nutzt nur die angemeldete Session und die normalen RLS-geschützten Client-Rechte. Keine Service-Role-Credentials werden verwendet.")
+                }
+
+                Section {
+                    Label(userEmail ?? "E-Mail nicht verfügbar", systemImage: "envelope")
+
+                    LabeledContent("User-ID") {
+                        Text(userID?.uuidString ?? "—")
+                            .font(.caption.monospaced())
+                            .textSelection(.enabled)
+                    }
+
+                    if let lastAuthCallbackAt {
+                        Label {
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text("Frischer Magic-Link Callback erkannt")
+                                    .font(.body.weight(.semibold))
+                                Text(lastAuthCallbackAt, format: .dateTime.day().month().year().hour().minute().second())
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        } icon: {
+                            Image(systemName: callbackMatchesCurrentSession
+                                  ? "checkmark.seal.fill"
+                                  : "exclamationmark.triangle.fill")
+                                .foregroundStyle(callbackMatchesCurrentSession ? .green : .orange)
+                        }
+                    } else {
+                        Label("Noch kein frischer Magic-Link Callback in diesem Testlauf", systemImage: "link.badge.plus")
+                            .foregroundStyle(.secondary)
+                    }
+
+                    if lastAuthCallbackAt != nil {
+                        Label(
+                            callbackMatchesCurrentSession
+                                ? "Callback gehört zur aktuellen Session"
+                                : "Callback und aktuelle Session stimmen nicht überein",
+                            systemImage: callbackMatchesCurrentSession
+                                ? "person.crop.circle.badge.checkmark"
+                                : "person.crop.circle.badge.exclamationmark"
+                        )
+                        .foregroundStyle(callbackMatchesCurrentSession ? .green : .orange)
+                    }
+                } header: {
+                    Text("Auth-Session")
+                } footer: {
+                    Text("Für den Auth-Gate muss nach dem Abmelden ein neuer Link geöffnet werden. Erst dann gilt der Callback als frisch verifiziert.")
                 }
 
                 Section {
@@ -318,6 +409,16 @@ private struct HostedDiagnosticsView: View {
                             .accessibilityElement(children: .combine)
                         }
                     }
+                }
+
+                Section {
+                    Button("Abmelden & Magic Link neu testen", role: .destructive) {
+                        dismiss()
+                        signOut()
+                    }
+                    .accessibilityIdentifier("hosted.signOutForFreshMagicLink")
+                } footer: {
+                    Text("Danach mit derselben oder einer zweiten echten E-Mail einen neuen Anmeldelink anfordern und direkt auf diesem iPhone öffnen.")
                 }
             }
             .navigationTitle("Backend-Diagnose")
