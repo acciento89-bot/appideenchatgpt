@@ -4,6 +4,7 @@ import SwiftUI
 @main
 struct EvidaroPrototypeApp: App {
     @StateObject private var store: EvidenceStore
+    @StateObject private var appLock = AppLockController()
 
     init() {
 #if DEBUG
@@ -16,13 +17,89 @@ struct EvidaroPrototypeApp: App {
 
     var body: some Scene {
         WindowGroup {
-            RootView(store: store)
+            AppLockGateView(store: store, appLock: appLock)
 #if DEBUG
                 .task {
                     await PersistenceSmokeRunner.runIfRequested(using: store)
+                    await AppLockSmokeRunner.runIfRequested()
                 }
 #endif
         }
+    }
+}
+
+private struct AppLockGateView: View {
+    @ObservedObject var store: EvidenceStore
+    @ObservedObject var appLock: AppLockController
+    @Environment(\.scenePhase) private var scenePhase
+
+    var body: some View {
+        Group {
+            if appLock.needsUnlock {
+                EvidaroLockedView(appLock: appLock)
+            } else {
+                RootView(store: store, appLock: appLock)
+            }
+        }
+        .task {
+            await appLock.unlockIfNeeded()
+        }
+        .onChange(of: scenePhase) { _, newPhase in
+            switch newPhase {
+            case .background:
+                appLock.lockIfNeeded()
+            case .active:
+                Task { await appLock.unlockIfNeeded() }
+            case .inactive:
+                break
+            @unknown default:
+                break
+            }
+        }
+    }
+}
+
+private struct EvidaroLockedView: View {
+    @ObservedObject var appLock: AppLockController
+
+    var body: some View {
+        VStack(spacing: 18) {
+            Image(systemName: "lock.shield.fill")
+                .font(.system(size: 58, weight: .semibold))
+                .accessibilityHidden(true)
+
+            VStack(spacing: 7) {
+                Text("Evidaro is locked")
+                    .font(.title2.bold())
+                Text("Authenticate with your device to view locally stored evidence cases.")
+                    .multilineTextAlignment(.center)
+                    .foregroundStyle(.secondary)
+            }
+
+            if appLock.isAuthenticating {
+                ProgressView("Authenticating…")
+            } else {
+                Button {
+                    Task { await appLock.unlockIfNeeded() }
+                } label: {
+                    Label("Unlock Evidaro", systemImage: "lock.open")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
+            }
+
+            if let error = appLock.lastError, !error.isEmpty {
+                Text(error)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+            }
+        }
+        .padding(28)
+        .frame(maxWidth: 440)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color(uiColor: .systemGroupedBackground))
     }
 }
 
