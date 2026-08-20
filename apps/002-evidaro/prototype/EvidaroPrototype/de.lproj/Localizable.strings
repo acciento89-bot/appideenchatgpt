@@ -150,6 +150,26 @@
 "pdf.ocr.trust" = "OCR ist abgeleitete Metadaten und nicht im Originalmedien-SHA-256, Beweisdatensatz-SHA-256 oder in Snapshot-Siegeln enthalten.";
 "pdf.seals.heading" = "SNAPSHOT-SIEGEL";
 "pdf.seals.section" = "Snapshot-Siegel";
+"pdf.preview.section_image" = "Beweis #%ld • Originalvorschau";
+"pdf.preview.heading_image" = "VORSCHAU DES ORIGINALMEDIUMS";
+"pdf.preview.image_fallback" = "Bildoriginal";
+"pdf.preview.image_hash_note" = "Vorschau aus dem verifizierten Original. Original-SHA-256:";
+"pdf.preview.section_pdf" = "Beweis #%ld • Original-PDF-Vorschau";
+"pdf.preview.heading_pdf" = "ORIGINAL-PDF-VORSCHAU • SEITE %ld VON %ld";
+"pdf.preview.pdf_fallback" = "PDF-Original";
+"pdf.preview.pdf_hash_note" = "Vorschau aus dem verifizierten Original-PDF. Original-SHA-256:";
+"pdf.seals.explanation" = "Ein Siegel hält den Manifest-Hash eines Snapshots zu diesem Zeitpunkt fest. Spätere Beweise können einen neueren Snapshot erzeugen, ohne ältere gespeicherte Siegelwerte umzuschreiben.";
+"pdf.seals.none" = "Für diesen Fall wurde noch kein Snapshot-Siegel aufgezeichnet.";
+"pdf.seals.label" = "Siegel %ld";
+"pdf.seals.current" = "AKTUELLER SNAPSHOT";
+"pdf.seals.historical" = "HISTORISCH";
+"pdf.field.item_count" = "Elementanzahl";
+"pdf.field.seal_manifest_sha" = "Manifest-SHA-256";
+"pdf.seals.current_matches" = "Die aktuell exportierte Zeitleiste entspricht mindestens einem aufgezeichneten Snapshot-Siegel.";
+"pdf.seals.current_not_sealed" = "Die aktuell exportierte Zeitleiste wird nicht durch ein passendes aufgezeichnetes Snapshot-Siegel abgebildet.";
+"pdf.seals.legal" = "Nur Integritätshilfe. Siegelwerte beweisen nicht unabhängig, wann ein reales Ereignis stattgefunden hat, und garantieren keine Anerkennung durch Gericht, Versicherung, Arbeitgeber oder Behörde.";
+"pdf.page" = "Seite %ld";
+"pdf.continued" = "%@ • Fortsetzung";
 
 "accessibility.case_card" = "%@, %@, %ld Beweiselemente, %ld Siegel";
 "accessibility.hash_original" = "Original-SHA-256-Hash";
