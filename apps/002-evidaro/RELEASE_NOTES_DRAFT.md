@@ -12,6 +12,6 @@ Kamilunavo Trace helps you document real-world situations while the details are 
 - recognize text locally with Apple Vision
 - protect app access with device authentication
 - verify received `.evpack` files offline
-- use Lifetime Pro for unlimited active cases plus PDF and `.evpack` exports
+- use Lifetime Pro for unlimited cases plus PDF and `.evpack` exports
 
 Kamilunavo Trace is an integrity and record-keeping aid, not a notary or legal-advice service.

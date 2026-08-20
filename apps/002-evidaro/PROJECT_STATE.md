@@ -1,7 +1,7 @@
 # Kamilunavo Trace — Project State
 
 Last updated: 2026-08-20
-Status: ACTIVE — RELEASE SOURCE + PRIVACY MANIFEST READY; PASS 7/8 macOS GATES QUEUED; EXTERNAL APP STORE / PHYSICAL QA PENDING
+Status: ACTIVE — PASS 7/8 GREEN / MERGED; KAMILUNAVO TRACE FINAL RELEASE GATES IN PROGRESS; EXTERNAL APP STORE / PHYSICAL QA PENDING
 Portfolio slot: #002
 Repository: `acciento89-bot/appideenchatgpt`
 Implementation path: `apps/002-evidaro/`
@@ -116,49 +116,24 @@ Core chain:
 - merge `f6e68210c38b1a1715de2908dd70e1da6c6a476d`
 - LocalAuthentication privacy lock, background relock, explicit enable authentication, deterministic lifecycle smoke
 
-## Pass 7 — DE/EN + accessibility + localized PDF
+## Pass 7 — DE/EN + accessibility + localized PDF — GREEN / MERGED
 
-PR #29: `Add Evidaro DE/EN localization and accessibility hardening`
-Branch: `agent/002-evidaro-localization-accessibility`
-Exact final head: `79c132f31ca2ce13046e5941f872087dfc7dad07`
+- PR #29 — MERGED
+- final head `84ef850678551e7cb0f22004c05e070adabece9d`
+- workflow `32383741929` / run #82 — SUCCESS
+- merge `bf3ecf74887c08d52bbadf11a13174c83133b093`
 
-Known green source checkpoint before the final documentation-aligned head:
-- source head `ae6a3b8fbdf25eca08ac040ce614664f5fd718de`
-- workflow `32362074699` — SUCCESS
+## Pass 8 — offline-verifiable `.evpack` — GREEN / MERGED
 
-Required exact-head gate:
-- workflow `32369937142` / run #43
-- job `96427918180`
-- observed 2026-08-20: **QUEUED**, conclusion `null`
-
-Do not merge PR #29 until that exact head completes the full preflight + simulator + persistence + OCR + English PDF + German PDF + privacy-lock + German localization gate successfully.
-
-## Pass 8 — offline-verifiable `.evpack`
-
-PR #32: `Add offline-verifiable evidence bundles`
-Branch: `agent/002-evidaro-offline-verifier`
-Current documented head before release branch: `d6b7a1f376b3cf8a73b6beae1fe8509b81b00be2`
-Depends on PR #29.
-
-Implemented:
-- deterministic JSON `.evpack` v1
-- original bytes embedded as Base64
-- original-media SHA-256 verification
-- evidence-record hash recomputation
-- historical seal verification against evidence prefixes
-- green/red local verifier with detailed issues
-- read-only received-bundle verification
-- deliberate factual-note tamper negative test
-- derived-OCR-only mutation remains valid
-- whole-bundle SHA-256 must remain identical after process relaunch
-
-Required exact-head gate currently represented by workflow run `32373459509` / run #47, observed **QUEUED**, conclusion `null`.
-
-Do not merge PR #32 before PR #29 is merged and Pass 8 has its own exact-head full gate green.
+- PR #32 — MERGED
+- final exact head `d3af5d59abea850dd7724beb92e223a691172ba3`
+- full simulator gate `32408185123` / run #98 — SUCCESS
+- merge `e5c57335888a80e120fefea686b29f6ed8715b2f`
+- valid/tamper/derived-OCR/process-relaunch checks all green
 
 ## Release pass — Kamilunavo Trace
 
-Release branch is a clean descendant of Pass 8 and contains the release-only work below.
+Release PR #33 is a clean child of verified Pass-8 `main` and contains only the release layer below.
 
 ### Branding / identity — IMPLEMENTED
 - public name `Kamilunavo Trace`

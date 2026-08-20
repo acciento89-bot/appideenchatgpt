@@ -212,7 +212,7 @@
 "pro.navigation" = "Trace Pro";
 "pro.title" = "Kamilunavo Trace Pro";
 "pro.subtitle" = "Ein Kauf. Unbegrenzt Beweise organisieren.";
-"pro.feature_cases" = "Unbegrenzt aktive Beweisfälle";
+"pro.feature_cases" = "Unbegrenzt Beweisfälle";
 "pro.feature_pdf" = "Unbegrenzt verifizierte PDF-Beweispakete exportieren";
 "pro.feature_bundle" = "Unbegrenzt Offline-Prüfpakete exportieren";
 "pro.feature_once" = "Lifetime-Freischaltung – kein Abo";
@@ -230,7 +230,7 @@
 "pro.upgrade" = "Lifetime Pro ansehen";
 "pro.manage" = "Pro-Status ansehen";
 "pro.case_limit_title" = "Free-Falllimit erreicht";
-"pro.case_limit_body" = "Free enthält bis zu 3 aktive Fälle. Lifetime Pro hebt das Limit auf.";
+"pro.case_limit_body" = "Free enthält bis zu 3 Fälle. Lifetime Pro hebt das Limit auf.";
 "pro.export_hint" = "PDF- und Prüfpaket-Exporte sind Trace-Pro-Funktionen. Erfassung, Hashes, Siegel, OCR und das Textmanifest bleiben in Free verfügbar.";
 
 "accessibility.case_card" = "%@, %@, %ld Beweiselemente, %ld Siegel";

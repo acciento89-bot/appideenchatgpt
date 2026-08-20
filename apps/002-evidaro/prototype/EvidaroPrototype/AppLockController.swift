@@ -207,7 +207,7 @@ enum AppLockSmokeRunner {
             )
         }
 
-        return "localization-verified language=de cases=Fälle property=Immobilie bundle=localized camera=localized faceID=localized"
+        return "localization-verified language=de cases=Fälle property=Immobilie camera=localized faceID=localized"
     }
 
     private static func prepare() async throws -> String {

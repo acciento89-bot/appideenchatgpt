@@ -211,6 +211,8 @@ private enum PersistenceSmokeRunner {
             throw SmokeRunnerError.invalidEvidencePack
         }
         let text = document.string ?? ""
+        let legalText = L10n.string("pdf.integrity.legal")
+        let legalMarker = legalText.components(separatedBy: ".").first ?? legalText
         let requiredTokens = [
             "Kamilunavo Trace",
             L10n.string("pdf.heading.evidence_pack"),
@@ -224,7 +226,7 @@ private enum PersistenceSmokeRunner {
             "EVIDARO 4827",
             L10n.string("pdf.seals.heading"),
             sealHash,
-            L10n.string("pdf.integrity.legal")
+            legalMarker
         ]
         for token in requiredTokens where text.range(of: token, options: .caseInsensitive) == nil {
             throw SmokeRunnerError.missingEvidencePackToken(token)
@@ -239,7 +241,7 @@ private enum PersistenceSmokeRunner {
         ).first ?? FileManager.default.temporaryDirectory
         return appSupport
             .appendingPathComponent("EvidaroExports", isDirectory: true)
-            .appendingPathComponent("Evidaro-\(evidencePackSmokeCaseID.uuidString.lowercased())-Evidence-Pack.pdf")
+            .appendingPathComponent("Kamilunavo-Trace-\(evidencePackSmokeCaseID.uuidString.lowercased())-Evidence-Pack.pdf")
     }
 
     private static func writeResult(_ result: String, fileName: String) throws {

@@ -2,7 +2,7 @@
 
 Last updated: 2026-08-20
 Status: ACTIVE
-Current user-selected workstream: #002 Evidaro (INTERNAL/PROVISIONAL NAME — RELEASE RENAME REQUIRED)
+Current user-selected workstream: #002 Kamilunavo Trace — final release hardening
 Repository purpose: persistent handoff/state repository for the full App Factory so work can continue across chat limits and new conversations without losing decisions or progress.
 
 > This file is the portfolio-level single source of truth. Read it first, then the selected app-specific state. Detailed historical checkpoints remain in Git history.
@@ -22,7 +22,7 @@ Repository purpose: persistent handoff/state repository for the full App Factory
 | # | Working title | Core idea | Planned monetization | Status |
 |---|---|---|---|---|
 | 001 | KeepMeter | Return-window + actual-usage decision tool | Freemium + Lifetime Pro | APP STORE REVIEW SUBMITTED — APPLE DECISION PENDING |
-| 002 | Evidaro (INTERNAL/PROVISIONAL; ProofVault retired) | Local-first evidence cases + original hashes + snapshot seals + localized PDF + offline `.evpack` verifier | Freemium + likely Lifetime Pro | ACTIVE — PASS 7 GREEN/MERGED; PASS 8 OFFLINE VERIFIER FINAL GATE PENDING; RELEASE RENAME REQUIRED |
+| 002 | Kamilunavo Trace (internal path `002-evidaro`) | Local-first evidence cases + original hashes + snapshot seals + localized PDF + offline `.evpack` verifier | Freemium + Lifetime Pro | ACTIVE — PASS 7/8 GREEN/MERGED; FINAL RELEASE GATES IN PROGRESS |
 | 003 | ParcelPilot | Orders, deliveries, returns and refund tracking | Freemium | QUEUED |
 | 004 | SubZero | Detect/track subscriptions and recurring costs | Pro / Lifetime | QUEUED |
 | 005 | GiftBrain | Gift ideas per person/occasion via share sheet | Lifetime | QUEUED |
@@ -54,7 +54,7 @@ Current checkpoint:
 
 Do not regress KeepMeter to “StoreKit/ASC/TestFlight still open.” The next meaningful external event is Apple's review decision or review feedback.
 
-# Portfolio app #002 — Evidaro (internal/provisional)
+# Portfolio app #002 — Kamilunavo Trace
 
 Authoritative app state:
 
@@ -108,63 +108,31 @@ Pass-7 implementation includes:
 Pass-7 completion:
 - final head `84ef850678551e7cb0f22004c05e070adabece9d` passed preflight, Xcode Simulator, persistence, OCR, English PDF, German PDF, privacy lock and German runtime localization before merge
 
-Current Pass 8 — offline-verifiable `.evpack`:
+Pass 8 — GREEN / MERGED:
 
-- PR #32 `Add offline-verifiable evidence bundles` — OPEN/DRAFT
-- branch `agent/002-evidaro-offline-verifier`
-- synchronized with merged Pass 7 / current `main` through merge commit `5ec036f849de4dc7a63ef6d9acd82e7d493bc268`
-- source implementation exists; final exact-head Xcode/simulator gate is pending
+- PR #32 — MERGED
+- final exact head `d3af5d59abea850dd7724beb92e223a691172ba3`
+- full simulator run `32408185123` / run #98 — SUCCESS
+- merge `e5c57335888a80e120fefea686b29f6ed8715b2f`
+- `.evpack` valid/tamper/derived-OCR/process-relaunch checks green
 
-Pass-8 implementation includes:
+Release pass — Kamilunavo Trace:
 
-- deterministic JSON-based `.evpack` v1 format (`de.kamilunavo.evidaro.evpack`)
-- embedded original media bytes as Base64 plus their recorded SHA-256
-- stable raw case/evidence values and canonical timestamps
-- recorded evidence-record SHA-256 values and snapshot-seal history
-- derived OCR metadata carried but excluded from evidence-record/seal identity
-- exporter re-validates record hashes and original bytes before packaging
-- generated bundle self-verifies before write
-- local verifier recomputes original-media hashes, evidence-record hashes, current manifest and every historical seal against the evidence prefix represented by its item count
-- top-level offline import/verify UX reports green/red, case ID, item count, verified seals, current manifest hash, whole-bundle hash and concrete integrity issues
-- verification does not silently import received data into canonical case storage
-- DE/EN verifier UI/error copy through the localization layer
-- combined workflow extended with verification-bundle process-relaunch smoke
-- preflight now requires format, original-byte verification, historical-seal verification, export/import UX and CI trust-boundary checks
+- PR #33 — FINAL GATES IN PROGRESS
+- public name `Kamilunavo Trace`; bundle `de.kamilunavo.trace`
+- public `.evpack` v1 format id `de.kamilunavo.trace.evpack`
+- Lifetime Pro non-consumable `de.kamilunavo.trace.pro.lifetime`
+- Free: up to 3 cases; received-bundle verification remains free
+- Pro: unlimited cases + PDF export + `.evpack` export
+- App Icon, privacy manifest, DE/EN metadata, ASC runbook, physical QA and TestFlight workflow prepared
+- merge requires exact final-head static + full simulator integrity + unsigned Release-device gates green
 
-Pass-8 deterministic gate requires:
+External after repository gates:
 
-1. valid `.evpack` export from the existing OCR fixture
-2. one evidence item and one historical seal verify
-3. a deliberately modified factual note with unchanged recorded anchors is rejected
-4. a derived-OCR-only change remains valid
-5. original bundle survives process relaunch
-6. bundle SHA-256 before/after relaunch is identical
-7. all earlier persistence/OCR/PDF/privacy/localization regressions remain green
-
-Trust boundary:
-
-- no legal-admissibility claim
-- no independent proof that a real-world event happened at a claimed time
-- hashes are integrity aids, not legal certification
-- `.evpack` is a self-contained internal-consistency verifier, not an external signature/notary/trust anchor
-- OCR is derived metadata only
-- generated PDF is a derived presentation and does not replace originals
-- v1 stays local-first; no evidence upload to Kamilunavo servers
-
-Open physical/release checks after Pass 8:
-
-- physical iPhone camera capture + permission UX
-- physical-device OCR spot check
-- physical Face ID/Touch ID/device-passcode lock UX
-- DE/EN localization review on device
-- VoiceOver navigation + largest Dynamic Type review
-- physical `.evpack` share/import verification
-- **final public name / identity due diligence**
-- App Store icon after final name
-- final Freemium + likely Lifetime Pro entitlement decision
-- signed TestFlight / App Store record
-
-Do not regress #002 to `ProofVault`, `QUEUED`, Foundation-only, pre-OCR, pre-PDF, pre-privacy-lock or pre-Pass-7 state. Pass 7 is GREEN/MERGED. Do not call Pass 8 green until its final exact-head gate concludes SUCCESS.
+- App Store Connect app/IAP record readiness
+- signed TestFlight processing
+- physical iPhone camera/OCR/biometric/VoiceOver/Dynamic Type QA
+- real TestFlight purchase, relaunch entitlement recovery and Restore
 
 # Portfolio app #011 — Family Life OS
 

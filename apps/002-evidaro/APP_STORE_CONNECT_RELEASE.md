@@ -53,18 +53,18 @@ Suggested localization:
 ### German
 
 - Display name: `Kamilunavo Trace Pro – Lifetime`
-- Description: `Unbegrenzt aktive Fälle sowie unbegrenzte PDF- und Prüfpaket-Exporte. Einmal zahlen.`
+- Description: `Unbegrenzt Fälle sowie unbegrenzte PDF- und Prüfpaket-Exporte. Einmal zahlen.`
 
 ### English
 
 - Display name: `Kamilunavo Trace Pro Lifetime`
-- Description: `Unlimited active cases and unlimited PDF / verification-bundle exports. Pay once.`
+- Description: `Unlimited cases and unlimited PDF / verification-bundle exports. Pay once.`
 
 ## Free / Pro product boundary
 
 Free:
 
-- up to 3 active evidence cases
+- up to 3 evidence cases
 - capture notes/photos/files
 - original-media SHA-256
 - evidence-record SHA-256
@@ -77,7 +77,7 @@ Free:
 
 Lifetime Pro:
 
-- unlimited active cases
+- unlimited cases
 - PDF evidence-pack export
 - `.evpack` verification-bundle export
 

@@ -157,7 +157,7 @@ A self-contained unsigned v1 `.evpack` is not an external trust anchor: a party 
 ## Free / Lifetime Pro
 
 ### Free
-- up to **3 active cases**
+- up to **3 cases**
 - notes/photos/files/camera capture
 - original-media SHA-256
 - evidence-record SHA-256
@@ -169,7 +169,7 @@ A self-contained unsigned v1 `.evpack` is not an external trust anchor: a party 
 - **verify received `.evpack` bundles for free**
 
 ### Kamilunavo Trace Pro — Lifetime
-- unlimited active cases
+- unlimited cases
 - unlimited verified PDF evidence-pack exports
 - unlimited `.evpack` verification-bundle exports
 - one-time purchase; no subscription

@@ -167,10 +167,10 @@ Type: Non-Consumable
 Launch price direction: `€14.99` in Germany, with Apple's equivalent tier pricing elsewhere.
 
 German display name: `Kamilunavo Trace Pro – Lifetime`
-German description: `Unbegrenzte aktive Fälle sowie PDF- und .evpack-Exporte. Einmal zahlen.`
+German description: `Unbegrenzte Fälle sowie PDF- und .evpack-Exporte. Einmal zahlen.`
 
 English display name: `Kamilunavo Trace Pro Lifetime`
-English description: `Unlimited active cases plus PDF and .evpack exports. Pay once.`
+English description: `Unlimited cases plus PDF and .evpack exports. Pay once.`
 
 ## Screenshot set to capture after TestFlight
 

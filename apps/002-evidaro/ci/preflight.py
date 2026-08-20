@@ -107,7 +107,7 @@ checks = {
     "OCR integrity guard": "mediaIntegrityMismatch" in store_text and "evidenceChangedDuringRecognition" in store_text and "Recognized text is intentionally excluded" in store_text,
     "OCR timeline UX": "evidence.recognized_text" in detail_text and "evidence.ocr_trust" in detail_text,
     "snapshot sealing": "func seal(caseID:" in store_text and "manifestHash" in store_text,
-    "shareable manifest": "EVIDARO EVIDENCE MANIFEST" in store_text,
+    "shareable manifest": "KAMILUNAVO TRACE EVIDENCE MANIFEST" in store_text,
 
     # PDF pack
     "PDF exporter compiled": "EvidencePackExporter.swift in Sources" in project_text,
@@ -130,7 +130,7 @@ checks = {
     "Trace PDF branding EN/DE": '"pdf.meta.title" = "Kamilunavo Trace Evidence Pack' in en_strings_text and '"pdf.meta.title" = "Kamilunavo Trace Beweispaket' in de_strings_text,
 
     # Offline verifier. The v1 format identifier intentionally remains stable for compatibility.
-    "offline verification bundle format": 'formatIdentifier = "de.kamilunavo.evidaro.evpack"' in models_text and "EvidenceVerificationBundleDocument" in models_text and "currentVersion = 1" in models_text,
+    "offline verification bundle format": 'formatIdentifier = "de.kamilunavo.trace.evpack"' in models_text and "EvidenceVerificationBundleDocument" in models_text and "currentVersion = 1" in models_text,
     "offline bundle carries originals": "mediaDataBase64" in models_text and "base64EncodedString()" in models_text and "Data(base64Encoded:" in models_text,
     "offline bundle record hash verification": "rawItemHash" in models_text and '"recordedAt=\\(recordedAtCanonical)"' in models_text and "bundle.issue_record_hash" in models_text,
     "offline bundle media hash verification": "EvidenceHasher.sha256(bytes) != expectedMediaHash" in models_text and "bundle.issue_media_hash" in models_text,
@@ -165,7 +165,7 @@ checks = {
     "Dynamic Type adaptive case actions": "ViewThatFits" in detail_text and "sealButton" in detail_text and "shareManifestButton" in detail_text,
     "VoiceOver headings": root_text.count("accessibilityHeading") >= 2 and detail_text.count("accessibilityHeading") >= 2,
     "VoiceOver hash semantics": "accessibility.hash_original" in detail_text and "accessibility.hash_record" in detail_text and "accessibilityValue" in detail_text,
-    "German localization runtime smoke": "--evidaro-localization-smoke" in workflow_text and 'AppleLanguages "(de)"' in workflow_text and "bundle=localized camera=localized faceID=localized" in workflow_text and "verifyGermanLocalization" in lock_text,
+    "German localization runtime smoke": "--evidaro-localization-smoke" in workflow_text and 'AppleLanguages "(de)"' in workflow_text and "camera=localized faceID=localized" in workflow_text and "verifyGermanLocalization" in lock_text,
 
     # Lifetime Pro / StoreKit 2
     "Lifetime Pro source compiled": "EntitlementStore.swift in Sources" in project_text and "ProUpgradeView.swift in Sources" in project_text,

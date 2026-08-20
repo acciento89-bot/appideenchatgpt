@@ -219,7 +219,7 @@ private enum EvidencePackExporter {
         ).first ?? FileManager.default.temporaryDirectory
         return appSupport
             .appendingPathComponent("EvidaroExports", isDirectory: true)
-            .appendingPathComponent("Evidaro-\(caseID.uuidString.lowercased())-Evidence-Pack.pdf")
+            .appendingPathComponent("Kamilunavo-Trace-\(caseID.uuidString.lowercased())-Evidence-Pack.pdf")
     }
 
     static func render(snapshot: EvidencePackSnapshot, outputURL: URL) throws -> EvidencePackExportResult {
@@ -229,7 +229,7 @@ private enum EvidencePackExporter {
         let format = UIGraphicsPDFRendererFormat()
         format.documentInfo = [
             kCGPDFContextTitle as String: L10n.format("pdf.meta.title", snapshot.title),
-            kCGPDFContextCreator as String: "Evidaro",
+            kCGPDFContextCreator as String: "Kamilunavo Trace",
             kCGPDFContextSubject as String: L10n.string("pdf.meta.subject")
         ]
 
