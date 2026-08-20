@@ -1,7 +1,7 @@
 # Evidaro — Project State
 
 Last updated: 2026-08-20
-Status: ACTIVE — PASS 2 GREEN / MERGED
+Status: ACTIVE — PASS 3 CAMERA + PROCESS-RELAUNCH PERSISTENCE VALIDATION
 Portfolio slot: #002 (original working title: ProofVault)
 Repository: `acciento89-bot/appideenchatgpt`
 Implementation path: `apps/002-evidaro/prototype/`
@@ -108,19 +108,36 @@ Earlier red attempts were not merged:
 - run `32328949495` confirmed the same bottleneck after a smaller expression-only change
 - the view was structurally decomposed; run `32329075367` passed, then the documentation-aligned final head also passed in run `32329202541`
 
-## Intentionally deferred after Pass 2
+## Pass 3 — current branch / validation required
 
-1. physical/runtime relaunch verification of SwiftData persistence
-2. direct camera capture
-3. on-device OCR
-4. optional location/context metadata
-5. PDF evidence-pack export
-6. Face ID/privacy lock
-7. DE/EN localization
-8. accessibility / Dynamic Type hardening
-9. App Store icon/identity
-10. StoreKit Pro entitlement and final monetization
-11. signed TestFlight / App Store record
+Branch: `agent/002-evidaro-camera-persistence-smoke`
+
+Implemented before CI validation:
+- direct `Take photo` intake on camera-capable iPhones through the system camera controller
+- captured photo bytes are stored through the same `EvidenceMediaDraft -> persistMedia -> SHA-256` path as imported media
+- camera privacy usage description added to generated Info.plist settings for Debug and Release
+- `EvidenceStore` ownership moved to the app root so the runtime test and UI exercise the same persistent container
+- deterministic DEBUG-only persistence smoke fixture covering one case, one evidence item, stored media bytes, media SHA-256, evidence-record SHA-256 and one snapshot seal
+- workflow now boots a real iPhone Simulator, installs the built app, launches `prepare`, terminates the process, launches `verify`, and requires the second process to recover and revalidate the persisted case/media/hashes/seal
+- existing PhotosPicker and Files/PDF import behavior remains intact
+
+Do **not** call Pass 3 green until all of these are SUCCESS on the same PR head:
+1. Evidaro preflight
+2. Xcode iOS Simulator build
+3. process-relaunch persistence smoke across two app launches
+
+## Intentionally deferred after Pass 3
+
+1. physical-device camera validation and camera-permission UX spot check
+2. on-device OCR
+3. optional location/context metadata
+4. PDF evidence-pack export
+5. Face ID/privacy lock
+6. DE/EN localization
+7. accessibility / Dynamic Type hardening
+8. App Store icon/identity
+9. StoreKit Pro entitlement and final monetization
+10. signed TestFlight / App Store record
 
 ## Monetization direction
 
@@ -128,7 +145,7 @@ Portfolio plan remains Freemium + Pro. Do not force a subscription. Current like
 
 ## Next gate
 
-1. Add direct camera capture without changing existing imported-media hash semantics.
-2. Add a runtime/relaunch persistence smoke that proves cases, evidence, media references and seals survive process restart.
-3. Only after those gates are green, add on-device OCR.
-4. PDF evidence-pack export follows OCR/media stability.
+1. Run the dedicated Evidaro workflow against Pass 3.
+2. Fix any camera, SwiftData or simulator-relaunch failure before merge.
+3. Merge only when preflight + compile + two-process persistence smoke are all green on the exact final PR head.
+4. After merge, add on-device OCR while preserving the original media bytes/hash as the immutable source of truth.
