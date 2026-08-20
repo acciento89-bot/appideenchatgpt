@@ -19,69 +19,20 @@ struct AddEvidenceView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("Evidence") {
-                    Picker("Type", selection: $kind) {
-                        ForEach(EvidenceItemKind.allCases) { option in
-                            Label(option.rawValue, systemImage: option.symbol)
-                                .tag(option)
-                        }
-                    }
+                EvidenceFieldsSection(
+                    kind: $kind,
+                    source: $source,
+                    note: $note
+                )
 
-                    TextField("Source or context (optional)", text: $source)
+                MediaSelectionSection(
+                    selectedPhotoItem: $selectedPhotoItem,
+                    mediaDraft: $mediaDraft,
+                    showsFileImporter: $showsFileImporter,
+                    isLoadingMedia: isLoadingMedia
+                )
 
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Factual note")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                        TextEditor(text: $note)
-                            .frame(minHeight: 120)
-                    }
-                }
-
-                Section("Original media") {
-                    PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
-                        Label("Choose photo", systemImage: "photo.on.rectangle")
-                    }
-
-                    Button {
-                        showsFileImporter = true
-                    } label: {
-                        Label("Choose file or PDF", systemImage: "doc.badge.plus")
-                    }
-
-                    if isLoadingMedia {
-                        HStack(spacing: 10) {
-                            ProgressView()
-                            Text("Reading original file…")
-                                .foregroundStyle(.secondary)
-                        }
-                    } else if let mediaDraft {
-                        VStack(alignment: .leading, spacing: 5) {
-                            Label(mediaDraft.originalName, systemImage: "checkmark.circle.fill")
-                                .font(.subheadline.bold())
-                            Text(formattedFileSize(for: mediaDraft.data))
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                            Text(mediaDraft.utTypeIdentifier)
-                                .font(.caption2.monospaced())
-                                .foregroundStyle(.tertiary)
-                        }
-
-                        Button("Remove selected media", role: .destructive) {
-                            mediaDraft = nil
-                            selectedPhotoItem = nil
-                        }
-                    }
-                }
-
-                Section("Integrity") {
-                    Label("The imported original file receives its own SHA-256 hash. The evidence record hash also includes that media hash.", systemImage: "number")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                    Text("Files are copied into Evidaro's private Application Support storage. The foundation still makes no claim of legal certification or admissibility.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                }
+                IntegritySection()
             }
             .navigationTitle("Add Evidence")
             .toolbar {
@@ -89,13 +40,11 @@ struct AddEvidenceView: View {
                     Button("Cancel") { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
-                        save()
-                    }
-                    .disabled(!canSave || isLoadingMedia)
+                    Button("Save", action: save)
+                        .disabled(!canSave || isLoadingMedia)
                 }
             }
-            .onChange(of: selectedPhotoItem) { newItem in
+            .onChange(of: selectedPhotoItem) { _, newItem in
                 guard let newItem else { return }
                 Task { await loadPhoto(newItem) }
             }
@@ -105,10 +54,7 @@ struct AddEvidenceView: View {
                 allowsMultipleSelection: false,
                 onCompletion: importFile
             )
-            .alert("Could not add evidence", isPresented: Binding(
-                get: { errorMessage != nil },
-                set: { if !$0 { errorMessage = nil } }
-            )) {
+            .alert("Could not add evidence", isPresented: errorAlertBinding) {
                 Button("OK", role: .cancel) { errorMessage = nil }
             } message: {
                 Text(errorMessage ?? "Unknown error")
@@ -117,12 +63,19 @@ struct AddEvidenceView: View {
     }
 
     private var canSave: Bool {
-        !note.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || mediaDraft != nil
+        let hasNote = !note.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        return hasNote || mediaDraft != nil
     }
 
-    private func formattedFileSize(for data: Data) -> String {
-        let byteCount = Int64(data.count)
-        return ByteCountFormatter.string(fromByteCount: byteCount, countStyle: .file)
+    private var errorAlertBinding: Binding<Bool> {
+        Binding(
+            get: { errorMessage != nil },
+            set: { isPresented in
+                if !isPresented {
+                    errorMessage = nil
+                }
+            }
+        )
     }
 
     @MainActor
@@ -190,6 +143,118 @@ struct AddEvidenceView: View {
             dismiss()
         } catch {
             errorMessage = error.localizedDescription
+        }
+    }
+}
+
+private struct EvidenceFieldsSection: View {
+    @Binding var kind: EvidenceItemKind
+    @Binding var source: String
+    @Binding var note: String
+
+    var body: some View {
+        Section("Evidence") {
+            Picker("Type", selection: $kind) {
+                ForEach(EvidenceItemKind.allCases) { option in
+                    Label(option.rawValue, systemImage: option.symbol)
+                        .tag(option)
+                }
+            }
+
+            TextField("Source or context (optional)", text: $source)
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Factual note")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                TextEditor(text: $note)
+                    .frame(minHeight: 120)
+            }
+        }
+    }
+}
+
+private struct MediaSelectionSection: View {
+    @Binding var selectedPhotoItem: PhotosPickerItem?
+    @Binding var mediaDraft: EvidenceMediaDraft?
+    @Binding var showsFileImporter: Bool
+    let isLoadingMedia: Bool
+
+    var body: some View {
+        Section("Original media") {
+            PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
+                Label("Choose photo", systemImage: "photo.on.rectangle")
+            }
+
+            Button {
+                showsFileImporter = true
+            } label: {
+                Label("Choose file or PDF", systemImage: "doc.badge.plus")
+            }
+
+            if isLoadingMedia {
+                LoadingMediaRow()
+            } else if let mediaDraft {
+                SelectedMediaSummary(mediaDraft: mediaDraft)
+
+                Button("Remove selected media", role: .destructive) {
+                    self.mediaDraft = nil
+                    selectedPhotoItem = nil
+                }
+            }
+        }
+    }
+}
+
+private struct LoadingMediaRow: View {
+    var body: some View {
+        HStack(spacing: 10) {
+            ProgressView()
+            Text("Reading original file…")
+                .foregroundStyle(.secondary)
+        }
+    }
+}
+
+private struct SelectedMediaSummary: View {
+    let originalName: String
+    let fileSize: String
+    let typeIdentifier: String
+
+    init(mediaDraft: EvidenceMediaDraft) {
+        originalName = mediaDraft.originalName
+        typeIdentifier = mediaDraft.utTypeIdentifier
+        let byteCount = Int64(mediaDraft.data.count)
+        fileSize = ByteCountFormatter.string(fromByteCount: byteCount, countStyle: .file)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            Label(originalName, systemImage: "checkmark.circle.fill")
+                .font(.subheadline.bold())
+            Text(fileSize)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            Text(typeIdentifier)
+                .font(.caption2.monospaced())
+                .foregroundStyle(.tertiary)
+        }
+    }
+}
+
+private struct IntegritySection: View {
+    var body: some View {
+        Section("Integrity") {
+            Label(
+                "The imported original file receives its own SHA-256 hash. The evidence record hash also includes that media hash.",
+                systemImage: "number"
+            )
+            .font(.footnote)
+            .foregroundStyle(.secondary)
+
+            Text("Files are copied into Evidaro's private Application Support storage. The foundation still makes no claim of legal certification or admissibility.")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
         }
     }
 }
