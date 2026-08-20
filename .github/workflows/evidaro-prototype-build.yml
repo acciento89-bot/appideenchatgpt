@@ -37,7 +37,7 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             build 2>&1 | tee /tmp/evidaro-build.log
 
-      - name: Verify SwiftData and media survive process relaunch
+      - name: Verify persistence, integrity and on-device OCR across process relaunch
         run: |
           set -euo pipefail
 
@@ -74,6 +74,7 @@ jobs:
           DATA_CONTAINER="$(xcrun simctl get_app_container "${DEVICE_UDID}" "${BUNDLE_ID}" data)"
           SMOKE_DIR="${DATA_CONTAINER}/Library/Application Support/EvidaroSmoke"
 
+          rm -f "${SMOKE_DIR}/failed.txt" "${SMOKE_DIR}/prepared.txt" "${SMOKE_DIR}/verified.txt"
           xcrun simctl launch "${DEVICE_UDID}" "${BUNDLE_ID}" --evidaro-persistence-smoke prepare
           for _ in $(seq 1 20); do
             test -f "${SMOKE_DIR}/prepared.txt" && break
@@ -93,6 +94,33 @@ jobs:
           test -f "${SMOKE_DIR}/verified.txt"
           grep -q '^verified case=' "${SMOKE_DIR}/verified.txt"
           cat "${SMOKE_DIR}/verified.txt"
+          xcrun simctl terminate "${DEVICE_UDID}" "${BUNDLE_ID}" || true
+
+          rm -f "${SMOKE_DIR}/failed.txt" "${SMOKE_DIR}/ocr-prepared.txt" "${SMOKE_DIR}/ocr-verified.txt"
+          xcrun simctl launch "${DEVICE_UDID}" "${BUNDLE_ID}" --evidaro-persistence-smoke ocr-prepare
+          for _ in $(seq 1 30); do
+            test -f "${SMOKE_DIR}/ocr-prepared.txt" && break
+            test -f "${SMOKE_DIR}/failed.txt" && { cat "${SMOKE_DIR}/failed.txt"; exit 1; }
+            sleep 1
+          done
+          test -f "${SMOKE_DIR}/ocr-prepared.txt"
+          grep -q '^ocr-prepared text=' "${SMOKE_DIR}/ocr-prepared.txt"
+          grep -qi 'EVIDARO' "${SMOKE_DIR}/ocr-prepared.txt"
+          grep -q '4827' "${SMOKE_DIR}/ocr-prepared.txt"
+          cat "${SMOKE_DIR}/ocr-prepared.txt"
+
+          xcrun simctl terminate "${DEVICE_UDID}" "${BUNDLE_ID}"
+          xcrun simctl launch "${DEVICE_UDID}" "${BUNDLE_ID}" --evidaro-persistence-smoke ocr-verify
+          for _ in $(seq 1 20); do
+            test -f "${SMOKE_DIR}/ocr-verified.txt" && break
+            test -f "${SMOKE_DIR}/failed.txt" && { cat "${SMOKE_DIR}/failed.txt"; exit 1; }
+            sleep 1
+          done
+          test -f "${SMOKE_DIR}/ocr-verified.txt"
+          grep -q '^ocr-verified text=' "${SMOKE_DIR}/ocr-verified.txt"
+          grep -qi 'EVIDARO' "${SMOKE_DIR}/ocr-verified.txt"
+          grep -q '4827' "${SMOKE_DIR}/ocr-verified.txt"
+          cat "${SMOKE_DIR}/ocr-verified.txt"
           xcrun simctl terminate "${DEVICE_UDID}" "${BUNDLE_ID}" || true
 
       - name: Extract compiler diagnostics
