@@ -1,8 +1,8 @@
 # Kamilunavo App Factory — Master Project State
 
-Last updated: 2026-08-19
+Last updated: 2026-08-20
 Status: ACTIVE
-Current user-selected workstream: #011 Family Life OS
+Current user-selected workstream: #002 Evidaro (PROVISIONAL)
 Repository purpose: persistent handoff/state repository for the full App Factory so work can continue across chat limits and new conversations without losing decisions or progress.
 
 > This file is the portfolio-level single source of truth. Read it first, then the selected app-specific state. Detailed historical checkpoints remain in Git history.
@@ -21,8 +21,8 @@ Repository purpose: persistent handoff/state repository for the full App Factory
 
 | # | Working title | Core idea | Planned monetization | Status |
 |---|---|---|---|---|
-| 001 | KeepMeter (PROVISIONAL) | Return-window + actual-usage decision tool | Freemium + Lifetime Pro | ACTIVE — polished MVP green; StoreKit/QA next |
-| 002 | ProofVault | Evidence/documentation vault | Freemium + Pro | QUEUED |
+| 001 | KeepMeter | Return-window + actual-usage decision tool | Freemium + Lifetime Pro | APP STORE REVIEW SUBMITTED — APPLE DECISION PENDING |
+| 002 | Evidaro (PROVISIONAL; ProofVault retired) | Case-based evidence timeline with per-item hashes, snapshot seals and proof export | Freemium + Pro / likely Lifetime | ACTIVE — FOUNDATION GREEN / PASS 2 PERSISTENCE + MEDIA INTAKE |
 | 003 | ParcelPilot | Orders, deliveries, returns and refund tracking | Freemium | QUEUED |
 | 004 | SubZero | Detect/track subscriptions and recurring costs | Pro / Lifetime | QUEUED |
 | 005 | GiftBrain | Gift ideas per person/occasion via share sheet | Lifetime | QUEUED |
@@ -40,43 +40,97 @@ Authoritative repo/state:
 - repo `acciento89-bot/keepmeter`
 - state `docs/PROJECT_STATE.md`
 
-Current recorded direction:
+Current checkpoint:
 
-- native SwiftUI iPhone utility
-- iOS 17+
-- local-first
-- SwiftData
-- UserNotifications
-- explainable deterministic decision engine
+- native SwiftUI iPhone app / iOS 17+ / local-first / SwiftData / UserNotifications
 - DE/EN
 - Free tier: 5 active purchases
-- StoreKit 2 Lifetime Pro
-- provisional bundle id `de.kamilunavo.keepmeter`
-- product id `de.kamilunavo.keepmeter.pro.lifetime`
+- StoreKit 2 Lifetime Pro product `de.kamilunavo.keepmeter.pro.lifetime`
+- Lifetime Pro purchase, entitlement, restore and relaunch were user-verified on TestFlight/device
+- App Store Connect metadata, screenshots, age rating, content rights, DSA and review information were completed by the user
+- KeepMeter `0.1.0 (1)` was submitted to Apple App Review on 2026-08-20
+- repository Gate #27 records `App Store Review submitted / Apple review decision pending`
+- KeepMeter gate/documentation PR #34 merged; merge commit `2d99da17f712bb6de911fd92561a91cd149eaf16`
 
-Green product surface:
+Do not regress KeepMeter to “StoreKit/ASC/TestFlight still open.” The next meaningful external event is Apple's review decision or review feedback.
 
-- Dashboard / Add Purchase / Detail / Archive
-- usage logging + cost/use
-- return countdown
-- KEEP / REVIEW / RETURN? engine
-- reminders
-- StoreKit entitlement/purchase/restore plumbing
-- free-tier enforcement + paywall
-- onboarding
-- Active / Insights / Archive / Settings
-- DE/EN localization
-- visual system
-- GitHub Actions simulator gate
+# Portfolio app #002 — Evidaro
 
-Next KeepMeter work:
+Authoritative app state:
 
-1. local `.storekit` config + App Store Connect Lifetime IAP
-2. persistence/relaunch + notification QA
-3. free-limit / purchase / restore QA
-4. light/dark + accessibility QA
-5. icon/identity/name due diligence
-6. signed TestFlight after QA gates
+`apps/002-evidaro/PROJECT_STATE.md`
+
+Naming:
+
+- original working title `ProofVault` is retired because a substantially overlapping iPhone/iPad app now uses `ProofVault: Document Vault`
+- current candidate `Evidaro` is provisional, not legal/trademark clearance
+
+Product thesis:
+
+> Capture facts while they are fresh. Seal evidence you can verify later.
+
+Core loop:
+
+**Create case -> Capture evidence -> Hash each item -> Review timeline -> Seal snapshot -> Share/export manifest**
+
+Foundation green checkpoint:
+
+- PR #15 merged to `main`
+- workflow run `32312124275`
+- build job `96257080572`
+- Evidaro foundation preflight — SUCCESS
+- Xcode iOS Simulator build — SUCCESS
+- foundation merge commit `3dbeef6e786e9d2ad528d34b28f66c4ab3890856`
+
+Foundation includes:
+
+- native SwiftUI iPhone prototype / iOS 17+
+- case dashboard + case creation
+- evidence timeline
+- note/source evidence capture
+- SHA-256 content hash per evidence item
+- repeatable snapshot seals
+- shareable text manifest
+- dedicated Xcode project/shared scheme
+- dedicated `macos-26` GitHub Actions build gate
+
+Current Pass 2 branch:
+
+`agent/002-evidaro-persistence-media`
+
+Pass 2 implementation in progress:
+
+- SwiftData-backed case/evidence/seal models
+- persistent ModelContainer / ModelContext
+- private local media storage under Application Support
+- PhotosPicker image intake
+- Files/PDF intake
+- original imported byte stream hashed separately with SHA-256
+- evidence-record hash includes original-media hash
+- original filename/hash displayed in timeline and manifest
+- imported original can be shared back out
+
+Pass 2 is **not green until its PR CI completes successfully**.
+
+After Pass 2:
+
+1. direct camera capture
+2. runtime/relaunch persistence smoke
+3. on-device OCR
+4. PDF evidence-pack export
+5. optional location/context metadata
+6. Face ID/privacy lock
+7. DE/EN + accessibility hardening
+8. final identity/name due diligence
+9. StoreKit Pro/Lifetime decision
+10. signed TestFlight
+
+Trust boundary:
+
+- no legal-admissibility claim
+- no claim that a timestamp independently proves when a real-world event occurred
+- hashes are integrity aids, not legal certification
+- v1 stays local-first; no evidence upload to Kamilunavo servers
 
 # Portfolio app #011 — Family Life OS
 
@@ -268,11 +322,11 @@ Avoid generic house/checkmark, cartoon family, or robot/AI sparkle identity.
 ## Handoff rule for new chats
 
 1. Read this file first.
-2. Read `apps/011-family-life-os/PROJECT_STATE.md` and `BACKEND_CONTRACT.md`.
-3. Inspect current `main` and latest relevant CI gates before code changes.
-4. Continue #011 from **fresh Magic Link -> second real session -> Realtime -> private Storage/photo/PDF intake**.
-5. Do not regress to “Build 2 not installed” or “PR #13 unverified”.
-6. Do not regress to “Hosted E2E not tested” — the user confirmed the Build-2 E2E checklist works perfectly.
-7. Do not claim fresh Magic Link or second-session isolation passed until explicitly exercised.
-8. Do not jump to Realtime/Storage/OCR/AI before the two remaining authenticated physical-device gates are green.
+2. For #002 read `apps/002-evidaro/PROJECT_STATE.md` and continue only from its current green/in-progress gate.
+3. For #011 read `apps/011-family-life-os/PROJECT_STATE.md` and `BACKEND_CONTRACT.md`.
+4. Inspect current `main` and latest relevant CI gates before code changes.
+5. Do not regress KeepMeter to pre-TestFlight/pre-StoreKit state; it is submitted to Apple review.
+6. Do not regress Evidaro to `ProofVault` or `QUEUED`; Foundation is merged and green.
+7. Do not claim Evidaro Pass 2 green until its CI is actually green.
+8. Do not regress Family Life OS to “Build 2 not installed”, “PR #13 unverified” or “Hosted E2E untested”.
 9. Preserve every other portfolio entry when updating one workstream.
