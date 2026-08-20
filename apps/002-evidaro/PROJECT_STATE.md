@@ -1,7 +1,7 @@
 # Evidaro — Project State
 
 Last updated: 2026-08-20
-Status: ACTIVE — PASS 7 FINAL EXACT-HEAD GATE QUEUED / PASS 8 OFFLINE VERIFIER IMPLEMENTED, OWN GATE PENDING
+Status: ACTIVE — PASS 7 GREEN / MERGED; PASS 8 OFFLINE VERIFIER IMPLEMENTED / FINAL EXACT-HEAD GATE PENDING
 Portfolio slot: #002 (original working title: ProofVault)
 Repository: `acciento89-bot/appideenchatgpt`
 Implementation path: `apps/002-evidaro/prototype/`
@@ -219,9 +219,9 @@ Exact privacy-lock smoke evidence:
 
 The automated smoke does not claim physical Face ID/Touch ID hardware prompt validation.
 
-## Pass 7 — DE/EN + ACCESSIBILITY + LOCALIZED PDF — IMPLEMENTED / FINAL GATE QUEUED
+## Pass 7 — DE/EN + ACCESSIBILITY + LOCALIZED PDF — GREEN / MERGED
 
-PR #29 `Add Evidaro DE/EN localization and accessibility hardening` is OPEN/DRAFT on branch `agent/002-evidaro-localization-accessibility`.
+PR #29 `Add Evidaro DE/EN localization and accessibility hardening` — MERGED.
 
 First complete source gate before final PDF-localization review:
 - source head `ae6a3b8fbdf25eca08ac040ce614664f5fd718de`
@@ -231,12 +231,14 @@ First complete source gate before final PDF-localization review:
 - Xcode iOS Simulator build — SUCCESS
 - combined persistence + OCR + PDF + privacy-lock + German localization runtime gate — SUCCESS
 
-Final exact documentation-aligned head:
-- `79c132f31ca2ce13046e5941f872087dfc7dad07`
-- workflow run `32369937142` / run #43
-- build job `96427918180`
-- current observed status on 2026-08-20: **QUEUED**; no failure/conclusion yet
-- do not merge while this exact gate is queued
+Final verified Pass-7 gate:
+- final PR head `84ef850678551e7cb0f22004c05e070adabece9d`
+- workflow run `32383741929` / run #82 — **SUCCESS**
+- build job `96473002571` — **SUCCESS**
+- preflight — SUCCESS
+- Xcode iOS Simulator build — SUCCESS
+- persistence + OCR + English PDF + German PDF + privacy lock + German localization process-relaunch gate — SUCCESS
+- merge commit `bf3ecf74887c08d52bbadf11a13174c83133b093`
 
 Implemented in Pass 7:
 - explicit English and German app resources
@@ -249,15 +251,16 @@ Implemented in Pass 7:
 - German runtime resource smoke
 - English PDF and German PDF process-relaunch checks; the German PDF must retain an identical PDF SHA-256 across process restart
 
-Pass-7 merge rule:
-- do not merge PR #29 until exact head `79c132f31ca2ce13046e5941f872087dfc7dad07` passes preflight + Xcode build + persistence + OCR + English PDF + German PDF + privacy-lock + German localization checks
+Pass-7 completion:
+- exact final head `84ef850678551e7cb0f22004c05e070adabece9d` passed the full gate and PR #29 was merged to `main` as `bf3ecf74887c08d52bbadf11a13174c83133b093`
 
 ## Pass 8 — OFFLINE-VERIFIABLE `.evpack` — SOURCE IMPLEMENTED / GATE PENDING
 
-Follow-up branch:
-- `agent/002-evidaro-offline-verifier`
-- branched from exact Pass-7 head `79c132f31ca2ce13046e5941f872087dfc7dad07`
-- no PR opened yet; keep it as a clean dependent follow-up until Pass 7 is merged
+Pass-8 PR / branch:
+- PR #32 `Add offline-verifiable evidence bundles` — OPEN/DRAFT
+- branch `agent/002-evidaro-offline-verifier`
+- synchronized with merged Pass 7 / `main` through merge commit `5ec036f849de4dc7a63ef6d9acd82e7d493bc268`
+- final exact-head full macOS gate pending
 
 Implemented source checkpoint before this state update:
 - `c09186d72b09ccad041e0c708c2534853e020250` — verification bundle data model, codec, exporter/verifier and deterministic negative/derived-OCR smoke
@@ -291,7 +294,7 @@ Pass-8 deterministic CI intent already wired:
 6. re-open and verify the persisted original `.evpack`
 7. require identical bundle SHA-256 before/after process relaunch
 
-Pass-8 is **not green yet**. The combined Xcode/simulator gate must run on a final documentation-aligned Pass-8 head after Pass 7 is merged / the follow-up PR can target clean `main`.
+Pass-8 is **not green yet**. The branch now includes merged Pass 7; the combined Xcode/simulator gate must pass on the final documentation-aligned Pass-8 head before PR #32 can merge.
 
 ## Open physical/release checks
 

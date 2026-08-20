@@ -22,7 +22,7 @@ Repository purpose: persistent handoff/state repository for the full App Factory
 | # | Working title | Core idea | Planned monetization | Status |
 |---|---|---|---|---|
 | 001 | KeepMeter | Return-window + actual-usage decision tool | Freemium + Lifetime Pro | APP STORE REVIEW SUBMITTED — APPLE DECISION PENDING |
-| 002 | Evidaro (INTERNAL/PROVISIONAL; ProofVault retired) | Local-first evidence cases + original hashes + snapshot seals + localized PDF + offline `.evpack` verifier | Freemium + likely Lifetime Pro | ACTIVE — PASS 7 FINAL GATE QUEUED; PASS 8 OFFLINE VERIFIER SOURCE IMPLEMENTED / OWN GATE PENDING; RELEASE RENAME REQUIRED |
+| 002 | Evidaro (INTERNAL/PROVISIONAL; ProofVault retired) | Local-first evidence cases + original hashes + snapshot seals + localized PDF + offline `.evpack` verifier | Freemium + likely Lifetime Pro | ACTIVE — PASS 7 GREEN/MERGED; PASS 8 OFFLINE VERIFIER FINAL GATE PENDING; RELEASE RENAME REQUIRED |
 | 003 | ParcelPilot | Orders, deliveries, returns and refund tracking | Freemium | QUEUED |
 | 004 | SubZero | Detect/track subscriptions and recurring costs | Pro / Lifetime | QUEUED |
 | 005 | GiftBrain | Gift ideas per person/occasion via share sheet | Lifetime | QUEUED |
@@ -86,15 +86,13 @@ Merged green passes:
 - Pass 5 integrity-checked multi-page PDF evidence pack — PR #27 — merge `22f8b560c2529fb064feaa591b901acecf8da573`
 - Pass 6 optional device-owner-auth privacy lock — PR #28 — final head `a55f55ebe72280e411670f4757624914d0c1d6ed`, merge `f6e68210c38b1a1715de2908dd70e1da6c6a476d`
 
-Current Pass 7:
+Pass 7 — GREEN / MERGED:
 
-- PR #29 `Add Evidaro DE/EN localization and accessibility hardening` — OPEN/DRAFT
-- branch `agent/002-evidaro-localization-accessibility`
-- final documentation-aligned head `79c132f31ca2ce13046e5941f872087dfc7dad07`
-- exact workflow run `32369937142` / run #43
-- build job `96427918180`
-- observed 2026-08-20 status: **QUEUED**, no failure/conclusion yet
-- earlier source head `ae6a3b8fbdf25eca08ac040ce614664f5fd718de` had workflow run `32362074699` — SUCCESS / build job `96403585360` — SUCCESS
+- PR #29 `Add Evidaro DE/EN localization and accessibility hardening` — MERGED
+- final PR head `84ef850678551e7cb0f22004c05e070adabece9d`
+- exact workflow run `32383741929` / run #82 — **SUCCESS**
+- build job `96473002571` — **SUCCESS**
+- merge commit `bf3ecf74887c08d52bbadf11a13174c83133b093`
 
 Pass-7 implementation includes:
 
@@ -107,17 +105,15 @@ Pass-7 implementation includes:
 - English and German PDF process-relaunch gates
 - localization/presentation changes do not alter original media bytes, evidence-record hashes, manifests or seals
 
-Pass-7 rule:
-- keep exact head `79c132f31ca2ce13046e5941f872087dfc7dad07` frozen
-- do not merge PR #29 while workflow `32369937142` is queued
-- merge only after preflight, Xcode Simulator, persistence, OCR, English PDF, German PDF, privacy lock and German runtime localization all conclude SUCCESS on that exact head
+Pass-7 completion:
+- final head `84ef850678551e7cb0f22004c05e070adabece9d` passed preflight, Xcode Simulator, persistence, OCR, English PDF, German PDF, privacy lock and German runtime localization before merge
 
 Current Pass 8 — offline-verifiable `.evpack`:
 
-- dependent follow-up branch `agent/002-evidaro-offline-verifier`
-- branched from exact Pass-7 head `79c132f31ca2ce13046e5941f872087dfc7dad07`
-- no PR yet; keep Pass 8 separate until Pass 7 merges
-- source implementation exists; own Xcode/simulator gate is still pending
+- PR #32 `Add offline-verifiable evidence bundles` — OPEN/DRAFT
+- branch `agent/002-evidaro-offline-verifier`
+- synchronized with merged Pass 7 / current `main` through merge commit `5ec036f849de4dc7a63ef6d9acd82e7d493bc268`
+- source implementation exists; final exact-head Xcode/simulator gate is pending
 
 Pass-8 implementation includes:
 
@@ -168,7 +164,7 @@ Open physical/release checks after Pass 8:
 - final Freemium + likely Lifetime Pro entitlement decision
 - signed TestFlight / App Store record
 
-Do not regress #002 to `ProofVault`, `QUEUED`, Foundation-only, pre-OCR, pre-PDF, pre-privacy-lock or pre-Pass-7 state. Do not call Pass 7 or Pass 8 green while their relevant exact-head gates have not concluded SUCCESS.
+Do not regress #002 to `ProofVault`, `QUEUED`, Foundation-only, pre-OCR, pre-PDF, pre-privacy-lock or pre-Pass-7 state. Pass 7 is GREEN/MERGED. Do not call Pass 8 green until its final exact-head gate concludes SUCCESS.
 
 # Portfolio app #011 — Family Life OS
 
