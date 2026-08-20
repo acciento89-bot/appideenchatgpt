@@ -211,20 +211,22 @@ private enum PersistenceSmokeRunner {
             throw SmokeRunnerError.invalidEvidencePack
         }
         let text = document.string ?? ""
+        let legalText = L10n.string("pdf.integrity.legal")
+        let legalMarker = legalText.components(separatedBy: ".").first ?? legalText
         let requiredTokens = [
             "EVIDARO",
-            "EVIDENCE PACK",
+            L10n.string("pdf.heading.evidence_pack"),
             "CI OCR Smoke",
             evidencePackSmokeCaseID.uuidString,
-            "Original media SHA-256",
+            L10n.string("pdf.field.original_sha"),
             mediaHash,
-            "Evidence record SHA-256",
+            L10n.string("pdf.field.record_sha"),
             recordHash,
-            "DERIVED OCR",
+            L10n.string("pdf.ocr.heading"),
             "EVIDARO 4827",
-            "SNAPSHOT SEALS",
+            L10n.string("pdf.seals.heading"),
             sealHash,
-            "Integrity aid only"
+            legalMarker
         ]
         for token in requiredTokens where text.range(of: token, options: .caseInsensitive) == nil {
             throw SmokeRunnerError.missingEvidencePackToken(token)
