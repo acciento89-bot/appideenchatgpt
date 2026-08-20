@@ -37,7 +37,7 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             build 2>&1 | tee /tmp/evidaro-build.log
 
-      - name: Verify persistence, integrity, OCR, PDF pack and privacy lock across process relaunch
+      - name: Verify persistence, integrity, OCR, PDF pack, privacy lock and localization across process relaunch
         run: |
           set -euo pipefail
 
@@ -172,6 +172,18 @@ jobs:
           test -f "${SMOKE_DIR}/lock-verified.txt"
           grep -q '^lock-verified persisted=true unlocked=true disabled=true$' "${SMOKE_DIR}/lock-verified.txt"
           cat "${SMOKE_DIR}/lock-verified.txt"
+          xcrun simctl terminate "${DEVICE_UDID}" "${BUNDLE_ID}" || true
+
+          rm -f "${SMOKE_DIR}/localization-failed.txt" "${SMOKE_DIR}/localization-verified.txt"
+          xcrun simctl launch "${DEVICE_UDID}" "${BUNDLE_ID}" --evidaro-localization-smoke -AppleLanguages "(de)" -AppleLocale "de_DE"
+          for _ in $(seq 1 20); do
+            test -f "${SMOKE_DIR}/localization-verified.txt" && break
+            test -f "${SMOKE_DIR}/localization-failed.txt" && { cat "${SMOKE_DIR}/localization-failed.txt"; exit 1; }
+            sleep 1
+          done
+          test -f "${SMOKE_DIR}/localization-verified.txt"
+          grep -q '^localization-verified language=de cases=Fälle property=Immobilie camera=localized faceID=localized$' "${SMOKE_DIR}/localization-verified.txt"
+          cat "${SMOKE_DIR}/localization-verified.txt"
           xcrun simctl terminate "${DEVICE_UDID}" "${BUNDLE_ID}" || true
 
       - name: Extract compiler diagnostics
