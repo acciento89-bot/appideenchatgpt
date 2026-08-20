@@ -11,6 +11,7 @@ required_files = [
     APP / "EvidaroPrototypeApp.swift",
     APP / "Models.swift",
     APP / "EvidenceStore.swift",
+    APP / "EvidencePackExporter.swift",
     APP / "RootView.swift",
     APP / "CaseDetailView.swift",
     APP / "AddEvidenceView.swift",
@@ -27,6 +28,7 @@ for path in required_files:
 project_text = PROJECT.read_text()
 models_text = (APP / "Models.swift").read_text()
 store_text = (APP / "EvidenceStore.swift").read_text()
+pack_text = (APP / "EvidencePackExporter.swift").read_text()
 app_text = (APP / "EvidaroPrototypeApp.swift").read_text()
 root_text = (APP / "RootView.swift").read_text()
 detail_text = (APP / "CaseDetailView.swift").read_text()
@@ -56,12 +58,22 @@ checks = {
     "OCR timeline UX": "Recognized text" in detail_text and "Derived locally with Apple Vision" in detail_text,
     "snapshot sealing": "func seal(caseID:" in store_text and "manifestHash" in store_text,
     "shareable manifest": "EVIDARO EVIDENCE MANIFEST" in store_text,
+    "PDF exporter compiled": "EvidencePackExporter.swift in Sources" in project_text,
+    "PDF evidence pack renderer": "UIGraphicsPDFRenderer" in pack_text and "EVIDENCE PACK" in pack_text,
+    "PDF original integrity guard": "verifyOriginalMedia" in pack_text and "originalIntegrityMismatch" in pack_text,
+    "PDF record integrity guard": "recordIntegrityMismatch" in pack_text and "EvidenceHasher.itemHash" in pack_text,
+    "PDF seal consistency guard": "currentSealMismatch" in pack_text and "currentSnapshotIsSealed" in pack_text,
+    "PDF derived OCR labeling": "DERIVED OCR — NOT ORIGINAL EVIDENCE" in pack_text and "OCR is derived metadata" in pack_text,
+    "PDF original media previews": "drawImagePreview" in pack_text and "drawPDFPagePreview" in pack_text,
+    "PDF share UX": "Build & share PDF evidence pack" in detail_text and "EvidencePackShareSheet" in detail_text,
     "single app-owned store": "RootView(store: store)" in app_text and "@ObservedObject var store: EvidenceStore" in root_text,
     "relaunch smoke prepare": "preparePersistenceSmoke" in store_text and "prepared.txt" in app_text,
     "relaunch smoke verify": "verifyPersistenceSmoke" in store_text and "verified.txt" in app_text,
     "two-process simulator gate": "--evidaro-persistence-smoke prepare" in workflow_text and "simctl terminate" in workflow_text and "--evidaro-persistence-smoke verify" in workflow_text,
     "OCR runtime smoke": "prepareOCRSmoke" in store_text and "verifyOCRSmoke" in store_text and "ocr-prepare" in app_text and "ocr-verify" in app_text,
     "OCR process-relaunch gate": "--evidaro-persistence-smoke ocr-prepare" in workflow_text and "--evidaro-persistence-smoke ocr-verify" in workflow_text,
+    "PDF pack runtime smoke": "pack-prepare" in app_text and "pack-verify" in app_text and "validateEvidencePack" in app_text,
+    "PDF pack process-relaunch gate": "--evidaro-persistence-smoke pack-prepare" in workflow_text and "--evidaro-persistence-smoke pack-verify" in workflow_text,
     "ProofVault retired": "`ProofVault` is retired" in state_text,
     "legal guardrail": "not a law firm" in spec_text and "not legal certification" in state_text,
 }
@@ -73,4 +85,4 @@ for label, passed in checks.items():
 if failed:
     raise SystemExit("Evidaro preflight failed: " + ", ".join(failed))
 
-print("Evidaro camera/persistence/OCR preflight passed")
+print("Evidaro camera/persistence/OCR/PDF-pack preflight passed")
