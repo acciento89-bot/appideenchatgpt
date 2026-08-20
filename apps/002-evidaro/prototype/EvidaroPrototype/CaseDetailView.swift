@@ -10,6 +10,9 @@ struct CaseDetailView: View {
     @State private var isGeneratingEvidencePack = false
     @State private var evidencePackShareItem: EvidencePackShareItem?
     @State private var evidencePackError: String?
+    @State private var isGeneratingVerificationBundle = false
+    @State private var verificationBundleShareItem: EvidencePackShareItem?
+    @State private var verificationBundleError: String?
 
     var body: some View {
         Group {
@@ -30,6 +33,10 @@ struct CaseDetailView: View {
                     AddEvidenceView(store: store, caseID: caseID)
                 }
                 .sheet(item: $evidencePackShareItem) { shareItem in
+                    EvidencePackShareSheet(url: shareItem.url)
+                        .ignoresSafeArea()
+                }
+                .sheet(item: $verificationBundleShareItem) { shareItem in
                     EvidencePackShareSheet(url: shareItem.url)
                         .ignoresSafeArea()
                 }
@@ -57,6 +64,16 @@ struct CaseDetailView: View {
                 } message: {
                     if let evidencePackError {
                         Text(evidencePackError)
+                    }
+                }
+                .alert("bundle.export_failed", isPresented: Binding(
+                    get: { verificationBundleError != nil },
+                    set: { if !$0 { verificationBundleError = nil } }
+                )) {
+                    Button("common.ok", role: .cancel) { verificationBundleError = nil }
+                } message: {
+                    if let verificationBundleError {
+                        Text(verificationBundleError)
                     }
                 }
             } else {
@@ -133,7 +150,27 @@ struct CaseDetailView: View {
                 .frame(maxWidth: .infinity)
             }
             .buttonStyle(.bordered)
-            .disabled(evidenceCase.evidence.isEmpty || isGeneratingEvidencePack)
+            .disabled(evidenceCase.evidence.isEmpty || isGeneratingEvidencePack || isGeneratingVerificationBundle)
+
+            Button {
+                generateVerificationBundle()
+            } label: {
+                HStack(spacing: 8) {
+                    if isGeneratingVerificationBundle {
+                        ProgressView()
+                            .controlSize(.small)
+                    }
+                    Label(
+                        isGeneratingVerificationBundle
+                            ? L10n.string("bundle.building")
+                            : L10n.string("bundle.build_share"),
+                        systemImage: "checkmark.shield"
+                    )
+                }
+                .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.bordered)
+            .disabled(evidenceCase.evidence.isEmpty || isGeneratingVerificationBundle || isGeneratingEvidencePack)
         }
     }
 
@@ -219,7 +256,7 @@ struct CaseDetailView: View {
                             .font(.caption2.monospaced())
                             .foregroundStyle(.secondary)
                             .textSelection(.enabled)
-                            .accessibilityLabel(L10n.string("accessibility.hash_record"))
+                            .accessibilityLabel(L10n.string("accessibility.hash_manifest"))
                             .accessibilityValue(seal.manifestHash)
                     }
                     .padding(15)
@@ -241,6 +278,22 @@ struct CaseDetailView: View {
                 evidencePackShareItem = EvidencePackShareItem(url: result.url)
             } catch {
                 evidencePackError = error.localizedDescription
+            }
+        }
+    }
+
+    private func generateVerificationBundle() {
+        guard !isGeneratingVerificationBundle else { return }
+        isGeneratingVerificationBundle = true
+        verificationBundleError = nil
+
+        Task {
+            defer { isGeneratingVerificationBundle = false }
+            do {
+                let result = try store.generateVerificationBundle(caseID: caseID)
+                verificationBundleShareItem = EvidencePackShareItem(url: result.url)
+            } catch {
+                verificationBundleError = error.localizedDescription
             }
         }
     }
