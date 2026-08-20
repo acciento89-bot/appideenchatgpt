@@ -15,6 +15,9 @@
 		A20000000000000000000006 /* AddEvidenceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000006 /* AddEvidenceView.swift */; };
 		A20000000000000000000007 /* EvidencePackExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000008 /* EvidencePackExporter.swift */; };
 		A20000000000000000000008 /* AppLockController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000009 /* AppLockController.swift */; };
+		A20000000000000000000009 /* Localization.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2000000000000000000000A /* Localization.swift */; };
+		A2000000000000000000000A /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = H20000000000000000000001 /* Localizable.strings */; };
+		A2000000000000000000000B /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = H20000000000000000000002 /* InfoPlist.strings */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -27,6 +30,11 @@
 		B20000000000000000000007 /* EvidaroPrototype.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = EvidaroPrototype.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B20000000000000000000008 /* EvidencePackExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EvidencePackExporter.swift; sourceTree = "<group>"; };
 		B20000000000000000000009 /* AppLockController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLockController.swift; sourceTree = "<group>"; };
+		B2000000000000000000000A /* Localization.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Localization.swift; sourceTree = "<group>"; };
+		B2000000000000000000000B /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
+		B2000000000000000000000C /* de */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = de; path = de.lproj/Localizable.strings; sourceTree = "<group>"; };
+		B2000000000000000000000D /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
+		B2000000000000000000000E /* de */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = de; path = de.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -53,12 +61,15 @@
 			children = (
 				B20000000000000000000001 /* EvidaroPrototypeApp.swift */,
 				B20000000000000000000009 /* AppLockController.swift */,
+				B2000000000000000000000A /* Localization.swift */,
 				B20000000000000000000002 /* Models.swift */,
 				B20000000000000000000003 /* EvidenceStore.swift */,
 				B20000000000000000000008 /* EvidencePackExporter.swift */,
 				B20000000000000000000004 /* RootView.swift */,
 				B20000000000000000000005 /* CaseDetailView.swift */,
 				B20000000000000000000006 /* AddEvidenceView.swift */,
+				H20000000000000000000001 /* Localizable.strings */,
+				H20000000000000000000002 /* InfoPlist.strings */,
 			);
 			path = EvidaroPrototype;
 			sourceTree = "<group>";
@@ -114,6 +125,7 @@
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				en,
+				de,
 				Base,
 			);
 			mainGroup = D20000000000000000000001;
@@ -131,10 +143,33 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A2000000000000000000000A /* Localizable.strings in Resources */,
+				A2000000000000000000000B /* InfoPlist.strings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXVariantGroup section */
+		H20000000000000000000001 /* Localizable.strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				B2000000000000000000000B /* en */,
+				B2000000000000000000000C /* de */,
+			);
+			name = Localizable.strings;
+			sourceTree = "<group>";
+		};
+		H20000000000000000000002 /* InfoPlist.strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				B2000000000000000000000D /* en */,
+				B2000000000000000000000E /* de */,
+			);
+			name = InfoPlist.strings;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
 
 /* Begin PBXSourcesBuildPhase section */
 		C20000000000000000000002 /* Sources */ = {
@@ -143,6 +178,7 @@
 			files = (
 				A20000000000000000000001 /* EvidaroPrototypeApp.swift in Sources */,
 				A20000000000000000000008 /* AppLockController.swift in Sources */,
+				A20000000000000000000009 /* Localization.swift in Sources */,
 				A20000000000000000000002 /* Models.swift in Sources */,
 				A20000000000000000000003 /* EvidenceStore.swift in Sources */,
 				A20000000000000000000007 /* EvidencePackExporter.swift in Sources */,

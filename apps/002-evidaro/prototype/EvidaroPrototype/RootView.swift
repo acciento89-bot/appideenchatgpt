@@ -3,6 +3,7 @@ import SwiftUI
 struct RootView: View {
     @ObservedObject var store: EvidenceStore
     @ObservedObject var appLock: AppLockController
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var showsNewCase = false
     @State private var showsSettings = false
 
@@ -14,13 +15,14 @@ struct RootView: View {
                     stats
 
                     HStack {
-                        Text("Cases")
+                        Text("home.cases")
                             .font(.title2.bold())
+                            .accessibilityHeading(.h2)
                         Spacer()
                         Button {
                             showsNewCase = true
                         } label: {
-                            Label("New Case", systemImage: "plus")
+                            Label("home.new_case", systemImage: "plus")
                                 .font(.subheadline.bold())
                         }
                         .buttonStyle(.borderedProminent)
@@ -28,9 +30,9 @@ struct RootView: View {
 
                     if store.cases.isEmpty {
                         ContentUnavailableView(
-                            "No evidence cases yet",
+                            "home.empty.title",
                             systemImage: "checkmark.shield",
-                            description: Text("Create a case before the details get fuzzy.")
+                            description: Text("home.empty.description")
                         )
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 40)
@@ -59,7 +61,7 @@ struct RootView: View {
                     } label: {
                         Image(systemName: "gearshape")
                     }
-                    .accessibilityLabel("Settings")
+                    .accessibilityLabel(Text("common.settings"))
                 }
             }
             .sheet(isPresented: $showsNewCase) {
@@ -73,37 +75,66 @@ struct RootView: View {
 
     private var hero: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 12) {
-                Image(systemName: "checkmark.shield.fill")
-                    .font(.system(size: 28, weight: .bold))
-                    .frame(width: 52, height: 52)
-                    .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-                    .accessibilityHidden(true)
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .top, spacing: 12) {
+                    heroIcon
+                    heroCopy
+                }
 
-                VStack(alignment: .leading, spacing: 3) {
-                    Text("Capture facts. Seal the record.")
-                        .font(.title3.bold())
-                    Text("Build a clean evidence timeline while the details are still fresh.")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                VStack(alignment: .leading, spacing: 12) {
+                    heroIcon
+                    heroCopy
                 }
             }
 
-            Text("Hashes help detect later changes. They are an integrity aid, not legal certification.")
+            Text("home.hero.integrity")
                 .font(.caption)
                 .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
         }
         .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(.background, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
     }
 
-    private var stats: some View {
-        HStack(spacing: 10) {
-            StatCard(value: "\(store.cases.count)", label: "Cases", symbol: "folder")
-            StatCard(value: "\(store.totalEvidenceCount)", label: "Evidence", symbol: "list.bullet.rectangle")
-            StatCard(value: "\(store.totalSealCount)", label: "Seals", symbol: "checkmark.seal")
+    private var heroIcon: some View {
+        Image(systemName: "checkmark.shield.fill")
+            .font(.system(size: 28, weight: .bold))
+            .frame(width: 52, height: 52)
+            .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .accessibilityHidden(true)
+    }
+
+    private var heroCopy: some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text("home.hero.title")
+                .font(.title3.bold())
+                .accessibilityHeading(.h2)
+            Text("home.hero.subtitle")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
         }
+    }
+
+    @ViewBuilder
+    private var stats: some View {
+        if dynamicTypeSize.isAccessibilitySize {
+            VStack(spacing: 10) {
+                statCards
+            }
+        } else {
+            HStack(spacing: 10) {
+                statCards
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var statCards: some View {
+        StatCard(value: "\(store.cases.count)", label: L10n.string("stats.cases"), symbol: "folder")
+        StatCard(value: "\(store.totalEvidenceCount)", label: L10n.string("stats.evidence"), symbol: "list.bullet.rectangle")
+        StatCard(value: "\(store.totalSealCount)", label: L10n.string("stats.seals"), symbol: "checkmark.seal")
     }
 }
 
@@ -115,9 +146,9 @@ private struct PrivacySettingsView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("Privacy Lock") {
+                Section("privacy_lock.title") {
                     Toggle(
-                        "Require device authentication",
+                        "privacy_lock.require_auth",
                         isOn: Binding(
                             get: { appLock.isEnabled },
                             set: { newValue in
@@ -127,13 +158,13 @@ private struct PrivacySettingsView: View {
                     )
                     .disabled(isUpdating || (!appLock.isAuthenticationAvailable && !appLock.isEnabled))
 
-                    Text("When enabled, Evidaro locks after the app moves to the background. Unlocking uses the authentication configured on this iPhone, such as Face ID, Touch ID, or the device passcode.")
+                    Text("privacy_lock.description")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
 
                     if !appLock.isAuthenticationAvailable && !appLock.isEnabled {
                         Label(
-                            "Device authentication is unavailable. Configure a device passcode or biometric authentication first.",
+                            L10n.string("privacy_lock.unavailable"),
                             systemImage: "exclamationmark.triangle"
                         )
                         .font(.footnote)
@@ -143,30 +174,32 @@ private struct PrivacySettingsView: View {
                     if isUpdating || appLock.isAuthenticating {
                         HStack(spacing: 10) {
                             ProgressView()
-                            Text("Confirming device authentication…")
+                            Text("privacy_lock.confirming")
                                 .font(.footnote)
                                 .foregroundStyle(.secondary)
                         }
+                        .accessibilityElement(children: .combine)
                     }
 
                     if let error = appLock.lastError, !error.isEmpty {
                         Text(error)
                             .font(.footnote)
                             .foregroundStyle(.red)
+                            .accessibilityAddTraits(.isStaticText)
                     }
                 }
 
-                Section("Data boundary") {
-                    Label("Evidence stays local to this device in the current v1 architecture.", systemImage: "iphone")
-                    Text("The privacy lock protects access to the app. It does not change original evidence bytes, SHA-256 values, OCR provenance, snapshot seals, or exported evidence packs.")
+                Section("privacy_lock.data_boundary") {
+                    Label(L10n.string("privacy_lock.local_data"), systemImage: "iphone")
+                    Text("privacy_lock.integrity")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
             }
-            .navigationTitle("Settings")
+            .navigationTitle("common.settings")
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") { dismiss() }
+                    Button("common.done") { dismiss() }
                 }
             }
             .task {
@@ -224,7 +257,7 @@ private struct CaseCard: View {
                 Text(evidenceCase.title)
                     .font(.headline)
                     .foregroundStyle(.primary)
-                Text(evidenceCase.kind.rawValue)
+                Text(evidenceCase.kind.localizedName)
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 HStack(spacing: 12) {
@@ -236,7 +269,7 @@ private struct CaseCard: View {
                 .foregroundStyle(.secondary)
             }
 
-            Spacer()
+            Spacer(minLength: 8)
             Image(systemName: "chevron.right")
                 .font(.caption.bold())
                 .foregroundStyle(.tertiary)
@@ -244,6 +277,16 @@ private struct CaseCard: View {
         }
         .padding(15)
         .background(.background, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(
+            L10n.format(
+                "accessibility.case_card",
+                evidenceCase.title,
+                evidenceCase.kind.localizedName,
+                evidenceCase.evidence.count,
+                evidenceCase.seals.count
+            )
+        )
     }
 }
 
@@ -256,29 +299,29 @@ private struct NewCaseView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("Case") {
-                    TextField("Short factual title", text: $title)
-                    Picker("Type", selection: $kind) {
+                Section("case.section") {
+                    TextField("case.title_placeholder", text: $title)
+                    Picker("case.type", selection: $kind) {
                         ForEach(EvidenceCaseKind.allCases) { option in
-                            Label(option.rawValue, systemImage: option.symbol)
+                            Label(option.localizedName, systemImage: option.symbol)
                                 .tag(option)
                         }
                     }
                 }
 
                 Section {
-                    Text("Use one case for one real-world situation. You can add notes, photos and documents to its timeline as the record grows.")
+                    Text("case.new.help")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
             }
-            .navigationTitle("New Case")
+            .navigationTitle("case.new.title")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
+                    Button("common.cancel") { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Create") {
+                    Button("common.create") {
                         store.createCase(title: title, kind: kind)
                         dismiss()
                     }

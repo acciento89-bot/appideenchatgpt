@@ -33,13 +33,13 @@ struct AddEvidenceView: View {
 
                 IntegritySection()
             }
-            .navigationTitle("Add Evidence")
+            .navigationTitle("evidence.add.title")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
+                    Button("common.cancel") { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Save", action: save)
+                    Button("common.save", action: save)
                         .disabled(!canSave || isLoadingMedia)
                 }
             }
@@ -69,10 +69,10 @@ struct AddEvidenceView: View {
                 )
                 .ignoresSafeArea()
             }
-            .alert("Could not add evidence", isPresented: errorAlertBinding) {
-                Button("OK", role: .cancel) { errorMessage = nil }
+            .alert("evidence.alert_add_failed", isPresented: errorAlertBinding) {
+                Button("common.ok", role: .cancel) { errorMessage = nil }
             } message: {
-                Text(errorMessage ?? "Unknown error")
+                Text(errorMessage ?? L10n.string("common.unknown_error"))
             }
         }
     }
@@ -163,16 +163,20 @@ private struct EvidenceFieldsSection: View {
     @Binding var note: String
 
     var body: some View {
-        Section("Evidence") {
-            Picker("Type", selection: $kind) {
+        Section("evidence.section") {
+            Picker("case.type", selection: $kind) {
                 ForEach(EvidenceItemKind.allCases) { option in
-                    Label(option.rawValue, systemImage: option.symbol).tag(option)
+                    Label(option.localizedName, systemImage: option.symbol).tag(option)
                 }
             }
-            TextField("Source or context (optional)", text: $source)
+            TextField("evidence.source_placeholder", text: $source)
             VStack(alignment: .leading, spacing: 8) {
-                Text("Factual note").font(.caption).foregroundStyle(.secondary)
-                TextEditor(text: $note).frame(minHeight: 120)
+                Text("evidence.factual_note")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                TextEditor(text: $note)
+                    .frame(minHeight: 120)
+                    .accessibilityLabel(Text("evidence.factual_note"))
             }
         }
     }
@@ -186,29 +190,29 @@ private struct MediaSelectionSection: View {
     let isLoadingMedia: Bool
 
     var body: some View {
-        Section("Original media") {
+        Section("media.section") {
             Button {
                 showsCamera = true
             } label: {
-                Label("Take photo", systemImage: "camera")
+                Label("media.take_photo", systemImage: "camera")
             }
             .disabled(!UIImagePickerController.isSourceTypeAvailable(.camera))
 
             PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
-                Label("Choose photo", systemImage: "photo.on.rectangle")
+                Label("media.choose_photo", systemImage: "photo.on.rectangle")
             }
 
             Button {
                 showsFileImporter = true
             } label: {
-                Label("Choose file or PDF", systemImage: "doc.badge.plus")
+                Label("media.choose_file", systemImage: "doc.badge.plus")
             }
 
             if isLoadingMedia {
                 LoadingMediaRow()
             } else if let mediaDraft {
                 SelectedMediaSummary(mediaDraft: mediaDraft)
-                Button("Remove selected media", role: .destructive) {
+                Button("media.remove", role: .destructive) {
                     self.mediaDraft = nil
                     selectedPhotoItem = nil
                 }
@@ -221,8 +225,9 @@ private struct LoadingMediaRow: View {
     var body: some View {
         HStack(spacing: 10) {
             ProgressView()
-            Text("Reading original file…").foregroundStyle(.secondary)
+            Text("media.reading").foregroundStyle(.secondary)
         }
+        .accessibilityElement(children: .combine)
     }
 }
 
@@ -247,20 +252,21 @@ private struct SelectedMediaSummary: View {
             Text(fileSize).font(.caption).foregroundStyle(.secondary)
             Text(typeIdentifier).font(.caption2.monospaced()).foregroundStyle(.tertiary)
         }
+        .accessibilityElement(children: .combine)
     }
 }
 
 private struct IntegritySection: View {
     var body: some View {
-        Section("Integrity") {
+        Section("integrity.section") {
             Label(
-                "The stored media bytes receive their own SHA-256 hash. The evidence record hash also includes that media hash.",
+                L10n.string("integrity.media_hash_help"),
                 systemImage: "number"
             )
             .font(.footnote)
             .foregroundStyle(.secondary)
 
-            Text("Media is copied into Evidaro's private Application Support storage. The foundation still makes no claim of legal certification or admissibility.")
+            Text("integrity.storage_help")
                 .font(.footnote)
                 .foregroundStyle(.secondary)
         }
@@ -329,9 +335,9 @@ private enum MediaImportError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .noData:
-            "The selected photo could not be read."
+            L10n.string("evidence.error_photo_read")
         case .cameraEncodingFailed:
-            "The captured photo could not be encoded for storage."
+            L10n.string("evidence.error_camera_encode")
         }
     }
 }

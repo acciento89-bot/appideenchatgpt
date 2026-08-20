@@ -33,28 +33,34 @@ struct CaseDetailView: View {
                     EvidencePackShareSheet(url: shareItem.url)
                         .ignoresSafeArea()
                 }
-                .alert("Snapshot sealed", isPresented: Binding(
+                .alert("snapshot.sealed_title", isPresented: Binding(
                     get: { latestSeal != nil },
                     set: { if !$0 { latestSeal = nil } }
                 )) {
-                    Button("OK", role: .cancel) { latestSeal = nil }
+                    Button("common.ok", role: .cancel) { latestSeal = nil }
                 } message: {
                     if let latestSeal {
-                        Text("\(latestSeal.itemCount) evidence item(s) are represented by manifest hash \(latestSeal.manifestHash.prefix(12))…")
+                        Text(
+                            L10n.format(
+                                "snapshot.sealed_message",
+                                latestSeal.itemCount,
+                                String(latestSeal.manifestHash.prefix(12))
+                            )
+                        )
                     }
                 }
-                .alert("Evidence pack export failed", isPresented: Binding(
+                .alert("pdf.export_failed", isPresented: Binding(
                     get: { evidencePackError != nil },
                     set: { if !$0 { evidencePackError = nil } }
                 )) {
-                    Button("OK", role: .cancel) { evidencePackError = nil }
+                    Button("common.ok", role: .cancel) { evidencePackError = nil }
                 } message: {
                     if let evidencePackError {
                         Text(evidencePackError)
                     }
                 }
             } else {
-                ContentUnavailableView("Case unavailable", systemImage: "exclamationmark.triangle")
+                ContentUnavailableView("case.unavailable", systemImage: "exclamationmark.triangle")
             }
         }
     }
@@ -65,21 +71,28 @@ struct CaseDetailView: View {
                 .font(.title2.weight(.semibold))
                 .frame(width: 52, height: 52)
                 .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: 5) {
-                Text(evidenceCase.kind.rawValue)
+                Text(evidenceCase.kind.localizedName)
                     .font(.subheadline.bold())
-                Text("Created \(evidenceCase.createdAt.formatted(date: .abbreviated, time: .shortened))")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                Text("Case ID \(evidenceCase.id.uuidString.prefix(8))")
+                Text(
+                    L10n.format(
+                        "case.created",
+                        evidenceCase.createdAt.formatted(date: .abbreviated, time: .shortened)
+                    )
+                )
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                Text(L10n.format("case.id", String(evidenceCase.id.uuidString.prefix(8))))
                     .font(.caption2.monospaced())
                     .foregroundStyle(.tertiary)
             }
-            Spacer()
+            Spacer(minLength: 8)
         }
         .padding(16)
         .background(.background, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .accessibilityElement(children: .combine)
     }
 
     private func actionRow(_ evidenceCase: EvidenceCase) -> some View {
@@ -87,27 +100,21 @@ struct CaseDetailView: View {
             Button {
                 showsAddEvidence = true
             } label: {
-                Label("Add evidence", systemImage: "plus.circle.fill")
+                Label("evidence.add", systemImage: "plus.circle.fill")
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)
 
-            HStack(spacing: 10) {
-                Button {
-                    latestSeal = store.seal(caseID: caseID)
-                } label: {
-                    Label("Seal snapshot", systemImage: "checkmark.seal")
-                        .frame(maxWidth: .infinity)
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 10) {
+                    sealButton(evidenceCase)
+                    shareManifestButton(evidenceCase)
                 }
-                .buttonStyle(.bordered)
-                .disabled(evidenceCase.evidence.isEmpty)
 
-                ShareLink(item: store.shareManifest(caseID: caseID)) {
-                    Label("Share manifest", systemImage: "square.and.arrow.up")
-                        .frame(maxWidth: .infinity)
+                VStack(spacing: 10) {
+                    sealButton(evidenceCase)
+                    shareManifestButton(evidenceCase)
                 }
-                .buttonStyle(.bordered)
-                .disabled(evidenceCase.evidence.isEmpty)
             }
 
             Button {
@@ -119,7 +126,7 @@ struct CaseDetailView: View {
                             .controlSize(.small)
                     }
                     Label(
-                        isGeneratingEvidencePack ? "Building verified PDF…" : "Build & share PDF evidence pack",
+                        isGeneratingEvidencePack ? L10n.string("pdf.building") : L10n.string("pdf.build_share"),
                         systemImage: "doc.richtext"
                     )
                 }
@@ -130,16 +137,37 @@ struct CaseDetailView: View {
         }
     }
 
+    private func sealButton(_ evidenceCase: EvidenceCase) -> some View {
+        Button {
+            latestSeal = store.seal(caseID: caseID)
+        } label: {
+            Label("snapshot.seal", systemImage: "checkmark.seal")
+                .frame(maxWidth: .infinity)
+        }
+        .buttonStyle(.bordered)
+        .disabled(evidenceCase.evidence.isEmpty)
+    }
+
+    private func shareManifestButton(_ evidenceCase: EvidenceCase) -> some View {
+        ShareLink(item: store.shareManifest(caseID: caseID)) {
+            Label("snapshot.share_manifest", systemImage: "square.and.arrow.up")
+                .frame(maxWidth: .infinity)
+        }
+        .buttonStyle(.bordered)
+        .disabled(evidenceCase.evidence.isEmpty)
+    }
+
     private func timeline(_ evidenceCase: EvidenceCase) -> some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Evidence timeline")
+            Text("evidence.timeline")
                 .font(.title3.bold())
+                .accessibilityHeading(.h2)
 
             if evidenceCase.evidence.isEmpty {
                 ContentUnavailableView(
-                    "No evidence yet",
+                    "evidence.empty.title",
                     systemImage: "paperclip",
-                    description: Text("Add the first factual note while the details are fresh.")
+                    description: Text("evidence.empty.description")
                 )
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 24)
@@ -155,8 +183,9 @@ struct CaseDetailView: View {
     private func seals(_ evidenceCase: EvidenceCase) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Text("Snapshot seals")
+                Text("snapshot.seals")
                     .font(.title3.bold())
+                    .accessibilityHeading(.h2)
                 Spacer()
                 Text("\(evidenceCase.seals.count)")
                     .font(.caption.bold())
@@ -166,7 +195,7 @@ struct CaseDetailView: View {
             }
 
             if evidenceCase.seals.isEmpty {
-                Text("No sealed snapshot yet. A seal records the current evidence-item hash list without preventing later additions.")
+                Text("snapshot.none")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
                     .padding(15)
@@ -176,8 +205,11 @@ struct CaseDetailView: View {
                 ForEach(evidenceCase.seals.sorted(by: { $0.createdAt > $1.createdAt })) { seal in
                     VStack(alignment: .leading, spacing: 7) {
                         HStack {
-                            Label("\(seal.itemCount) item snapshot", systemImage: "checkmark.seal.fill")
-                                .font(.subheadline.bold())
+                            Label(
+                                L10n.format("snapshot.item", seal.itemCount),
+                                systemImage: "checkmark.seal.fill"
+                            )
+                            .font(.subheadline.bold())
                             Spacer()
                             Text(seal.createdAt, style: .relative)
                                 .font(.caption)
@@ -187,6 +219,8 @@ struct CaseDetailView: View {
                             .font(.caption2.monospaced())
                             .foregroundStyle(.secondary)
                             .textSelection(.enabled)
+                            .accessibilityLabel(L10n.string("accessibility.hash_record"))
+                            .accessibilityValue(seal.manifestHash)
                     }
                     .padding(15)
                     .background(.background, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
@@ -226,12 +260,13 @@ private struct EvidenceRow: View {
                 .font(.subheadline.bold())
                 .frame(width: 38, height: 38)
                 .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: 9) {
                 HStack {
-                    Text(item.kind.rawValue)
+                    Text(item.kind.localizedName)
                         .font(.subheadline.bold())
-                    Spacer()
+                    Spacer(minLength: 8)
                     Text(item.recordedAt.formatted(date: .omitted, time: .shortened))
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -255,21 +290,27 @@ private struct EvidenceRow: View {
                             Label(originalName, systemImage: "paperclip")
                                 .font(.caption.bold())
                                 .lineLimit(1)
-                            Spacer()
+                            Spacer(minLength: 8)
                             if let mediaURL = store.mediaURL(for: item) {
                                 ShareLink(item: mediaURL) {
                                     Image(systemName: "square.and.arrow.up")
                                 }
                                 .buttonStyle(.plain)
-                                .accessibilityLabel("Share original media")
+                                .accessibilityLabel(Text("evidence.share_original"))
                             }
                         }
 
-                        Text("Original SHA-256  \(mediaHash)")
-                            .font(.caption2.monospaced())
-                            .foregroundStyle(.secondary)
-                            .lineLimit(2)
-                            .textSelection(.enabled)
+                        HStack(alignment: .firstTextBaseline, spacing: 5) {
+                            Text("evidence.original_sha")
+                            Text(mediaHash)
+                                .textSelection(.enabled)
+                        }
+                        .font(.caption2.monospaced())
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                        .accessibilityElement(children: .ignore)
+                        .accessibilityLabel(L10n.string("accessibility.hash_original"))
+                        .accessibilityValue(mediaHash)
                     }
                     .padding(10)
                     .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
@@ -281,12 +322,17 @@ private struct EvidenceRow: View {
 
                 HStack(spacing: 5) {
                     Image(systemName: "number")
-                    Text("Record \(item.contentHash)")
+                        .accessibilityHidden(true)
+                    Text("evidence.record_sha")
+                    Text(item.contentHash)
                         .lineLimit(1)
+                        .textSelection(.enabled)
                 }
                 .font(.caption2.monospaced())
                 .foregroundStyle(.tertiary)
-                .textSelection(.enabled)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(L10n.string("accessibility.hash_record"))
+                .accessibilityValue(item.contentHash)
             }
         }
         .padding(15)
@@ -297,14 +343,14 @@ private struct EvidenceRow: View {
     private var recognizedTextSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
-                Label("Recognized text", systemImage: "text.viewfinder")
+                Label("evidence.recognized_text", systemImage: "text.viewfinder")
                     .font(.caption.bold())
-                Spacer()
+                Spacer(minLength: 8)
                 if isRecognizingText {
                     ProgressView()
                         .controlSize(.small)
                 } else {
-                    Button(item.hasRecognizedTextResult ? "Refresh" : "Recognize") {
+                    Button(item.hasRecognizedTextResult ? L10n.string("evidence.refresh") : L10n.string("evidence.recognize")) {
                         runRecognition()
                     }
                     .font(.caption.bold())
@@ -319,17 +365,18 @@ private struct EvidenceRow: View {
                         .textSelection(.enabled)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 } else {
-                    Text("No text detected in this original.")
+                    Text("evidence.no_text")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
 
                 HStack(spacing: 6) {
                     if let pageCount = item.recognizedTextPageCount {
-                        Text(pageCount == 1 ? "1 page/image" : "\(pageCount) pages")
+                        Text(pageCount == 1 ? L10n.string("evidence.one_page") : L10n.format("evidence.pages", pageCount))
                     }
                     if let recognizedAt = item.recognizedTextAt {
                         Text("•")
+                            .accessibilityHidden(true)
                         Text(recognizedAt, style: .relative)
                     }
                 }
@@ -343,7 +390,7 @@ private struct EvidenceRow: View {
                     .foregroundStyle(.red)
             }
 
-            Text("Derived locally with Apple Vision. OCR is not part of the original media SHA-256, evidence-record SHA-256, or snapshot seals and can be refreshed without rewriting them.")
+            Text("evidence.ocr_trust")
                 .font(.caption2)
                 .foregroundStyle(.secondary)
         }

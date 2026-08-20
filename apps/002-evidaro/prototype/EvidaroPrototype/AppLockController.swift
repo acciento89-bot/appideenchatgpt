@@ -16,7 +16,7 @@ struct SystemAppLockAuthenticator: AppLockAuthenticating {
 
     func authenticate(reason: String) async throws -> Bool {
         let context = LAContext()
-        context.localizedCancelTitle = "Cancel"
+        context.localizedCancelTitle = L10n.string("common.cancel")
         return try await withCheckedThrowingContinuation { continuation in
             context.evaluatePolicy(.deviceOwnerAuthentication, localizedReason: reason) { success, error in
                 if let error {
@@ -75,12 +75,12 @@ final class AppLockController: ObservableObject {
         }
 
         guard isAuthenticationAvailable else {
-            lastError = "Device authentication is not available. Set a device passcode or biometric authentication first."
+            lastError = L10n.string("privacy_lock.system_unavailable_setup")
             return false
         }
 
         let authenticated = await authenticate(
-            reason: "Enable the Evidaro privacy lock for your evidence cases."
+            reason: L10n.string("privacy_lock.enable_reason")
         )
         guard authenticated else { return false }
 
@@ -99,7 +99,7 @@ final class AppLockController: ObservableObject {
     @discardableResult
     func unlockIfNeeded() async -> Bool {
         guard needsUnlock else { return true }
-        return await authenticate(reason: "Unlock Evidaro to view your evidence cases.")
+        return await authenticate(reason: L10n.string("privacy_lock.unlock_reason"))
     }
 
     @discardableResult
@@ -107,7 +107,7 @@ final class AppLockController: ObservableObject {
         guard !isAuthenticating else { return false }
         refreshAvailability()
         guard isAuthenticationAvailable else {
-            lastError = "Device authentication is not available."
+            lastError = L10n.string("privacy_lock.system_unavailable")
             return false
         }
 
@@ -120,7 +120,7 @@ final class AppLockController: ObservableObject {
             if success {
                 isUnlocked = true
             } else {
-                lastError = "Authentication was not completed."
+                lastError = L10n.string("privacy_lock.system_not_completed")
             }
             return success
         } catch {
@@ -148,6 +148,20 @@ enum AppLockSmokeRunner {
 
     static func runIfRequested() async {
         let arguments = CommandLine.arguments
+
+        if arguments.contains("--evidaro-localization-smoke") {
+            do {
+                let result = try verifyGermanLocalization()
+                try writeResult(result, fileName: "localization-verified.txt")
+                print("EVIDARO_LOCALIZATION_SMOKE SUCCESS: \(result)")
+            } catch {
+                let message = "localization failed: \(error.localizedDescription)"
+                try? writeResult(message, fileName: "localization-failed.txt")
+                assertionFailure("EVIDARO_LOCALIZATION_SMOKE FAILURE: \(message)")
+            }
+            return
+        }
+
         guard let flagIndex = arguments.firstIndex(of: "--evidaro-app-lock-smoke"),
               arguments.indices.contains(flagIndex + 1) else {
             return
@@ -174,6 +188,24 @@ enum AppLockSmokeRunner {
             try? writeResult(message, fileName: "lock-failed.txt")
             assertionFailure("EVIDARO_APP_LOCK_SMOKE FAILURE: \(message)")
         }
+    }
+
+    private static func verifyGermanLocalization() throws -> String {
+        let cases = L10n.string("home.cases")
+        let property = EvidenceCaseKind.property.localizedName
+        let camera = Bundle.main.localizedInfoDictionary?["NSCameraUsageDescription"] as? String
+        let faceID = Bundle.main.localizedInfoDictionary?["NSFaceIDUsageDescription"] as? String
+
+        guard cases == "Fälle",
+              property == "Immobilie",
+              camera == "Nimm Fotos direkt in einen Evidaro-Beweisdatensatz auf.",
+              faceID == "Entsperre Evidaro, um lokal gespeicherte Beweisfälle anzuzeigen." else {
+            throw AppLockSmokeError.localizationMismatch(
+                "cases=\(cases) property=\(property) camera=\(camera ?? "nil") faceID=\(faceID ?? "nil")"
+            )
+        }
+
+        return "localization-verified language=de cases=Fälle property=Immobilie camera=localized faceID=localized"
     }
 
     private static func prepare() async throws -> String {
@@ -243,6 +275,7 @@ private enum AppLockSmokeError: LocalizedError {
     case preferenceDidNotPersist
     case unlockFailed
     case disableFailed
+    case localizationMismatch(String)
 
     var errorDescription: String? {
         switch self {
@@ -262,6 +295,8 @@ private enum AppLockSmokeError: LocalizedError {
             "The persisted privacy lock could not be unlocked after process relaunch."
         case .disableFailed:
             "The privacy lock could not be disabled after verification."
+        case .localizationMismatch(let detail):
+            "The German localization runtime smoke did not resolve the expected values: \(detail)"
         }
     }
 }
