@@ -35,6 +35,10 @@
 "locked.subtitle" = "Authenticate with your device to view locally stored evidence cases.";
 "locked.authenticating" = "Authenticating…";
 "locked.unlock" = "Unlock Evidaro";
+"Evidaro is locked" = "Evidaro is locked";
+"Authenticate with your device to view locally stored evidence cases." = "Authenticate with your device to view locally stored evidence cases.";
+"Authenticating…" = "Authenticating…";
+"Unlock Evidaro" = "Unlock Evidaro";
 
 "case.section" = "Case";
 "case.title_placeholder" = "Short factual title";
@@ -150,3 +154,4 @@
 "accessibility.case_card" = "%@, %@, %ld evidence items, %ld seals";
 "accessibility.hash_original" = "Original SHA-256 hash";
 "accessibility.hash_record" = "Evidence record SHA-256 hash";
+"accessibility.hash_manifest" = "Snapshot manifest SHA-256 hash";
