@@ -14,6 +14,7 @@
 		A20000000000000000000005 /* CaseDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000005 /* CaseDetailView.swift */; };
 		A20000000000000000000006 /* AddEvidenceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000006 /* AddEvidenceView.swift */; };
 		A20000000000000000000007 /* EvidencePackExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000008 /* EvidencePackExporter.swift */; };
+		A20000000000000000000008 /* AppLockController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000009 /* AppLockController.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -25,6 +26,7 @@
 		B20000000000000000000006 /* AddEvidenceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddEvidenceView.swift; sourceTree = "<group>"; };
 		B20000000000000000000007 /* EvidaroPrototype.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = EvidaroPrototype.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B20000000000000000000008 /* EvidencePackExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EvidencePackExporter.swift; sourceTree = "<group>"; };
+		B20000000000000000000009 /* AppLockController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLockController.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -50,6 +52,7 @@
 			isa = PBXGroup;
 			children = (
 				B20000000000000000000001 /* EvidaroPrototypeApp.swift */,
+				B20000000000000000000009 /* AppLockController.swift */,
 				B20000000000000000000002 /* Models.swift */,
 				B20000000000000000000003 /* EvidenceStore.swift */,
 				B20000000000000000000008 /* EvidencePackExporter.swift */,
@@ -139,6 +142,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				A20000000000000000000001 /* EvidaroPrototypeApp.swift in Sources */,
+				A20000000000000000000008 /* AppLockController.swift in Sources */,
 				A20000000000000000000002 /* Models.swift in Sources */,
 				A20000000000000000000003 /* EvidenceStore.swift in Sources */,
 				A20000000000000000000007 /* EvidencePackExporter.swift in Sources */,
@@ -245,6 +249,7 @@
 				INFOPLIST_KEY_CFBundleDisplayName = Evidaro;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Capture photos directly into an Evidaro evidence record.";
+				INFOPLIST_KEY_NSFaceIDUsageDescription = "Unlock Evidaro to view locally stored evidence cases.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -270,6 +275,7 @@
 				INFOPLIST_KEY_CFBundleDisplayName = Evidaro;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Capture photos directly into an Evidaro evidence record.";
+				INFOPLIST_KEY_NSFaceIDUsageDescription = "Unlock Evidaro to view locally stored evidence cases.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

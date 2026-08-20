@@ -1,7 +1,7 @@
 # Evidaro — Project State
 
 Last updated: 2026-08-20
-Status: ACTIVE — PASS 4 LOCAL OCR GREEN PRE-MERGE / FINAL DOC-ALIGNED GATE REQUIRED
+Status: ACTIVE — PASS 6 PRIVACY LOCK SOURCE GATE GREEN / FINAL DOC-ALIGNED GATE REQUIRED
 Portfolio slot: #002 (original working title: ProofVault)
 Repository: `acciento89-bot/appideenchatgpt`
 Implementation path: `apps/002-evidaro/prototype/`
@@ -16,6 +16,7 @@ For future work:
 3. Inspect current `main`, open PRs and CI before code changes.
 4. Update this file after every major product/release pass.
 5. Do not call a workflow green if a relevant job failed.
+6. Do not merge a major pass until the exact final documentation-aligned head has completed the full relevant gate successfully.
 
 ## Naming
 
@@ -29,7 +30,7 @@ Current working public-name candidate: **Evidaro**.
 
 > Capture facts while they are fresh. Seal evidence you can verify later.
 
-Evidaro is not another receipt/document filing cabinet. It is a local-first evidence-case app for real-world situations where a user may later need a trustworthy timeline and a clean proof pack.
+Evidaro is a local-first evidence-case app for real-world situations where a user may later need a trustworthy timeline and a clean proof pack.
 
 Primary examples:
 - rental handovers and property damage
@@ -42,7 +43,7 @@ Primary examples:
 
 ## Core loop
 
-**Create case -> Capture evidence -> Hash each item -> Review timeline -> Seal snapshot -> Share/export manifest**
+**Create case -> Capture evidence -> Hash each item -> Review timeline -> Seal snapshot -> Build/share evidence pack**
 
 A seal never rewrites previous evidence. Future additions create a newer snapshot while older seal hashes remain visible.
 
@@ -53,9 +54,11 @@ A seal never rewrites previous evidence. Future additions create a newer snapsho
 - no hidden edits to sealed manifest history
 - hashes are integrity aids, not legal certification
 - v1 stays local-first; no evidence upload to Kamilunavo servers
-- OCR is derived metadata only; the stored original bytes/hash remain the source of truth
+- OCR is derived metadata only; stored original bytes/hash remain the source of truth
+- generated PDF previews are derived renderings, not replacements for originals
+- privacy lock protects app access but does not change evidence hashes, seals or source bytes
 
-## Foundation pass 1 — GREEN / MERGED
+## Pass 1 — FOUNDATION — GREEN / MERGED
 
 PR #15 `Build portfolio app #002 Evidaro foundation` is merged to `main`.
 
@@ -66,7 +69,7 @@ Verified gate:
 - Xcode iOS Simulator build — SUCCESS
 - merge commit `3dbeef6e786e9d2ad528d34b28f66c4ab3890856`
 
-Foundation includes:
+Implemented:
 - native SwiftUI / iOS 17+ / iPhone first
 - provisional bundle id `de.kamilunavo.evidaro.prototype`
 - case dashboard + case creation
@@ -78,23 +81,9 @@ Foundation includes:
 - dedicated Xcode project/shared scheme
 - dedicated GitHub Actions simulator build gate
 
-## Pass 2 — GREEN / MERGED
+## Pass 2 — SWIFTDATA + HASHED MEDIA — GREEN / MERGED
 
 PR #20 `Add Evidaro SwiftData persistence and hashed media intake` is merged to `main`.
-
-Implemented:
-- SwiftData-backed EvidenceCase / EvidenceItem / EvidenceSeal models
-- persistent ModelContainer / ModelContext instead of in-memory-only state
-- local private media directory in Application Support
-- PhotosPicker intake for existing images
-- Files/PDF intake through fileImporter
-- imported original bytes copied into app-private storage
-- SHA-256 hash of original imported media bytes
-- evidence record hash includes the original-media hash
-- timeline surfaces original filename + original-media hash
-- original imported file can be shared back out
-- app-specific preflight expanded to gate persistence/media integrity
-- `AddEvidenceView` split into smaller SwiftUI components to avoid Xcode 26.6 type-checker timeouts
 
 Verified final gate:
 - final PR head `cef51f701627661b58822656641b8ce1c9f2b3a0`
@@ -104,35 +93,23 @@ Verified final gate:
 - Xcode iOS Simulator build — SUCCESS
 - merge commit `8874d78af3a7d4139743e5b2e9017ecd709cbdd2`
 
-Earlier red attempts were not merged:
-- run `32328781825` exposed a SwiftUI type-check timeout in `AddEvidenceView`
-- run `32328949495` confirmed the same bottleneck after a smaller expression-only change
-- the view was structurally decomposed; run `32329075367` passed, then the documentation-aligned final head also passed in run `32329202541`
+Implemented:
+- SwiftData-backed EvidenceCase / EvidenceItem / EvidenceSeal models
+- persistent ModelContainer / ModelContext
+- local private media directory in Application Support
+- PhotosPicker image intake
+- Files/PDF intake
+- imported original bytes copied into app-private storage
+- SHA-256 over original imported media bytes
+- evidence-record hash includes original-media hash
+- original filename/hash visible in timeline
+- original stored file can be shared back out
 
-## Pass 3 — GREEN / MERGED
+Historical red attempts were not merged; the SwiftUI type-check bottleneck was resolved before the final green head.
+
+## Pass 3 — CAMERA + PROCESS-RELAUNCH PERSISTENCE — GREEN / MERGED
 
 PR #22 `Add Evidaro camera capture and relaunch persistence gate` is merged to `main`.
-
-Implemented:
-- direct `Take photo` intake on camera-capable iPhones through the system camera controller
-- captured photo bytes use the same `EvidenceMediaDraft -> persistMedia -> SHA-256` path as imported media
-- camera privacy usage description is present in generated Info.plist settings for Debug and Release
-- `EvidenceStore` ownership moved to the app root so runtime validation and UI use the same persistent container
-- deterministic DEBUG-only persistence fixture covers one case, one evidence item, stored media bytes, media SHA-256, evidence-record SHA-256 and one snapshot seal
-- workflow boots an iPhone Simulator, installs the app, launches `prepare`, terminates that app process, launches `verify`, then requires the second process to recover and revalidate persisted case/media/hashes/seal
-- existing PhotosPicker and Files/PDF import behavior remains intact
-
-Verified source gate:
-- source head `feb9fb7a58f1a254f5661164e3a2dabfebc9a0bb`
-- workflow run `32330201515`
-- build job `96309243631`
-- Xcode 26.6 / build 17F113
-- camera/persistence preflight — SUCCESS
-- generic Xcode iOS Simulator build — SUCCESS
-- targeted iPhone 17 Pro Simulator build — SUCCESS
-- process 1 prepare — SUCCESS
-- process termination — SUCCESS
-- process 2 verify — SUCCESS
 
 Verified final documentation-aligned gate:
 - final PR head `1e9ff37129fc386ec278f0b3d2f5e58fa391ccfb`
@@ -150,79 +127,117 @@ Post-merge handoff:
 - merge commit `0be5e5e08bdd045bbb0994c1da508d9a86ab6951`
 
 Exact persisted integrity evidence across process restart:
-- case ID before/after: `11111111-1111-4111-8111-111111111111`
-- media SHA-256 before/after: `5e647718ecb46672d74a0cfa0416a8af0d7bca687ed0349fd146e1191f197728`
-- seal SHA-256 before/after: `f9799ea52f49197a71782d15f488545a5bd32cab7bd305e78e6aacc2b12450ff`
+- case ID: `11111111-1111-4111-8111-111111111111`
+- media SHA-256: `5e647718ecb46672d74a0cfa0416a8af0d7bca687ed0349fd146e1191f197728`
+- seal SHA-256: `f9799ea52f49197a71782d15f488545a5bd32cab7bd305e78e6aacc2b12450ff`
 
-Pass-3 boundary:
-- the automated gate proves compile-time camera integration and simulator process-relaunch persistence for case + evidence + stored media bytes + hashes + seal
-- it does **not** prove physical iPhone camera hardware, permission prompt UX or a real captured photo yet; that remains a device spot-check before release hardening
+Physical iPhone camera hardware / permission-prompt UX remains a release spot-check; simulator CI does not prove physical camera behavior.
 
-## Pass 4 — LOCAL DERIVED OCR / FIRST FULL GATE GREEN
+## Pass 4 — LOCAL DERIVED OCR — GREEN / MERGED
 
-PR #24 `Add local derived OCR with integrity gate` is open on branch `agent/002-evidaro-ocr`.
+PR #24 `Add local derived OCR with integrity gate` is merged to `main`.
+
+Final PR checkpoint:
+- final head `12d2f3b66f442648dd60c9dca842adb00c677f8e`
+- workflow run `32335559431` — SUCCESS
+- merge commit `ad3876dbac044759223d0bdf7a1c095e461bc16b`
 
 Implemented:
-- optional SwiftData OCR fields on each evidence item: recognized text, recognition timestamp, engine and page count
-- Apple Vision `VNRecognizeTextRequest` with accurate recognition, language correction and automatic language detection
-- image OCR from the original stored byte stream
-- PDF OCR by locally opening/rendering PDF pages and applying Vision per page
-- OCR runs as derived processing and never replaces the stored original file
-- original-media SHA-256 is recomputed before recognition; OCR aborts if stored bytes no longer match the saved hash
-- evidence media hash + evidence-record hash are checked again before derived OCR data is committed
-- OCR fields are intentionally excluded from `EvidenceHasher.itemHash` and the canonical snapshot manifest
-- timeline exposes `Recognize` / `Refresh`, recognized text, page count/time and explicit derived-data trust messaging
-- integrity manifest explicitly states that recognized text is excluded because it can be refreshed without changing original evidence bytes
-- DEBUG runtime fixture renders `EVIDARO 4827` into a PNG, seals the evidence before OCR, performs real Vision recognition, then verifies original media hash, evidence-record hash and the pre-existing seal remain unchanged
-- OCR result is then verified again after terminating and relaunching the app process
+- Apple Vision `VNRecognizeTextRequest` for stored images and PDFs
+- derived SwiftData fields for recognized text, recognition time, engine and page count
+- original-media SHA-256 re-validation before OCR
+- evidence-record/hash integrity guard before OCR result commit
+- OCR excluded from original-media SHA-256, evidence-record SHA-256 and snapshot seals
+- local-only OCR; no cloud OCR/upload
+- timeline `Recognize` / `Refresh` UX with explicit derived-data labeling
+- real simulator Vision fixture containing `EVIDARO 4827`
+- OCR process-relaunch persistence verification
+
+Exact OCR integrity evidence:
+- recognized text before/after restart: `EVIDARO 4827`
+- media SHA-256: `d94f8834fd845ea011f36f753c9ddb91d7dd1dbb24ac2e5b04d7b508d9724355`
+- evidence-record SHA-256: `dee235dd17e24fdb04b6a215d4077e03acaea41872c681da55edd996bebaea42`
+- pre-OCR seal unchanged after OCR/restart: `86fc0200ebf3c861c686c693cc42437c7ab8716d98f7b42ff158140f71aa4ed8`
+
+Physical-device OCR remains a release spot-check. OCR text is never treated as authoritative evidence.
+
+## Pass 5 — INTEGRITY-CHECKED PDF EVIDENCE PACK — GREEN / MERGED
+
+PR #27 `Add integrity-checked PDF evidence packs` is merged to `main`.
+
+Final PR checkpoint:
+- final head `501b136cb5453b0f9037038cd227dfbaad672884`
+- workflow run `32338976678` — SUCCESS
+- merge commit `22f8b560c2529fb064feaa591b901acecf8da573`
+
+Implemented:
+- local multi-page A4 PDF evidence pack
+- case identity, timeline metadata, full media/evidence-record SHA-256 values and seal history
+- current manifest status
+- labeled image previews and every page of imported PDFs
+- OCR included only as clearly labeled derived metadata
+- original-media hash verification before and after rendering
+- evidence-record verification before export
+- seal consistency guard
+- export discarded if case/hash/seal anchors change during generation
+- one-tap `Build & share PDF` UX
+- process-relaunch PDF gate that requires parsed case/hash/seal/OCR/legal text and identical PDF SHA-256 across restart
+
+Pass-5 runtime evidence subsequently exercised in the Pass-6 combined gate:
+- generated pages: `4`
+- PDF SHA-256 before/after restart: `2f901b49ce4eb6a8aca2cd5d94e6c7c9319a4f314ab746597ca51dac2f0846b2`
+
+## Pass 6 — OPTIONAL DEVICE-AUTH PRIVACY LOCK — SOURCE GATE GREEN / OPEN PR
+
+PR #28 `Add optional device-auth privacy lock` is open on branch `agent/002-evidaro-app-lock`.
+
+Implemented:
+- optional app-level lock using `LocalAuthentication`
+- device-owner authentication allows Face ID, Touch ID or device passcode according to device configuration
+- lock disabled by default
+- successful device-owner authentication required before enabling
+- app relocks when moving to background
+- evidence-case UI hidden behind a dedicated locked-content gate while enabled
+- Settings UI for enable/disable and local-data explanation
+- `NSFaceIDUsageDescription` wired for Debug and Release generated Info.plist
+- privacy-lock state is separate from evidence bytes, hashes, OCR, seals and PDF export
+- deterministic DEBUG authenticator for automated lifecycle/persistence smoke only
 
 First verified full source gate:
-- source head `848e365961f6e764948f1920ebf8ef4714af3588`
-- workflow run `32335007814`
-- build job `96322753291`
+- source head `565c30561aa60084acc89f7811bb545e3a340265`
+- workflow run `32349658489`
+- build job `96365827349`
 - Xcode 26.6 / build 17F113
-- OCR/camera/persistence preflight — SUCCESS
+- preflight — SUCCESS
 - generic Xcode iOS Simulator build — SUCCESS
-- targeted iPhone Simulator runtime build — SUCCESS
-- existing two-process persistence smoke — SUCCESS
-- Apple Vision OCR smoke — SUCCESS
-- OCR process-relaunch persistence verification — SUCCESS
+- combined persistence + OCR + PDF + privacy-lock process-relaunch gate — SUCCESS
 
-Exact OCR integrity evidence from the green runtime gate:
-- recognized text before restart: `EVIDARO 4827`
-- recognized text after restart: `EVIDARO 4827`
-- OCR fixture media SHA-256 before/after: `d94f8834fd845ea011f36f753c9ddb91d7dd1dbb24ac2e5b04d7b508d9724355`
-- OCR fixture evidence-record SHA-256 before/after: `dee235dd17e24fdb04b6a215d4077e03acaea41872c681da55edd996bebaea42`
-- seal created before OCR and unchanged after OCR/restart: `86fc0200ebf3c861c686c693cc42437c7ab8716d98f7b42ff158140f71aa4ed8`
+Exact privacy-lock smoke evidence:
+- process 1: `lock-prepared enabled=true locked=true preference=true`
+- process 2: `lock-verified persisted=true unlocked=true disabled=true`
 
-Pass-4 boundary:
-- the gate proves real Apple Vision recognition in an iPhone Simulator runtime, derived OCR persistence across app-process restart, and unchanged original evidence hashes/seal in that tested path
-- this is **not yet physical-iPhone OCR validation**
-- physical iPhone camera hardware / permission UX remains separately open
-- no claim is made that OCR text is authoritative; users must be able to compare it with the original evidence
+The automated privacy-lock smoke proves app state/lifecycle/persistence behavior using a deterministic DEBUG authenticator. It does **not** claim real Face ID/Touch ID hardware prompt validation. Physical device-owner-auth prompt UX remains a release spot-check.
 
-Because this state/spec documentation advances PR #24 beyond the first green source head, the exact final documentation-aligned PR head must complete the full preflight + Xcode + persistence + Vision OCR + relaunch gate before merge.
+Because this documentation commit advances PR #28 beyond the first green source head, the exact final documentation-aligned head must complete the same full preflight + Xcode + persistence + OCR + PDF + privacy-lock gate before merge.
 
-## Intentionally deferred after Pass 4
+## Open physical/release checks
 
-1. physical-device camera validation and camera-permission UX spot check
+1. physical iPhone camera capture + permission UX
 2. physical-device OCR spot check
-3. PDF evidence-pack export
-4. optional location/context metadata
-5. Face ID/privacy lock
-6. DE/EN localization
-7. accessibility / Dynamic Type hardening
-8. App Store icon/identity
-9. StoreKit Pro entitlement and final monetization
-10. signed TestFlight / App Store record
+3. physical Face ID/Touch ID/device-passcode lock UX
+4. DE/EN localization review on device
+5. VoiceOver / Dynamic Type / accessibility review
+6. App Store icon / identity and final naming due diligence
+7. final monetization / StoreKit Pro entitlement
+8. signed TestFlight / App Store record
 
 ## Monetization direction
 
-Portfolio plan remains Freemium + Pro. Do not force a subscription. Current likely direction is a useful free tier plus one-time Pro unless later economics clearly require recurring cloud costs.
+Portfolio plan remains Freemium + Pro. Do not force a subscription. Current likely direction is a genuinely useful free tier plus one-time Lifetime Pro while the product remains local-first, unless recurring hosted costs later justify a subscription.
 
 ## Next gate
 
-1. Run the complete Evidaro workflow on the exact documentation-aligned PR #24 head.
-2. Merge PR #24 only if preflight + compile + existing persistence smoke + Vision OCR + OCR relaunch verification are all green on that exact head.
-3. Record the final merge checkpoint in app-specific and portfolio handoff state.
-4. Then build the PDF evidence-pack export while keeping original media, per-item hashes, seals and derived OCR provenance unambiguous.
+1. Run the complete Evidaro workflow on the exact documentation-aligned PR #28 head.
+2. Merge PR #28 only if preflight + compile + persistence + Vision OCR + PDF evidence pack + privacy-lock process-relaunch checks are all green on that exact head.
+3. Record the final merge checkpoint.
+4. Start Pass 7: DE/EN localization plus VoiceOver / Dynamic Type / accessibility hardening while preserving all prior integrity gates.

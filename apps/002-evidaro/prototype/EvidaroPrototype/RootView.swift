@@ -2,7 +2,9 @@ import SwiftUI
 
 struct RootView: View {
     @ObservedObject var store: EvidenceStore
+    @ObservedObject var appLock: AppLockController
     @State private var showsNewCase = false
+    @State private var showsSettings = false
 
     var body: some View {
         NavigationStack {
@@ -50,8 +52,21 @@ struct RootView: View {
             .background(Color(uiColor: .systemGroupedBackground))
             .navigationTitle("Evidaro")
             .toolbarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        showsSettings = true
+                    } label: {
+                        Image(systemName: "gearshape")
+                    }
+                    .accessibilityLabel("Settings")
+                }
+            }
             .sheet(isPresented: $showsNewCase) {
                 NewCaseView(store: store)
+            }
+            .sheet(isPresented: $showsSettings) {
+                PrivacySettingsView(appLock: appLock)
             }
         }
     }
@@ -63,6 +78,7 @@ struct RootView: View {
                     .font(.system(size: 28, weight: .bold))
                     .frame(width: 52, height: 52)
                     .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .accessibilityHidden(true)
 
                 VStack(alignment: .leading, spacing: 3) {
                     Text("Capture facts. Seal the record.")
@@ -91,6 +107,83 @@ struct RootView: View {
     }
 }
 
+private struct PrivacySettingsView: View {
+    @ObservedObject var appLock: AppLockController
+    @Environment(\.dismiss) private var dismiss
+    @State private var isUpdating = false
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("Privacy Lock") {
+                    Toggle(
+                        "Require device authentication",
+                        isOn: Binding(
+                            get: { appLock.isEnabled },
+                            set: { newValue in
+                                Task { await updateLock(newValue) }
+                            }
+                        )
+                    )
+                    .disabled(isUpdating || (!appLock.isAuthenticationAvailable && !appLock.isEnabled))
+
+                    Text("When enabled, Evidaro locks after the app moves to the background. Unlocking uses the authentication configured on this iPhone, such as Face ID, Touch ID, or the device passcode.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+
+                    if !appLock.isAuthenticationAvailable && !appLock.isEnabled {
+                        Label(
+                            "Device authentication is unavailable. Configure a device passcode or biometric authentication first.",
+                            systemImage: "exclamationmark.triangle"
+                        )
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                    }
+
+                    if isUpdating || appLock.isAuthenticating {
+                        HStack(spacing: 10) {
+                            ProgressView()
+                            Text("Confirming device authentication…")
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+
+                    if let error = appLock.lastError, !error.isEmpty {
+                        Text(error)
+                            .font(.footnote)
+                            .foregroundStyle(.red)
+                    }
+                }
+
+                Section("Data boundary") {
+                    Label("Evidence stays local to this device in the current v1 architecture.", systemImage: "iphone")
+                    Text("The privacy lock protects access to the app. It does not change original evidence bytes, SHA-256 values, OCR provenance, snapshot seals, or exported evidence packs.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .navigationTitle("Settings")
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") { dismiss() }
+                }
+            }
+            .task {
+                appLock.refreshAvailability()
+            }
+        }
+    }
+
+    @MainActor
+    private func updateLock(_ newValue: Bool) async {
+        guard !isUpdating else { return }
+        isUpdating = true
+        defer { isUpdating = false }
+        _ = await appLock.setEnabled(newValue)
+    }
+}
+
 private struct StatCard: View {
     let value: String
     let label: String
@@ -100,6 +193,7 @@ private struct StatCard: View {
         VStack(alignment: .leading, spacing: 7) {
             Image(systemName: symbol)
                 .foregroundStyle(.secondary)
+                .accessibilityHidden(true)
             Text(value)
                 .font(.title2.bold())
                 .contentTransition(.numericText())
@@ -110,6 +204,8 @@ private struct StatCard: View {
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(.background, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(label): \(value)")
     }
 }
 
@@ -122,6 +218,7 @@ private struct CaseCard: View {
                 .font(.title3.weight(.semibold))
                 .frame(width: 44, height: 44)
                 .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: 5) {
                 Text(evidenceCase.title)
@@ -143,6 +240,7 @@ private struct CaseCard: View {
             Image(systemName: "chevron.right")
                 .font(.caption.bold())
                 .foregroundStyle(.tertiary)
+                .accessibilityHidden(true)
         }
         .padding(15)
         .background(.background, in: RoundedRectangle(cornerRadius: 18, style: .continuous))

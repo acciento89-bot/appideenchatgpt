@@ -37,7 +37,7 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             build 2>&1 | tee /tmp/evidaro-build.log
 
-      - name: Verify persistence, integrity, OCR and PDF evidence pack across process relaunch
+      - name: Verify persistence, integrity, OCR, PDF pack and privacy lock across process relaunch
         run: |
           set -euo pipefail
 
@@ -149,6 +149,29 @@ jobs:
           PACK_VERIFIED_HASH="$(sed -E 's/.*pdfHash=([0-9a-f]{64}).*/\1/' "${SMOKE_DIR}/pack-verified.txt")"
           test "${PACK_VERIFIED_HASH}" = "${PACK_PREPARED_HASH}"
           cat "${SMOKE_DIR}/pack-verified.txt"
+          xcrun simctl terminate "${DEVICE_UDID}" "${BUNDLE_ID}" || true
+
+          rm -f "${SMOKE_DIR}/lock-failed.txt" "${SMOKE_DIR}/lock-prepared.txt" "${SMOKE_DIR}/lock-verified.txt"
+          xcrun simctl launch "${DEVICE_UDID}" "${BUNDLE_ID}" --evidaro-app-lock-smoke prepare
+          for _ in $(seq 1 20); do
+            test -f "${SMOKE_DIR}/lock-prepared.txt" && break
+            test -f "${SMOKE_DIR}/lock-failed.txt" && { cat "${SMOKE_DIR}/lock-failed.txt"; exit 1; }
+            sleep 1
+          done
+          test -f "${SMOKE_DIR}/lock-prepared.txt"
+          grep -q '^lock-prepared enabled=true locked=true preference=true$' "${SMOKE_DIR}/lock-prepared.txt"
+          cat "${SMOKE_DIR}/lock-prepared.txt"
+
+          xcrun simctl terminate "${DEVICE_UDID}" "${BUNDLE_ID}"
+          xcrun simctl launch "${DEVICE_UDID}" "${BUNDLE_ID}" --evidaro-app-lock-smoke verify
+          for _ in $(seq 1 20); do
+            test -f "${SMOKE_DIR}/lock-verified.txt" && break
+            test -f "${SMOKE_DIR}/lock-failed.txt" && { cat "${SMOKE_DIR}/lock-failed.txt"; exit 1; }
+            sleep 1
+          done
+          test -f "${SMOKE_DIR}/lock-verified.txt"
+          grep -q '^lock-verified persisted=true unlocked=true disabled=true$' "${SMOKE_DIR}/lock-verified.txt"
+          cat "${SMOKE_DIR}/lock-verified.txt"
           xcrun simctl terminate "${DEVICE_UDID}" "${BUNDLE_ID}" || true
 
       - name: Extract compiler diagnostics
