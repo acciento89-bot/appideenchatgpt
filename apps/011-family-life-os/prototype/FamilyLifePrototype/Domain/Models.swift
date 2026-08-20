@@ -11,7 +11,7 @@ enum MemberRole: String, CaseIterable, Codable, Sendable {
         case .owner: "Owner"
         case .adult: "Erwachsen"
         case .child: "Kind"
-        case .guest: "Gast"
+        case .guest: "Gast / Betreuung"
         }
     }
 }
@@ -23,12 +23,22 @@ enum MemberAccent: String, CaseIterable, Codable, Sendable {
     case purple
 }
 
+struct HouseholdSummary: Hashable, Codable, Sendable {
+    let id: UUID
+    var name: String
+    var locale: String
+    var timezone: String
+}
+
 struct FamilyMember: Identifiable, Hashable, Codable, Sendable {
     let id: UUID
     var name: String
     var initials: String
     var role: MemberRole
     var accent: MemberAccent
+    var userID: UUID? = nil
+    var inviteStatus: String = "active"
+    var avatarPath: String? = nil
 }
 
 enum PlanKind: String, CaseIterable, Codable, Sendable {
@@ -74,6 +84,9 @@ struct PlanItem: Identifiable, Hashable, Codable, Sendable {
     var sourceID: UUID?
     var sourceProposalID: UUID? = nil
     var isCompleted: Bool
+    var version: Int = 1
+
+    var referenceDate: Date? { startsAt ?? dueAt }
 }
 
 enum InboxStatus: String, CaseIterable, Codable, Sendable {
@@ -103,6 +116,7 @@ enum SourceKind: String, CaseIterable, Codable, Sendable {
     case pdf
     case text
     case voice
+    case share
 
     var displayName: String {
         switch self {
@@ -110,6 +124,7 @@ enum SourceKind: String, CaseIterable, Codable, Sendable {
         case .pdf: "PDF"
         case .text: "Text"
         case .voice: "Sprache"
+        case .share: "Geteilt"
         }
     }
 
@@ -119,6 +134,7 @@ enum SourceKind: String, CaseIterable, Codable, Sendable {
         case .pdf: "doc.richtext"
         case .text: "text.alignleft"
         case .voice: "waveform"
+        case .share: "square.and.arrow.down"
         }
     }
 }
@@ -132,6 +148,11 @@ struct InboxSource: Identifiable, Hashable, Codable, Sendable {
     var proposalCount: Int
     var sourceText: String?
     var errorMessage: String?
+    var storagePath: String? = nil
+    var contentType: String? = nil
+    var fileName: String? = nil
+    var sizeBytes: Int? = nil
+    var isArchived: Bool = false
 }
 
 enum ProposalReviewStatus: String, CaseIterable, Codable, Sendable {
@@ -156,8 +177,119 @@ struct ActionProposal: Identifiable, Hashable, Codable, Sendable {
     var isIncluded: Bool
     var requiresMemberResolution: Bool
     var reviewStatus: ProposalReviewStatus = .proposed
+    var suggestedReminderAt: Date? = nil
 
     var isReadyToConfirm: Bool {
         !requiresMemberResolution || !memberIDs.isEmpty
     }
+}
+
+struct ReminderSnapshot: Identifiable, Hashable, Codable, Sendable {
+    let id: UUID
+    var planItemID: UUID
+    var targetMemberID: UUID
+    var triggerAt: Date
+    var deliveryState: String
+    var kind: String
+}
+
+struct ActivityEntry: Identifiable, Hashable, Codable, Sendable {
+    let id: UUID
+    var actorMemberID: UUID?
+    var entityType: String
+    var entityID: UUID
+    var action: String
+    var createdAt: Date
+
+    var displayText: String {
+        switch (entityType, action) {
+        case ("plan_item", "created"): "Plan-Eintrag erstellt"
+        case ("plan_item", "updated"): "Plan-Eintrag geändert"
+        case ("plan_item", "completed"): "Plan-Eintrag erledigt"
+        case ("plan_item", "reopened"): "Plan-Eintrag wieder geöffnet"
+        case ("plan_item", "deleted"): "Plan-Eintrag gelöscht"
+        case ("source_item", "created"): "Quelle hinzugefügt"
+        case ("source_item", "archived"): "Quelle archiviert"
+        case ("source_item", "restored"): "Quelle wiederhergestellt"
+        case ("invite", "created"): "Einladung erstellt"
+        case ("invite", "accepted"): "Einladung angenommen"
+        case ("member", "insert"): "Familienmitglied hinzugefügt"
+        case ("member", "update"): "Familienmitglied geändert"
+        case ("member", "delete"): "Familienmitglied entfernt"
+        default: "Familie aktualisiert"
+        }
+    }
+}
+
+struct FamilyEntitlement: Hashable, Codable, Sendable {
+    enum Tier: String, Codable, Sendable { case free, pro }
+    var tier: Tier
+    var productID: String?
+    var expiresAt: Date?
+
+    static let free = FamilyEntitlement(tier: .free, productID: nil, expiresAt: nil)
+}
+
+struct NotificationPreferences: Hashable, Codable, Sendable {
+    var eventReminders = true
+    var taskReminders = true
+    var preparationReminders = true
+    var assignmentUpdates = true
+    var inboxReview = true
+    var dailyDigest = true
+}
+
+struct HouseholdInvite: Identifiable, Hashable, Codable, Sendable {
+    let id: UUID
+    var token: String
+    var role: MemberRole
+    var expiresAt: Date
+
+    var url: URL? {
+        URL(string: "de.kamilunavo.familyprototype://invite?token=\(token)")
+    }
+}
+
+struct PlanItemDraft: Hashable, Codable, Sendable {
+    var kind: PlanKind = .task
+    var title = ""
+    var startsAt: Date?
+    var endsAt: Date?
+    var dueAt: Date?
+    var memberIDs: Set<UUID> = []
+    var location: String?
+    var note: String?
+    var amountMinor: Int?
+    var currency: String? = "EUR"
+
+    init() {}
+
+    init(item: PlanItem) {
+        kind = item.kind
+        title = item.title
+        startsAt = item.startsAt
+        endsAt = item.endsAt
+        dueAt = item.dueAt
+        memberIDs = item.memberIDs
+        location = item.location
+        note = item.note
+        amountMinor = item.amountMinor
+        currency = item.currency
+    }
+}
+
+struct SourceIngestionRequest: Sendable {
+    var kind: SourceKind
+    var title: String
+    var text: String?
+    var fileData: Data?
+    var fileName: String?
+    var contentType: String?
+    var extractedText: String?
+}
+
+struct SourceDocumentData: Sendable {
+    var data: Data
+    var fileName: String
+    var contentType: String
 }

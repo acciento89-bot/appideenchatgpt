@@ -1,0 +1,1 @@
+Complete-v1 implementation is active on `agent/family-life-os-complete-v1`. See `COMPLETE_V1_SCOPE.md` and `PROJECT_STATE.md` for handoff rules.
