@@ -1,2 +1,3 @@
-Kamilunavo Trace release source assembled 2026-08-20.
-Merge remains blocked by PR #29, PR #32, exact-head CI, App Store Connect readiness, and physical iPhone QA.
+Kamilunavo Trace final release candidate assembled 2026-08-20.
+Pass 7 and Pass 8 are GREEN / MERGED. Public export identity is Kamilunavo Trace and final repository release gates must pass on this exact head before merge.
+External App Store Connect, signed TestFlight processing, physical iPhone QA, and real purchase/restore verification remain post-repository gates.
