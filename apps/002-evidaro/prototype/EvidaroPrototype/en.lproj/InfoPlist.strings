@@ -1,0 +1,2 @@
+"NSCameraUsageDescription" = "Capture photos directly into an Evidaro evidence record.";
+"NSFaceIDUsageDescription" = "Unlock Evidaro to view locally stored evidence cases.";
