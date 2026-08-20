@@ -1,7 +1,7 @@
 # Evidaro — Project State
 
 Last updated: 2026-08-20
-Status: ACTIVE — PASS 2 PERSISTENCE + MEDIA INTAKE
+Status: ACTIVE — PASS 2 GREEN / PR #20 MERGE NEXT
 Portfolio slot: #002 (original working title: ProofVault)
 Repository: `acciento89-bot/appideenchatgpt`
 Implementation path: `apps/002-evidaro/prototype/`
@@ -77,11 +77,12 @@ Foundation includes:
 - dedicated Xcode project/shared scheme
 - dedicated GitHub Actions simulator build gate
 
-## Pass 2 — current branch
+## Pass 2 — GREEN / PR #20
 
 Branch: `agent/002-evidaro-persistence-media`
+PR: #20 `Add Evidaro SwiftData persistence and hashed media intake`
 
-Implemented before CI validation:
+Implemented:
 - SwiftData-backed EvidenceCase / EvidenceItem / EvidenceSeal models
 - persistent ModelContainer / ModelContext instead of in-memory-only state
 - local private media directory in Application Support
@@ -93,8 +94,21 @@ Implemented before CI validation:
 - timeline surfaces original filename + original-media hash
 - original imported file can be shared back out
 - app-specific preflight expanded to gate persistence/media integrity
+- `AddEvidenceView` split into smaller SwiftUI components to avoid Xcode 26.6 type-checker timeouts
 
-Do **not** call Pass 2 green until its PR CI has completed successfully.
+Verified code gate:
+- successful source head `891c0172d86e5a7477a0ac5f8a93190c3c2b3909`
+- workflow run `32329075367`
+- build job `96306102916`
+- persistence/media preflight — SUCCESS
+- Xcode iOS Simulator build — SUCCESS
+
+Earlier red attempts were not merged:
+- run `32328781825` exposed a SwiftUI type-check timeout in `AddEvidenceView`
+- run `32328949495` confirmed the same bottleneck after a smaller expression-only change
+- the view was then structurally decomposed; run `32329075367` passed completely
+
+A final CI pass on this documentation-updated PR head is required before merge so the recorded state and green source revision stay aligned.
 
 ## Intentionally deferred after Pass 2
 
@@ -116,6 +130,7 @@ Portfolio plan remains Freemium + Pro. Do not force a subscription. Current like
 
 ## Next gate
 
-1. Compile Pass 2 on `macos-26` through the dedicated Evidaro workflow.
-2. Fix all SwiftData/PhotosUI/fileImporter compiler issues before merge.
-3. After green merge, add direct camera capture and a runtime persistence/relaunch smoke before OCR.
+1. Run final PR #20 CI on the documentation-updated head.
+2. Merge PR #20 only if that exact head is green.
+3. After merge, record the merge commit in the portfolio handoff.
+4. Then add direct camera capture and a runtime persistence/relaunch smoke before OCR.
