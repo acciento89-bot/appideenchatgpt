@@ -13,6 +13,7 @@
 		A20000000000000000000004 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000004 /* RootView.swift */; };
 		A20000000000000000000005 /* CaseDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000005 /* CaseDetailView.swift */; };
 		A20000000000000000000006 /* AddEvidenceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000006 /* AddEvidenceView.swift */; };
+		A20000000000000000000007 /* EvidencePackExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000008 /* EvidencePackExporter.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -23,6 +24,7 @@
 		B20000000000000000000005 /* CaseDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaseDetailView.swift; sourceTree = "<group>"; };
 		B20000000000000000000006 /* AddEvidenceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddEvidenceView.swift; sourceTree = "<group>"; };
 		B20000000000000000000007 /* EvidaroPrototype.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = EvidaroPrototype.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		B20000000000000000000008 /* EvidencePackExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EvidencePackExporter.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -50,6 +52,7 @@
 				B20000000000000000000001 /* EvidaroPrototypeApp.swift */,
 				B20000000000000000000002 /* Models.swift */,
 				B20000000000000000000003 /* EvidenceStore.swift */,
+				B20000000000000000000008 /* EvidencePackExporter.swift */,
 				B20000000000000000000004 /* RootView.swift */,
 				B20000000000000000000005 /* CaseDetailView.swift */,
 				B20000000000000000000006 /* AddEvidenceView.swift */,
@@ -138,6 +141,7 @@
 				A20000000000000000000001 /* EvidaroPrototypeApp.swift in Sources */,
 				A20000000000000000000002 /* Models.swift in Sources */,
 				A20000000000000000000003 /* EvidenceStore.swift in Sources */,
+				A20000000000000000000007 /* EvidencePackExporter.swift in Sources */,
 				A20000000000000000000004 /* RootView.swift in Sources */,
 				A20000000000000000000005 /* CaseDetailView.swift in Sources */,
 				A20000000000000000000006 /* AddEvidenceView.swift in Sources */,
