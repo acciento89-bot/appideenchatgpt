@@ -35,6 +35,10 @@
 "locked.subtitle" = "Authentifiziere dich mit deinem Gerät, um lokal gespeicherte Beweisfälle anzuzeigen.";
 "locked.authenticating" = "Authentifizierung läuft…";
 "locked.unlock" = "Evidaro entsperren";
+"Evidaro is locked" = "Evidaro ist gesperrt";
+"Authenticate with your device to view locally stored evidence cases." = "Authentifiziere dich mit deinem Gerät, um lokal gespeicherte Beweisfälle anzuzeigen.";
+"Authenticating…" = "Authentifizierung läuft…";
+"Unlock Evidaro" = "Evidaro entsperren";
 
 "case.section" = "Fall";
 "case.title_placeholder" = "Kurzer sachlicher Titel";
@@ -150,3 +154,4 @@
 "accessibility.case_card" = "%@, %@, %ld Beweiselemente, %ld Siegel";
 "accessibility.hash_original" = "Original-SHA-256-Hash";
 "accessibility.hash_record" = "Beweisdatensatz-SHA-256-Hash";
+"accessibility.hash_manifest" = "Snapshot-Manifest-SHA-256-Hash";
