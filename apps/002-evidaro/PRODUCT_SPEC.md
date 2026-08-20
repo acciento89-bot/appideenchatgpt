@@ -1,4 +1,4 @@
-# Evidaro — Product Spec v0.1
+# Evidaro — Product Spec v0.2
 
 ## Problem
 
@@ -19,7 +19,11 @@ Evidaro is deliberately not:
 - a legal-advice product
 - a blockchain/notary gimmick
 
-The differentiator is the **case timeline + per-item hash + repeatable sealed manifest**.
+The differentiator is the **verifiable original chain**:
+
+**original bytes -> original SHA-256 -> evidence-record SHA-256 -> repeatable snapshot seals -> derived OCR -> evidence PDF + offline-verifiable exchange bundle**
+
+The app does not require a Kamilunavo server to validate that chain. A recipient can inspect an exported `.evpack` locally and recompute the recorded integrity anchors from the embedded original bytes.
 
 ## Core users
 
@@ -66,6 +70,7 @@ The differentiator is the **case timeline + per-item hash + repeatable sealed ma
 - latest seal count
 - list of cases with type, evidence count and last activity
 - primary `New Case` action
+- offline `Verify evidence bundle` action for received `.evpack` files
 
 ### New Case
 - title
@@ -82,6 +87,8 @@ The differentiator is the **case timeline + per-item hash + repeatable sealed ma
 - seal snapshot
 - seal history
 - share current integrity manifest
+- build/share localized PDF evidence pack
+- build/share offline-verifiable `.evpack` exchange bundle
 
 ### Add Evidence
 Current capture/import layer supports:
@@ -115,6 +122,32 @@ The seal hashes a canonical manifest containing stable case identity plus ordere
 
 This avoids pretending the app can stop a user from creating later information while still preserving evidence of what a previous snapshot contained.
 
+## Offline verification bundle (`.evpack`)
+
+The exchange bundle is a deterministic JSON-based v1 format designed for local verification without an account or server.
+
+It contains:
+- stable case identity and raw case type
+- ordered evidence-item identities and stable raw evidence types
+- canonical recorded timestamps, source/context and user notes
+- recorded evidence-record SHA-256 values
+- original filenames/media types where available
+- original media SHA-256 values
+- the actual original media byte stream encoded in Base64
+- snapshot-seal history
+- derived OCR fields as explicitly non-authoritative metadata
+
+Verifier rules:
+- reject unsupported format/version
+- re-hash every embedded original byte stream and compare it with the recorded original-media SHA-256
+- recompute every evidence-record SHA-256 from stable canonical fields
+- recompute each historical snapshot seal against the evidence prefix represented by that seal's item count
+- report current manifest SHA-256 and whole-bundle SHA-256
+- report concrete integrity failures instead of silently importing bad data
+- changing derived OCR alone must not invalidate original evidence hashes or snapshot seals
+
+The export path self-verifies the generated bundle before writing it. CI also deliberately modifies a factual note and requires verification to fail, then modifies derived OCR only and requires verification to remain valid.
+
 ## Derived OCR model
 
 Evidaro uses Apple Vision locally for supported images and PDFs.
@@ -134,12 +167,13 @@ v1 is local-first.
 - no account required
 - no evidence sent to Kamilunavo servers
 - no cloud OCR required
+- offline bundle verification requires no network
 - no analytics/ads in the evidence core
 - later optional sync must be opt-in and separately threat-modeled
 
 ## Safety / legal positioning
 
-Evidaro is a record-keeping tool, not a law firm, not a notary and not a legal-admissibility service. Hashes can help detect later changes to captured content but do not independently prove when a real-world event occurred or guarantee acceptance by a court, insurer, employer or authority.
+Evidaro is a record-keeping and integrity-verification tool, not a law firm, not a notary and not a legal-admissibility service. Hashes and `.evpack` verification can help detect later changes to exported content and recorded snapshots, but they do not independently prove when a real-world event occurred, who created the original content, or guarantee acceptance by a court, insurer, employer or authority.
 
 ## Platform
 
@@ -154,12 +188,21 @@ Current technical foundation:
 - file importer
 - PDFKit
 - Apple Vision OCR
+- LocalAuthentication privacy lock
+- DE/EN UI and PDF localization
+- Dynamic Type / structural VoiceOver hardening
+- integrity-checked localized PDF evidence-pack export
+- offline `.evpack` export + local verifier in Pass 8
 
-Next technical layer:
-- PDFKit / UIGraphicsPDFRenderer evidence-pack export
-- optional location/context metadata
-- LocalAuthentication for optional privacy lock
-- DE/EN + accessibility hardening
+## Release-hardening boundary
+
+Still requires physical-device validation before public release:
+- camera hardware + permission UX
+- Apple Vision OCR on a real iPhone
+- Face ID / Touch ID / device-passcode prompt UX
+- VoiceOver navigation and largest Dynamic Type sizes
+- final public product name / App Store identity due diligence
+- final StoreKit entitlement and TestFlight/App Store packaging
 
 ## Monetization
 
@@ -167,8 +210,10 @@ Planned: Freemium + Pro.
 
 Current direction:
 - free tier should be genuinely useful
-- likely case-count/export limits, not crippled capture
-- prefer Lifetime Pro while product remains local-first
+- do not cripple evidence capture itself
+- likely limits should focus on active case count and/or advanced exports
+- offline verification of a received bundle should remain free because verification strengthens trust in the format
+- prefer a one-time Lifetime Pro purchase while the product remains local-first
 - only consider subscription if recurring hosted costs become a real product dependency
 
 No final price is locked in this spec.
