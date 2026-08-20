@@ -258,7 +258,146 @@ final class EvidenceStore: ObservableObject {
         try media.data.write(to: url, options: .atomic)
         return (storedName, url)
     }
+
+#if DEBUG
+    private static let smokeCaseID = UUID(uuidString: "11111111-1111-4111-8111-111111111111")!
+    private static let smokeItemID = UUID(uuidString: "22222222-2222-4222-8222-222222222222")!
+    private static let smokeSealID = UUID(uuidString: "33333333-3333-4333-8333-333333333333")!
+    private static let smokeCreatedAt = Date(timeIntervalSince1970: 1_787_000_000)
+    private static let smokeRecordedAt = Date(timeIntervalSince1970: 1_787_000_120)
+    private static let smokeMediaData = Data("evidaro-persistence-smoke-media-v1".utf8)
+
+    func preparePersistenceSmoke() throws -> String {
+        if let existing = fetchCases().first(where: { $0.id == Self.smokeCaseID }) {
+            for item in existing.evidence {
+                if let url = mediaURL(for: item) {
+                    try? FileManager.default.removeItem(at: url)
+                }
+            }
+            context.delete(existing)
+            try context.save()
+        }
+
+        let media = EvidenceMediaDraft(
+            data: Self.smokeMediaData,
+            originalName: "persistence-smoke.bin",
+            utTypeIdentifier: "public.data"
+        )
+        let mediaHash = EvidenceHasher.sha256(media.data)
+        let storedMedia = try persistMedia(media, itemID: Self.smokeItemID)
+        let note = "Process-relaunch persistence smoke"
+        let source = "GitHub Actions simulator"
+        let contentHash = EvidenceHasher.itemHash(
+            kind: .document,
+            source: source,
+            note: note,
+            recordedAt: Self.smokeRecordedAt,
+            mediaHash: mediaHash
+        )
+
+        let item = EvidenceItem(
+            id: Self.smokeItemID,
+            kind: .document,
+            recordedAt: Self.smokeRecordedAt,
+            source: source,
+            note: note,
+            contentHash: contentHash,
+            mediaFileName: storedMedia.storedName,
+            mediaOriginalName: media.originalName,
+            mediaUTType: media.utTypeIdentifier,
+            mediaHash: mediaHash
+        )
+        let evidenceCase = EvidenceCase(
+            id: Self.smokeCaseID,
+            title: "CI Persistence Smoke",
+            kind: .other,
+            createdAt: Self.smokeCreatedAt,
+            evidence: [item]
+        )
+        context.insert(evidenceCase)
+
+        let seal = EvidenceSeal(
+            id: Self.smokeSealID,
+            createdAt: Self.smokeRecordedAt.addingTimeInterval(60),
+            itemCount: 1,
+            manifestHash: EvidenceHasher.sha256(EvidenceHasher.canonicalManifest(for: evidenceCase))
+        )
+        evidenceCase.seals.append(seal)
+        try context.save()
+        revision += 1
+
+        return "prepared case=\(evidenceCase.id.uuidString) mediaHash=\(mediaHash) seal=\(seal.manifestHash)"
+    }
+
+    func verifyPersistenceSmoke() throws -> String {
+        guard let evidenceCase = fetchCases().first(where: { $0.id == Self.smokeCaseID }) else {
+            throw PersistenceSmokeError.missingCase
+        }
+        guard evidenceCase.evidence.count == 1,
+              let item = evidenceCase.evidence.first(where: { $0.id == Self.smokeItemID }) else {
+            throw PersistenceSmokeError.missingEvidence
+        }
+        guard evidenceCase.seals.count == 1,
+              let seal = evidenceCase.seals.first(where: { $0.id == Self.smokeSealID }) else {
+            throw PersistenceSmokeError.missingSeal
+        }
+        guard let mediaURL = mediaURL(for: item) else {
+            throw PersistenceSmokeError.missingMedia
+        }
+
+        let storedData = try Data(contentsOf: mediaURL)
+        guard storedData == Self.smokeMediaData else {
+            throw PersistenceSmokeError.mediaBytesChanged
+        }
+        let expectedMediaHash = EvidenceHasher.sha256(storedData)
+        guard item.mediaHash == expectedMediaHash else {
+            throw PersistenceSmokeError.mediaHashMismatch
+        }
+        let expectedItemHash = EvidenceHasher.itemHash(
+            kind: item.kind,
+            source: item.source,
+            note: item.note,
+            recordedAt: item.recordedAt,
+            mediaHash: item.mediaHash
+        )
+        guard item.contentHash == expectedItemHash else {
+            throw PersistenceSmokeError.itemHashMismatch
+        }
+        let expectedSealHash = EvidenceHasher.sha256(EvidenceHasher.canonicalManifest(for: evidenceCase))
+        guard seal.itemCount == 1, seal.manifestHash == expectedSealHash else {
+            throw PersistenceSmokeError.sealMismatch
+        }
+
+        return "verified case=\(evidenceCase.id.uuidString) mediaHash=\(expectedMediaHash) seal=\(expectedSealHash)"
+    }
+#endif
 }
+
+#if DEBUG
+private enum PersistenceSmokeError: LocalizedError {
+    case missingCase
+    case missingEvidence
+    case missingSeal
+    case missingMedia
+    case mediaBytesChanged
+    case mediaHashMismatch
+    case itemHashMismatch
+    case sealMismatch
+
+    var errorDescription: String? {
+        switch self {
+        case .missingCase: "Persistence smoke case did not survive process restart."
+        case .missingEvidence: "Persistence smoke evidence did not survive process restart."
+        case .missingSeal: "Persistence smoke seal did not survive process restart."
+        case .missingMedia: "Persistence smoke media reference did not survive process restart."
+        case .mediaBytesChanged: "Persistence smoke media bytes changed after process restart."
+        case .mediaHashMismatch: "Persistence smoke media hash no longer matches stored bytes."
+        case .itemHashMismatch: "Persistence smoke evidence-record hash no longer matches persisted fields."
+        case .sealMismatch: "Persistence smoke seal no longer matches the persisted manifest."
+        }
+    }
+}
+#endif
 
 enum EvidenceHasher {
     static func itemHash(

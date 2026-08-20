@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct RootView: View {
-    @StateObject private var store = EvidenceStore()
+    @ObservedObject var store: EvidenceStore
     @State private var showsNewCase = false
 
     var body: some View {
