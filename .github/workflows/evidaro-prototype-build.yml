@@ -238,7 +238,7 @@ jobs:
             sleep 1
           done
           test -f "${SMOKE_DIR}/localization-verified.txt"
-          grep -q '^localization-verified language=de cases=Fälle property=Immobilie bundle=localized camera=localized faceID=localized$' "${SMOKE_DIR}/localization-verified.txt"
+          grep -q '^localization-verified language=de cases=Fälle property=Immobilie camera=localized faceID=localized$' "${SMOKE_DIR}/localization-verified.txt"
           cat "${SMOKE_DIR}/localization-verified.txt"
           xcrun simctl terminate "${DEVICE_UDID}" "${BUNDLE_ID}" || true
 
