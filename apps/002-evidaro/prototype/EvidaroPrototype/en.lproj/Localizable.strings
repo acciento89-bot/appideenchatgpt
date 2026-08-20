@@ -150,6 +150,26 @@
 "pdf.ocr.trust" = "OCR is derived metadata and is not included in the original media SHA-256, evidence-record SHA-256 or snapshot seals.";
 "pdf.seals.heading" = "SNAPSHOT SEALS";
 "pdf.seals.section" = "Snapshot seals";
+"pdf.preview.section_image" = "Evidence #%ld • original preview";
+"pdf.preview.heading_image" = "ORIGINAL MEDIA PREVIEW";
+"pdf.preview.image_fallback" = "Image original";
+"pdf.preview.image_hash_note" = "Preview rendered from the verified original. Original SHA-256:";
+"pdf.preview.section_pdf" = "Evidence #%ld • original PDF preview";
+"pdf.preview.heading_pdf" = "ORIGINAL PDF PREVIEW • PAGE %ld OF %ld";
+"pdf.preview.pdf_fallback" = "PDF original";
+"pdf.preview.pdf_hash_note" = "Preview rendered from the verified original PDF. Original SHA-256:";
+"pdf.seals.explanation" = "A seal records a manifest hash for a snapshot at that moment. Later evidence can create a newer snapshot without rewriting older recorded seal values.";
+"pdf.seals.none" = "No snapshot seal has been recorded for this case.";
+"pdf.seals.label" = "Seal %ld";
+"pdf.seals.current" = "CURRENT SNAPSHOT";
+"pdf.seals.historical" = "HISTORICAL";
+"pdf.field.item_count" = "Item count";
+"pdf.field.seal_manifest_sha" = "Manifest SHA-256";
+"pdf.seals.current_matches" = "The current exported timeline matches at least one recorded snapshot seal.";
+"pdf.seals.current_not_sealed" = "The current exported timeline is not represented by a matching recorded snapshot seal.";
+"pdf.seals.legal" = "Integrity aid only. Seal values do not independently prove when a real-world event occurred and do not guarantee acceptance by a court, insurer, employer or authority.";
+"pdf.page" = "Page %ld";
+"pdf.continued" = "%@ • continued";
 
 "accessibility.case_card" = "%@, %@, %ld evidence items, %ld seals";
 "accessibility.hash_original" = "Original SHA-256 hash";
