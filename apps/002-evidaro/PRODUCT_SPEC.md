@@ -37,7 +37,6 @@ The differentiator is the **case timeline + per-item hash + repeatable sealed ma
 - title
 - case type
 - created timestamp
-- status
 - evidence items
 - seals
 
@@ -47,8 +46,10 @@ The differentiator is the **case timeline + per-item hash + repeatable sealed ma
 - captured/recorded timestamp
 - source/context label
 - user note/description
-- content hash
-- later: media/file reference + original-file hash
+- evidence-record SHA-256
+- private original media/file reference where applicable
+- original-file SHA-256 where applicable
+- optional derived OCR text, recognition timestamp, engine and page count
 
 ### Evidence Seal
 - id
@@ -73,30 +74,36 @@ The differentiator is the **case timeline + per-item hash + repeatable sealed ma
 
 ### Case Detail
 - timeline header
-- evidence list with type, timestamp, source, note and shortened hash
+- evidence list with type, timestamp, source, note and record hash
+- original media filename + original-media SHA-256 where applicable
+- local `Recognize` / `Refresh` text action for images and PDFs
+- user-visible derived OCR result/provenance
 - add evidence
 - seal snapshot
-- latest seal history
-- share current manifest
+- seal history
+- share current integrity manifest
 
 ### Add Evidence
-Foundation pass supports:
+Current capture/import layer supports:
 - note/observation
 - source/context label
 - evidence type
+- direct camera photo on camera-capable iPhones
+- existing photo through PhotosPicker
+- Files/PDF import
 
-Next pass adds:
-- camera/photo
-- existing photo
-- Files/PDF
+Original imported/captured bytes are copied into app-private storage and hashed before they become part of the evidence record.
 
 ## Integrity model
 
-### Item hash
-For the foundation build, the hash covers canonical text metadata for the item. Media intake will extend this to hash original file bytes plus canonical metadata.
+### Original-media hash
+For media-backed evidence, Evidaro computes SHA-256 over the stored original byte stream. OCR never replaces or rewrites these bytes.
+
+### Evidence-record hash
+The evidence-record hash covers stable canonical item metadata plus the original-media hash where one exists. Derived OCR output is intentionally excluded so recognition can be refreshed without rewriting the evidence identity.
 
 ### Seal hash
-The seal hashes a canonical manifest containing stable case identity plus ordered evidence-item identity/hash pairs.
+The seal hashes a canonical manifest containing stable case identity plus ordered evidence-item identity/hash pairs and original-media hashes.
 
 ### Seal semantics
 - sealing does not lock the whole case forever
@@ -104,14 +111,29 @@ The seal hashes a canonical manifest containing stable case identity plus ordere
 - later evidence can be added
 - a new seal represents the newer snapshot
 - prior seal hashes remain visible
+- derived OCR can be added/refreshed without changing an already-created seal
 
 This avoids pretending the app can stop a user from creating later information while still preserving evidence of what a previous snapshot contained.
+
+## Derived OCR model
+
+Evidaro uses Apple Vision locally for supported images and PDFs.
+
+Rules:
+- OCR is derived metadata, never the source of truth
+- before recognition, stored original bytes must still match their saved SHA-256
+- recognition runs locally; no cloud OCR/upload is required
+- recognized text, recognition time, engine and page count are stored separately
+- OCR is excluded from original-media SHA-256, evidence-record SHA-256 and snapshot seals
+- refreshing OCR cannot silently rewrite an existing sealed evidence snapshot
+- the UI identifies OCR as derived text and keeps the original media reachable
 
 ## Privacy
 
 v1 is local-first.
 - no account required
 - no evidence sent to Kamilunavo servers
+- no cloud OCR required
 - no analytics/ads in the evidence core
 - later optional sync must be opt-in and separately threat-modeled
 
@@ -121,19 +143,23 @@ Evidaro is a record-keeping tool, not a law firm, not a notary and not a legal-a
 
 ## Platform
 
-Foundation:
+Current technical foundation:
 - iPhone
 - iOS 17+
 - SwiftUI
+- SwiftData
 - CryptoKit SHA-256
+- PhotosUI
+- camera capture
+- file importer
+- PDFKit
+- Apple Vision OCR
 
 Next technical layer:
-- SwiftData
-- PhotosUI / camera capture
-- file importer
-- PDFKit / UIGraphicsPDFRenderer for export
-- Vision for OCR where useful
+- PDFKit / UIGraphicsPDFRenderer evidence-pack export
+- optional location/context metadata
 - LocalAuthentication for optional privacy lock
+- DE/EN + accessibility hardening
 
 ## Monetization
 

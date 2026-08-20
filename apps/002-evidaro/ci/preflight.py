@@ -29,6 +29,7 @@ models_text = (APP / "Models.swift").read_text()
 store_text = (APP / "EvidenceStore.swift").read_text()
 app_text = (APP / "EvidaroPrototypeApp.swift").read_text()
 root_text = (APP / "RootView.swift").read_text()
+detail_text = (APP / "CaseDetailView.swift").read_text()
 add_text = (APP / "AddEvidenceView.swift").read_text()
 workflow_text = WORKFLOW.read_text()
 state_text = STATE.read_text()
@@ -47,12 +48,20 @@ checks = {
     "file/PDF intake": ".fileImporter" in add_text and ".pdf" in add_text,
     "direct camera intake": "UIImagePickerController" in add_text and "sourceType = .camera" in add_text,
     "camera privacy string": "INFOPLIST_KEY_NSCameraUsageDescription" in project_text,
+    "derived OCR fields": "recognizedText" in models_text and "recognizedTextAt" in models_text and "recognizedTextEngine" in models_text,
+    "Apple Vision OCR": "import Vision" in store_text and "VNRecognizeTextRequest" in store_text and "Apple Vision on-device" in store_text,
+    "image and PDF OCR": "contentType.conforms(to: .image)" in store_text and "contentType.conforms(to: .pdf)" in store_text and "PDFDocument" in store_text,
+    "OCR off main recognition path": "Task.detached(priority: .userInitiated)" in store_text,
+    "OCR integrity guard": "mediaIntegrityMismatch" in store_text and "evidenceChangedDuringRecognition" in store_text and "Recognized text is intentionally excluded" in store_text,
+    "OCR timeline UX": "Recognized text" in detail_text and "Derived locally with Apple Vision" in detail_text,
     "snapshot sealing": "func seal(caseID:" in store_text and "manifestHash" in store_text,
     "shareable manifest": "EVIDARO EVIDENCE MANIFEST" in store_text,
     "single app-owned store": "RootView(store: store)" in app_text and "@ObservedObject var store: EvidenceStore" in root_text,
     "relaunch smoke prepare": "preparePersistenceSmoke" in store_text and "prepared.txt" in app_text,
     "relaunch smoke verify": "verifyPersistenceSmoke" in store_text and "verified.txt" in app_text,
     "two-process simulator gate": "--evidaro-persistence-smoke prepare" in workflow_text and "simctl terminate" in workflow_text and "--evidaro-persistence-smoke verify" in workflow_text,
+    "OCR runtime smoke": "prepareOCRSmoke" in store_text and "verifyOCRSmoke" in store_text and "ocr-prepare" in app_text and "ocr-verify" in app_text,
+    "OCR process-relaunch gate": "--evidaro-persistence-smoke ocr-prepare" in workflow_text and "--evidaro-persistence-smoke ocr-verify" in workflow_text,
     "ProofVault retired": "`ProofVault` is retired" in state_text,
     "legal guardrail": "not a law firm" in spec_text and "not legal certification" in state_text,
 }
@@ -64,4 +73,4 @@ for label, passed in checks.items():
 if failed:
     raise SystemExit("Evidaro preflight failed: " + ", ".join(failed))
 
-print("Evidaro camera/persistence preflight passed")
+print("Evidaro camera/persistence/OCR preflight passed")

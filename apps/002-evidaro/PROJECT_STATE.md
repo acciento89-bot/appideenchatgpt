@@ -1,7 +1,7 @@
 # Evidaro — Project State
 
 Last updated: 2026-08-20
-Status: ACTIVE — PASS 3 GREEN / MERGED
+Status: ACTIVE — PASS 4 LOCAL OCR GREEN PRE-MERGE / FINAL DOC-ALIGNED GATE REQUIRED
 Portfolio slot: #002 (original working title: ProofVault)
 Repository: `acciento89-bot/appideenchatgpt`
 Implementation path: `apps/002-evidaro/prototype/`
@@ -53,6 +53,7 @@ A seal never rewrites previous evidence. Future additions create a newer snapsho
 - no hidden edits to sealed manifest history
 - hashes are integrity aids, not legal certification
 - v1 stays local-first; no evidence upload to Kamilunavo servers
+- OCR is derived metadata only; the stored original bytes/hash remain the source of truth
 
 ## Foundation pass 1 — GREEN / MERGED
 
@@ -142,21 +143,72 @@ Verified final documentation-aligned gate:
 - process-relaunch persistence smoke — SUCCESS
 - merge commit `951c2f53ccbdda7ce01af0dac8f0a17c87fbe132`
 
+Post-merge handoff:
+- PR #23 `Record Evidaro pass 3 merged checkpoint` — MERGED
+- workflow run `32331162562`
+- build job `96311916968`
+- merge commit `0be5e5e08bdd045bbb0994c1da508d9a86ab6951`
+
 Exact persisted integrity evidence across process restart:
 - case ID before/after: `11111111-1111-4111-8111-111111111111`
 - media SHA-256 before/after: `5e647718ecb46672d74a0cfa0416a8af0d7bca687ed0349fd146e1191f197728`
 - seal SHA-256 before/after: `f9799ea52f49197a71782d15f488545a5bd32cab7bd305e78e6aacc2b12450ff`
 
-Boundary:
+Pass-3 boundary:
 - the automated gate proves compile-time camera integration and simulator process-relaunch persistence for case + evidence + stored media bytes + hashes + seal
 - it does **not** prove physical iPhone camera hardware, permission prompt UX or a real captured photo yet; that remains a device spot-check before release hardening
 
-## Intentionally deferred after Pass 3
+## Pass 4 — LOCAL DERIVED OCR / FIRST FULL GATE GREEN
+
+PR #24 `Add local derived OCR with integrity gate` is open on branch `agent/002-evidaro-ocr`.
+
+Implemented:
+- optional SwiftData OCR fields on each evidence item: recognized text, recognition timestamp, engine and page count
+- Apple Vision `VNRecognizeTextRequest` with accurate recognition, language correction and automatic language detection
+- image OCR from the original stored byte stream
+- PDF OCR by locally opening/rendering PDF pages and applying Vision per page
+- OCR runs as derived processing and never replaces the stored original file
+- original-media SHA-256 is recomputed before recognition; OCR aborts if stored bytes no longer match the saved hash
+- evidence media hash + evidence-record hash are checked again before derived OCR data is committed
+- OCR fields are intentionally excluded from `EvidenceHasher.itemHash` and the canonical snapshot manifest
+- timeline exposes `Recognize` / `Refresh`, recognized text, page count/time and explicit derived-data trust messaging
+- integrity manifest explicitly states that recognized text is excluded because it can be refreshed without changing original evidence bytes
+- DEBUG runtime fixture renders `EVIDARO 4827` into a PNG, seals the evidence before OCR, performs real Vision recognition, then verifies original media hash, evidence-record hash and the pre-existing seal remain unchanged
+- OCR result is then verified again after terminating and relaunching the app process
+
+First verified full source gate:
+- source head `848e365961f6e764948f1920ebf8ef4714af3588`
+- workflow run `32335007814`
+- build job `96322753291`
+- Xcode 26.6 / build 17F113
+- OCR/camera/persistence preflight — SUCCESS
+- generic Xcode iOS Simulator build — SUCCESS
+- targeted iPhone Simulator runtime build — SUCCESS
+- existing two-process persistence smoke — SUCCESS
+- Apple Vision OCR smoke — SUCCESS
+- OCR process-relaunch persistence verification — SUCCESS
+
+Exact OCR integrity evidence from the green runtime gate:
+- recognized text before restart: `EVIDARO 4827`
+- recognized text after restart: `EVIDARO 4827`
+- OCR fixture media SHA-256 before/after: `d94f8834fd845ea011f36f753c9ddb91d7dd1dbb24ac2e5b04d7b508d9724355`
+- OCR fixture evidence-record SHA-256 before/after: `dee235dd17e24fdb04b6a215d4077e03acaea41872c681da55edd996bebaea42`
+- seal created before OCR and unchanged after OCR/restart: `86fc0200ebf3c861c686c693cc42437c7ab8716d98f7b42ff158140f71aa4ed8`
+
+Pass-4 boundary:
+- the gate proves real Apple Vision recognition in an iPhone Simulator runtime, derived OCR persistence across app-process restart, and unchanged original evidence hashes/seal in that tested path
+- this is **not yet physical-iPhone OCR validation**
+- physical iPhone camera hardware / permission UX remains separately open
+- no claim is made that OCR text is authoritative; users must be able to compare it with the original evidence
+
+Because this state/spec documentation advances PR #24 beyond the first green source head, the exact final documentation-aligned PR head must complete the full preflight + Xcode + persistence + Vision OCR + relaunch gate before merge.
+
+## Intentionally deferred after Pass 4
 
 1. physical-device camera validation and camera-permission UX spot check
-2. on-device OCR
-3. optional location/context metadata
-4. PDF evidence-pack export
+2. physical-device OCR spot check
+3. PDF evidence-pack export
+4. optional location/context metadata
 5. Face ID/privacy lock
 6. DE/EN localization
 7. accessibility / Dynamic Type hardening
@@ -170,7 +222,7 @@ Portfolio plan remains Freemium + Pro. Do not force a subscription. Current like
 
 ## Next gate
 
-1. Add on-device OCR as derived metadata only; never replace or rewrite the stored original media bytes/hash.
-2. Preserve user-reviewable OCR output/provenance so extracted text cannot silently become the source of truth.
-3. Keep physical-device camera capture/permission validation open until a signed device build is available.
-4. After OCR/media stability, build the PDF evidence-pack export.
+1. Run the complete Evidaro workflow on the exact documentation-aligned PR #24 head.
+2. Merge PR #24 only if preflight + compile + existing persistence smoke + Vision OCR + OCR relaunch verification are all green on that exact head.
+3. Record the final merge checkpoint in app-specific and portfolio handoff state.
+4. Then build the PDF evidence-pack export while keeping original media, per-item hashes, seals and derived OCR provenance unambiguous.
