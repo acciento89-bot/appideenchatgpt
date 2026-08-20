@@ -16,7 +16,7 @@ struct SystemAppLockAuthenticator: AppLockAuthenticating {
 
     func authenticate(reason: String) async throws -> Bool {
         let context = LAContext()
-        context.localizedCancelTitle = "Cancel"
+        context.localizedCancelTitle = L10n.string("common.cancel")
         return try await withCheckedThrowingContinuation { continuation in
             context.evaluatePolicy(.deviceOwnerAuthentication, localizedReason: reason) { success, error in
                 if let error {
@@ -75,12 +75,12 @@ final class AppLockController: ObservableObject {
         }
 
         guard isAuthenticationAvailable else {
-            lastError = "Device authentication is not available. Set a device passcode or biometric authentication first."
+            lastError = L10n.string("privacy_lock.system_unavailable_setup")
             return false
         }
 
         let authenticated = await authenticate(
-            reason: "Enable the Evidaro privacy lock for your evidence cases."
+            reason: L10n.string("privacy_lock.enable_reason")
         )
         guard authenticated else { return false }
 
@@ -99,7 +99,7 @@ final class AppLockController: ObservableObject {
     @discardableResult
     func unlockIfNeeded() async -> Bool {
         guard needsUnlock else { return true }
-        return await authenticate(reason: "Unlock Evidaro to view your evidence cases.")
+        return await authenticate(reason: L10n.string("privacy_lock.unlock_reason"))
     }
 
     @discardableResult
@@ -107,7 +107,7 @@ final class AppLockController: ObservableObject {
         guard !isAuthenticating else { return false }
         refreshAvailability()
         guard isAuthenticationAvailable else {
-            lastError = "Device authentication is not available."
+            lastError = L10n.string("privacy_lock.system_unavailable")
             return false
         }
 
@@ -120,7 +120,7 @@ final class AppLockController: ObservableObject {
             if success {
                 isUnlocked = true
             } else {
-                lastError = "Authentication was not completed."
+                lastError = L10n.string("privacy_lock.system_not_completed")
             }
             return success
         } catch {
