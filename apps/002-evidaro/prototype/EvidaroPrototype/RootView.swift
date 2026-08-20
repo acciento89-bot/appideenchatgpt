@@ -65,7 +65,7 @@ struct RootView: View {
                     } label: {
                         Image(systemName: "checkmark.shield")
                     }
-                    .accessibilityLabel(Text("bundle.verify_import"))
+                    .accessibilityLabel(L10n.string("bundle.verify_import"))
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
@@ -91,7 +91,7 @@ struct RootView: View {
                 allowsMultipleSelection: false,
                 onCompletion: importVerificationBundle
             )
-            .alert("bundle.verify_failed", isPresented: Binding(
+            .alert(L10n.string("bundle.verify_failed"), isPresented: Binding(
                 get: { verificationError != nil },
                 set: { if !$0 { verificationError = nil } }
             )) {
@@ -206,15 +206,15 @@ private struct VerificationResultView: View {
                         .font(.title3.bold())
                 }
 
-                Section("bundle.result_details") {
-                    LabeledContent("bundle.result_case_id", value: result.caseID)
-                    LabeledContent("bundle.result_items", value: "\(result.itemCount)")
+                Section(L10n.string("bundle.result_details")) {
+                    LabeledContent(L10n.string("bundle.result_case_id"), value: result.caseID)
+                    LabeledContent(L10n.string("bundle.result_items"), value: "\(result.itemCount)")
                     LabeledContent(
-                        "bundle.result_seals",
+                        L10n.string("bundle.result_seals"),
                         value: "\(result.verifiedSealCount)/\(result.sealCount)"
                     )
                     VStack(alignment: .leading, spacing: 5) {
-                        Text("bundle.result_manifest")
+                        Text(L10n.string("bundle.result_manifest"))
                             .font(.caption)
                             .foregroundStyle(.secondary)
                         Text(result.currentManifestHash)
@@ -222,7 +222,7 @@ private struct VerificationResultView: View {
                             .textSelection(.enabled)
                     }
                     VStack(alignment: .leading, spacing: 5) {
-                        Text("bundle.result_bundle_hash")
+                        Text(L10n.string("bundle.result_bundle_hash"))
                             .font(.caption)
                             .foregroundStyle(.secondary)
                         Text(result.bundleHash)
@@ -232,7 +232,7 @@ private struct VerificationResultView: View {
                 }
 
                 if !result.issues.isEmpty {
-                    Section("bundle.result_issues") {
+                    Section(L10n.string("bundle.result_issues")) {
                         ForEach(Array(result.issues.enumerated()), id: \.offset) { _, issue in
                             Label(issue, systemImage: "exclamationmark.triangle")
                                 .foregroundStyle(.red)
@@ -240,13 +240,13 @@ private struct VerificationResultView: View {
                     }
                 }
 
-                Section("bundle.result_boundary") {
-                    Text("bundle.result_boundary_text")
+                Section(L10n.string("bundle.result_boundary")) {
+                    Text(L10n.string("bundle.result_boundary_text"))
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
             }
-            .navigationTitle("bundle.verify_title")
+            .navigationTitle(L10n.string("bundle.verify_title"))
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("common.done") { dismiss() }
