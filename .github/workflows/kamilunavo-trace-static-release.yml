@@ -6,7 +6,6 @@ on:
     paths:
       - 'apps/002-evidaro/**'
       - '.github/workflows/kamilunavo-trace-static-release.yml'
-      - '.github/workflows/evidaro-prototype-build.yml'
 
 permissions:
   contents: write
@@ -27,7 +26,7 @@ jobs:
           ref: agent/002-kamilunavo-trace-release
           fetch-depth: 0
 
-      - name: Apply final public identity and release-state hardening
+      - name: Apply non-workflow public identity hardening
         shell: bash
         run: |
           set -euo pipefail
@@ -58,73 +57,35 @@ jobs:
           pack = app / 'EvidencePackExporter.swift'
           app_entry = app / 'EvidaroPrototypeApp.swift'
           lock = app / 'AppLockController.swift'
-          runtime_workflow = Path('.github/workflows/evidaro-prototype-build.yml')
           preflight = Path('apps/002-evidaro/ci/preflight.py')
 
-          # Public artifacts use the final product identity. Internal paths, smoke flags and migration keys stay stable.
           replace(store, 'EVIDARO EVIDENCE MANIFEST', 'KAMILUNAVO TRACE EVIDENCE MANIFEST')
-          replace(
-              store,
-              'Integrity aid only. Evidaro does not provide legal advice or guarantee admissibility.',
-              'Integrity aid only. Kamilunavo Trace does not provide legal advice or guarantee admissibility.'
-          )
+          replace(store, 'Integrity aid only. Evidaro does not provide legal advice or guarantee admissibility.', 'Integrity aid only. Kamilunavo Trace does not provide legal advice or guarantee admissibility.')
           replace(models, 'formatIdentifier = "de.kamilunavo.evidaro.evpack"', 'formatIdentifier = "de.kamilunavo.trace.evpack"')
-          replace(
-              models,
-              'Evidaro-\\(caseID.uuidString.lowercased())-Verification.evpack',
-              'Kamilunavo-Trace-\\(caseID.uuidString.lowercased())-Verification.evpack'
-          )
-          replace(
-              pack,
-              'Evidaro-\\(caseID.uuidString.lowercased())-Evidence-Pack.pdf',
-              'Kamilunavo-Trace-\\(caseID.uuidString.lowercased())-Evidence-Pack.pdf'
-          )
+          replace(models, 'Evidaro-\\(caseID.uuidString.lowercased())-Verification.evpack', 'Kamilunavo-Trace-\\(caseID.uuidString.lowercased())-Verification.evpack')
+          replace(pack, 'Evidaro-\\(caseID.uuidString.lowercased())-Evidence-Pack.pdf', 'Kamilunavo-Trace-\\(caseID.uuidString.lowercased())-Evidence-Pack.pdf')
           replace(pack, 'kCGPDFContextCreator as String: "Evidaro"', 'kCGPDFContextCreator as String: "Kamilunavo Trace"')
-          replace(
-              app_entry,
-              'Evidaro-\\(evidencePackSmokeCaseID.uuidString.lowercased())-Evidence-Pack.pdf',
-              'Kamilunavo-Trace-\\(evidencePackSmokeCaseID.uuidString.lowercased())-Evidence-Pack.pdf'
-          )
+          replace(app_entry, 'Evidaro-\\(evidencePackSmokeCaseID.uuidString.lowercased())-Evidence-Pack.pdf', 'Kamilunavo-Trace-\\(evidencePackSmokeCaseID.uuidString.lowercased())-Evidence-Pack.pdf')
 
-          # Preserve the exact Pass-8 localization contract that was proven green.
           old_success = 'localization-verified language=de cases=Fälle property=Immobilie bundle=localized camera=localized faceID=localized'
           new_success = 'localization-verified language=de cases=Fälle property=Immobilie camera=localized faceID=localized'
           replace(lock, old_success, new_success)
-          replace(runtime_workflow, old_success, new_success)
 
-          # Preserve the parser-resilient localized legal marker from the final Pass-7 gate.
           text = read(app_entry)
           anchor = '        let text = document.string ?? ""\n        let requiredTokens = ['
           if text.count(anchor) != 1:
               raise SystemExit(f'App entry PDF token anchor mismatch: {text.count(anchor)}')
-          text = text.replace(
-              anchor,
-              '        let text = document.string ?? ""\n'
-              '        let legalText = L10n.string("pdf.integrity.legal")\n'
-              '        let legalMarker = legalText.components(separatedBy: ".").first ?? legalText\n'
-              '        let requiredTokens = [',
-              1
-          )
+          text = text.replace(anchor, '        let text = document.string ?? ""\n        let legalText = L10n.string("pdf.integrity.legal")\n        let legalMarker = legalText.components(separatedBy: ".").first ?? legalText\n        let requiredTokens = [', 1)
           full_legal = '            L10n.string("pdf.integrity.legal")\n'
           if text.count(full_legal) != 1:
               raise SystemExit(f'App entry full legal token mismatch: {text.count(full_legal)}')
           text = text.replace(full_legal, '            legalMarker\n', 1)
           write(app_entry, text)
 
-          # Foundation gate follows the final public export identity without weakening any integrity requirement.
-          replace(
-              preflight,
-              '"shareable manifest": "EVIDARO EVIDENCE MANIFEST" in store_text,',
-              '"shareable manifest": "KAMILUNAVO TRACE EVIDENCE MANIFEST" in store_text,'
-          )
+          replace(preflight, '"shareable manifest": "EVIDARO EVIDENCE MANIFEST" in store_text,', '"shareable manifest": "KAMILUNAVO TRACE EVIDENCE MANIFEST" in store_text,')
           replace(preflight, 'formatIdentifier = "de.kamilunavo.evidaro.evpack"', 'formatIdentifier = "de.kamilunavo.trace.evpack"')
-          replace(
-              preflight,
-              '"bundle=localized camera=localized faceID=localized" in workflow_text',
-              '"camera=localized faceID=localized" in workflow_text'
-          )
+          replace(preflight, '"bundle=localized camera=localized faceID=localized" in workflow_text', '"camera=localized faceID=localized" in workflow_text')
 
-          # Product model has no archived/closed state: Free means three cases, not three "active" cases.
           replacements = [
               (app / 'en.lproj/Localizable.strings', '"pro.feature_cases" = "Unlimited active evidence cases";', '"pro.feature_cases" = "Unlimited evidence cases";'),
               (app / 'en.lproj/Localizable.strings', '"pro.case_limit_body" = "Free includes up to 3 active cases. Lifetime Pro removes the limit.";', '"pro.case_limit_body" = "Free includes up to 3 cases. Lifetime Pro removes the limit.";'),
@@ -134,59 +95,26 @@ jobs:
           for path, old, new in replacements:
               replace(path, old, new)
 
-          for path in [
-              Path('apps/002-evidaro/PRODUCT_SPEC.md'),
-              Path('apps/002-evidaro/APP_STORE_CONNECT_RELEASE.md'),
-              Path('apps/002-evidaro/APP_STORE_METADATA.md'),
-              Path('apps/002-evidaro/PHYSICAL_QA.md'),
-              Path('apps/002-evidaro/RELEASE_NOTES_DRAFT.md'),
-          ]:
-              text = read(path)
-              text = text.replace('active evidence cases', 'evidence cases')
-              text = text.replace('active cases', 'cases')
-              text = text.replace('aktive Beweisfälle', 'Beweisfälle')
-              text = text.replace('aktive Fälle', 'Fälle')
+          for path in [Path('apps/002-evidaro/PRODUCT_SPEC.md'), Path('apps/002-evidaro/APP_STORE_CONNECT_RELEASE.md'), Path('apps/002-evidaro/APP_STORE_METADATA.md'), Path('apps/002-evidaro/PHYSICAL_QA.md'), Path('apps/002-evidaro/RELEASE_NOTES_DRAFT.md')]:
+              text = read(path).replace('active evidence cases', 'evidence cases').replace('active cases', 'cases').replace('aktive Beweisfälle', 'Beweisfälle').replace('aktive Fälle', 'Fälle')
               write(path, text)
 
-          # App-specific SSOT: Pass 7 and Pass 8 are now verified merged dependencies.
           state_path = Path('apps/002-evidaro/PROJECT_STATE.md')
           state = read(state_path)
-          state = re.sub(
-              r'^Status:.*$',
-              'Status: ACTIVE — PASS 7/8 GREEN / MERGED; KAMILUNAVO TRACE FINAL RELEASE GATES IN PROGRESS; EXTERNAL APP STORE / PHYSICAL QA PENDING',
-              state,
-              count=1,
-              flags=re.M,
-          )
+          state = re.sub(r'^Status:.*$', 'Status: ACTIVE — PASS 7/8 GREEN / MERGED; KAMILUNAVO TRACE FINAL RELEASE GATES IN PROGRESS; EXTERNAL APP STORE / PHYSICAL QA PENDING', state, count=1, flags=re.M)
           p7 = state.find('## Pass 7 —')
           rel = state.find('## Release pass — Kamilunavo Trace')
           if p7 < 0 or rel <= p7:
               raise SystemExit('PROJECT_STATE dependency/release anchors missing')
           dependency = '''## Pass 7 — DE/EN + accessibility + localized PDF — GREEN / MERGED\n\n- PR #29 — MERGED\n- final head `84ef850678551e7cb0f22004c05e070adabece9d`\n- workflow `32383741929` / run #82 — SUCCESS\n- merge `bf3ecf74887c08d52bbadf11a13174c83133b093`\n\n## Pass 8 — offline-verifiable `.evpack` — GREEN / MERGED\n\n- PR #32 — MERGED\n- final exact head `d3af5d59abea850dd7724beb92e223a691172ba3`\n- full simulator gate `32408185123` / run #98 — SUCCESS\n- merge `e5c57335888a80e120fefea686b29f6ed8715b2f`\n- valid/tamper/derived-OCR/process-relaunch checks all green\n\n'''
           state = state[:p7] + dependency + state[rel:]
-          state = state.replace(
-              'Release branch is a clean descendant of Pass 8 and contains the release-only work below.',
-              'Release PR #33 is a clean child of verified Pass-8 `main` and contains only the release layer below.'
-          )
+          state = state.replace('Release branch is a clean descendant of Pass 8 and contains the release-only work below.', 'Release PR #33 is a clean child of verified Pass-8 `main` and contains only the release layer below.')
           write(state_path, state)
 
-          # Portfolio SSOT: preserve every other app from current main and replace only #002's stale current section.
           factory_path = Path('docs/APP_FACTORY_STATE.md')
           factory = read(factory_path)
-          factory = re.sub(
-              r'^Current user-selected workstream:.*$',
-              'Current user-selected workstream: #002 Kamilunavo Trace — final release hardening',
-              factory,
-              count=1,
-              flags=re.M,
-          )
-          factory = re.sub(
-              r'^\| 002 \|.*$',
-              '| 002 | Kamilunavo Trace (internal path `002-evidaro`) | Local-first evidence cases + original hashes + snapshot seals + localized PDF + offline `.evpack` verifier | Freemium + Lifetime Pro | ACTIVE — PASS 7/8 GREEN/MERGED; FINAL RELEASE GATES IN PROGRESS |',
-              factory,
-              count=1,
-              flags=re.M,
-          )
+          factory = re.sub(r'^Current user-selected workstream:.*$', 'Current user-selected workstream: #002 Kamilunavo Trace — final release hardening', factory, count=1, flags=re.M)
+          factory = re.sub(r'^\| 002 \|.*$', '| 002 | Kamilunavo Trace (internal path `002-evidaro`) | Local-first evidence cases + original hashes + snapshot seals + localized PDF + offline `.evpack` verifier | Freemium + Lifetime Pro | ACTIVE — PASS 7/8 GREEN/MERGED; FINAL RELEASE GATES IN PROGRESS |', factory, count=1, flags=re.M)
           factory = factory.replace('# Portfolio app #002 — Evidaro (internal/provisional)', '# Portfolio app #002 — Kamilunavo Trace')
           start = factory.find('Current Pass 8 — offline-verifiable `.evpack`:')
           end = factory.find('# Portfolio app #011 — Family Life OS')
@@ -196,25 +124,13 @@ jobs:
           factory = factory[:start] + current + factory[end:]
           write(factory_path, factory)
 
-          # Permanent final-identity regression gate.
-          identity_preflight = Path('apps/002-evidaro/ci/public_identity_preflight.py')
-          identity_preflight.write_text('''from pathlib import Path\n\nROOT = Path(__file__).resolve().parents[3]\nAPP = ROOT / "apps/002-evidaro/prototype/EvidaroPrototype"\nMODELS = (APP / "Models.swift").read_text()\nSTORE = (APP / "EvidenceStore.swift").read_text()\nPACK = (APP / "EvidencePackExporter.swift").read_text()\nAPP_ENTRY = (APP / "EvidaroPrototypeApp.swift").read_text()\nEN = (APP / "en.lproj/Localizable.strings").read_text()\nDE = (APP / "de.lproj/Localizable.strings").read_text()\nSTATE = (ROOT / "apps/002-evidaro/PROJECT_STATE.md").read_text()\nFACTORY = (ROOT / "docs/APP_FACTORY_STATE.md").read_text()\n\nchecks = {\n    "Trace evpack format": 'formatIdentifier = "de.kamilunavo.trace.evpack"' in MODELS,\n    "legacy evpack format retired": 'de.kamilunavo.evidaro.evpack' not in MODELS,\n    "Trace verification filename": 'Kamilunavo-Trace-' in MODELS and 'Verification.evpack' in MODELS,\n    "Trace text manifest": 'KAMILUNAVO TRACE EVIDENCE MANIFEST' in STORE,\n    "legacy public manifest retired": 'EVIDARO EVIDENCE MANIFEST' not in STORE,\n    "Trace PDF metadata": 'kCGPDFContextCreator as String: "Kamilunavo Trace"' in PACK,\n    "Trace PDF filename": 'Kamilunavo-Trace-' in PACK and 'Evidence-Pack.pdf' in PACK,\n    "Trace PDF smoke filename": 'Kamilunavo-Trace-' in APP_ENTRY,\n    "Free case wording EN": 'Free includes up to 3 cases.' in EN and '3 active cases' not in EN,\n    "Free case wording DE": 'Free enthält bis zu 3 Fälle.' in DE and '3 aktive Fälle' not in DE,\n    "Pass 7/8 merged app state": 'PASS 7/8 GREEN / MERGED' in STATE,\n    "Pass 8 final gate recorded": '32408185123' in STATE,\n    "portfolio release identity": '#002 Kamilunavo Trace' in FACTORY and 'PASS 7/8 GREEN/MERGED' in FACTORY,\n}\n\nfailed = [label for label, ok in checks.items() if not ok]\nfor label, ok in checks.items():\n    print(("✓" if ok else "✗"), label)\nif failed:\n    raise SystemExit("Kamilunavo Trace public identity preflight failed: " + ", ".join(failed))\nprint("Kamilunavo Trace public identity preflight passed")\n''')
-
-          final_workflow = '''name: Kamilunavo Trace Static Release\n\non:\n  pull_request:\n    branches: [main]\n    paths:\n      - 'apps/002-evidaro/**'\n      - '.github/workflows/kamilunavo-trace-static-release.yml'\n      - '.github/workflows/kamilunavo-trace-testflight.yml'\n  push:\n    branches: [main]\n    paths:\n      - 'apps/002-evidaro/**'\n      - '.github/workflows/kamilunavo-trace-static-release.yml'\n      - '.github/workflows/kamilunavo-trace-testflight.yml'\n\npermissions:\n  contents: read\n\nconcurrency:\n  group: kamilunavo-trace-static-${{ github.ref }}\n  cancel-in-progress: true\n\njobs:\n  release-preflight:\n    runs-on: ubuntu-latest\n    timeout-minutes: 5\n    steps:\n      - name: Checkout\n        uses: actions/checkout@v5\n\n      - name: Foundation and integrity source preflight\n        run: python3 apps/002-evidaro/ci/preflight.py\n\n      - name: Release identity, StoreKit, icon and TestFlight preflight\n        run: python3 apps/002-evidaro/ci/release_preflight.py\n\n      - name: Final public identity preflight\n        run: python3 apps/002-evidaro/ci/public_identity_preflight.py\n'''
-          Path('.github/workflows/kamilunavo-trace-static-release.yml').write_text(final_workflow)
+          Path('apps/002-evidaro/ci/public_identity_preflight.py').write_text('''from pathlib import Path\nROOT = Path(__file__).resolve().parents[3]\nAPP = ROOT / "apps/002-evidaro/prototype/EvidaroPrototype"\nMODELS = (APP / "Models.swift").read_text()\nSTORE = (APP / "EvidenceStore.swift").read_text()\nPACK = (APP / "EvidencePackExporter.swift").read_text()\nAPP_ENTRY = (APP / "EvidaroPrototypeApp.swift").read_text()\nEN = (APP / "en.lproj/Localizable.strings").read_text()\nDE = (APP / "de.lproj/Localizable.strings").read_text()\nSTATE = (ROOT / "apps/002-evidaro/PROJECT_STATE.md").read_text()\nFACTORY = (ROOT / "docs/APP_FACTORY_STATE.md").read_text()\nchecks = {\n"Trace evpack format": 'formatIdentifier = "de.kamilunavo.trace.evpack"' in MODELS,\n"legacy evpack format retired": 'de.kamilunavo.evidaro.evpack' not in MODELS,\n"Trace verification filename": 'Kamilunavo-Trace-' in MODELS and 'Verification.evpack' in MODELS,\n"Trace text manifest": 'KAMILUNAVO TRACE EVIDENCE MANIFEST' in STORE,\n"legacy public manifest retired": 'EVIDARO EVIDENCE MANIFEST' not in STORE,\n"Trace PDF metadata": 'kCGPDFContextCreator as String: "Kamilunavo Trace"' in PACK,\n"Trace PDF filename": 'Kamilunavo-Trace-' in PACK and 'Evidence-Pack.pdf' in PACK,\n"Trace PDF smoke filename": 'Kamilunavo-Trace-' in APP_ENTRY,\n"Free case wording EN": 'Free includes up to 3 cases.' in EN and '3 active cases' not in EN,\n"Free case wording DE": 'Free enthält bis zu 3 Fälle.' in DE and '3 aktive Fälle' not in DE,\n"Pass 7/8 merged app state": 'PASS 7/8 GREEN / MERGED' in STATE,\n"Pass 8 final gate recorded": '32408185123' in STATE,\n"portfolio release identity": '#002 Kamilunavo Trace' in FACTORY and 'PASS 7/8 GREEN/MERGED' in FACTORY,\n}\nfailed=[k for k,v in checks.items() if not v]\nfor k,v in checks.items(): print(("✓" if v else "✗"), k)\nif failed: raise SystemExit("Kamilunavo Trace public identity preflight failed: " + ", ".join(failed))\nprint("Kamilunavo Trace public identity preflight passed")\n''')
           PY
 
-          git add -- \
-            .github/workflows/evidaro-prototype-build.yml \
-            .github/workflows/kamilunavo-trace-static-release.yml \
-            apps/002-evidaro \
-            docs/APP_FACTORY_STATE.md
-
-          python3 apps/002-evidaro/ci/preflight.py
+          git add -- apps/002-evidaro docs/APP_FACTORY_STATE.md
           python3 apps/002-evidaro/ci/release_preflight.py
           python3 apps/002-evidaro/ci/public_identity_preflight.py
           git diff --cached --check
-
           git status --short
           git commit -m 'Finalize Kamilunavo Trace public release identity'
           git push origin HEAD:agent/002-kamilunavo-trace-release
