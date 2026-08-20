@@ -1,7 +1,7 @@
 # Evidaro — Project State
 
 Last updated: 2026-08-20
-Status: ACTIVE — PASS 3 GREEN / PR #22 MERGE NEXT
+Status: ACTIVE — PASS 3 GREEN / MERGED
 Portfolio slot: #002 (original working title: ProofVault)
 Repository: `acciento89-bot/appideenchatgpt`
 Implementation path: `apps/002-evidaro/prototype/`
@@ -108,10 +108,9 @@ Earlier red attempts were not merged:
 - run `32328949495` confirmed the same bottleneck after a smaller expression-only change
 - the view was structurally decomposed; run `32329075367` passed, then the documentation-aligned final head also passed in run `32329202541`
 
-## Pass 3 — GREEN / PR #22
+## Pass 3 — GREEN / MERGED
 
-Branch: `agent/002-evidaro-camera-persistence-smoke`
-PR: #22 `Add Evidaro camera capture and relaunch persistence gate`
+PR #22 `Add Evidaro camera capture and relaunch persistence gate` is merged to `main`.
 
 Implemented:
 - direct `Take photo` intake on camera-capable iPhones through the system camera controller
@@ -122,7 +121,8 @@ Implemented:
 - workflow boots an iPhone Simulator, installs the app, launches `prepare`, terminates that app process, launches `verify`, then requires the second process to recover and revalidate persisted case/media/hashes/seal
 - existing PhotosPicker and Files/PDF import behavior remains intact
 
-Verified source gate on head `feb9fb7a58f1a254f5661164e3a2dabfebc9a0bb`:
+Verified source gate:
+- source head `feb9fb7a58f1a254f5661164e3a2dabfebc9a0bb`
 - workflow run `32330201515`
 - build job `96309243631`
 - Xcode 26.6 / build 17F113
@@ -133,6 +133,15 @@ Verified source gate on head `feb9fb7a58f1a254f5661164e3a2dabfebc9a0bb`:
 - process termination — SUCCESS
 - process 2 verify — SUCCESS
 
+Verified final documentation-aligned gate:
+- final PR head `1e9ff37129fc386ec278f0b3d2f5e58fa391ccfb`
+- workflow run `32330580003`
+- build job `96310288293`
+- camera/persistence preflight — SUCCESS
+- generic Xcode iOS Simulator build — SUCCESS
+- process-relaunch persistence smoke — SUCCESS
+- merge commit `951c2f53ccbdda7ce01af0dac8f0a17c87fbe132`
+
 Exact persisted integrity evidence across process restart:
 - case ID before/after: `11111111-1111-4111-8111-111111111111`
 - media SHA-256 before/after: `5e647718ecb46672d74a0cfa0416a8af0d7bca687ed0349fd146e1191f197728`
@@ -141,8 +150,6 @@ Exact persisted integrity evidence across process restart:
 Boundary:
 - the automated gate proves compile-time camera integration and simulator process-relaunch persistence for case + evidence + stored media bytes + hashes + seal
 - it does **not** prove physical iPhone camera hardware, permission prompt UX or a real captured photo yet; that remains a device spot-check before release hardening
-
-Because this file advances the PR head after the successful source run, one final full workflow pass is required on the documentation-aligned exact head before merge.
 
 ## Intentionally deferred after Pass 3
 
@@ -163,7 +170,7 @@ Portfolio plan remains Freemium + Pro. Do not force a subscription. Current like
 
 ## Next gate
 
-1. Run the full Evidaro workflow on the documentation-aligned PR #22 head.
-2. Merge PR #22 only if preflight + compile + two-process persistence smoke remain green on that exact head.
-3. Record the merge checkpoint in both app-specific and portfolio handoff state.
-4. Then add on-device OCR while preserving original media bytes/hash as the immutable source of truth.
+1. Add on-device OCR as derived metadata only; never replace or rewrite the stored original media bytes/hash.
+2. Preserve user-reviewable OCR output/provenance so extracted text cannot silently become the source of truth.
+3. Keep physical-device camera capture/permission validation open until a signed device build is available.
+4. After OCR/media stability, build the PDF evidence-pack export.

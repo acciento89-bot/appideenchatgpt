@@ -22,7 +22,7 @@ Repository purpose: persistent handoff/state repository for the full App Factory
 | # | Working title | Core idea | Planned monetization | Status |
 |---|---|---|---|---|
 | 001 | KeepMeter | Return-window + actual-usage decision tool | Freemium + Lifetime Pro | APP STORE REVIEW SUBMITTED — APPLE DECISION PENDING |
-| 002 | Evidaro (PROVISIONAL; ProofVault retired) | Case-based evidence timeline with per-item hashes, snapshot seals and proof export | Freemium + Pro / likely Lifetime | ACTIVE — PASS 2 GREEN/MERGED; CAMERA + RUNTIME PERSISTENCE NEXT |
+| 002 | Evidaro (PROVISIONAL; ProofVault retired) | Case-based evidence timeline with per-item hashes, snapshot seals and proof export | Freemium + Pro / likely Lifetime | ACTIVE — PASS 3 CAMERA + PROCESS-RELAUNCH PERSISTENCE GREEN/MERGED; OCR NEXT |
 | 003 | ParcelPilot | Orders, deliveries, returns and refund tracking | Freemium | QUEUED |
 | 004 | SubZero | Detect/track subscriptions and recurring costs | Pro / Lifetime | QUEUED |
 | 005 | GiftBrain | Gift ideas per person/occasion via share sheet | Lifetime | QUEUED |
@@ -117,14 +117,41 @@ Pass 2 includes:
 - imported original can be shared back out
 - `AddEvidenceView` decomposed into smaller SwiftUI components after Xcode 26.6 type-checker failures; only the fully green revision was merged
 
-Do not regress Evidaro to Foundation-only or Pass-2-pending state.
+Pass 3 green checkpoint:
+
+- PR #22 `Add Evidaro camera capture and relaunch persistence gate` — MERGED
+- final PR head `1e9ff37129fc386ec278f0b3d2f5e58fa391ccfb`
+- workflow run `32330580003`
+- build job `96310288293`
+- camera/persistence preflight — SUCCESS
+- Xcode iOS Simulator build — SUCCESS
+- process-relaunch persistence smoke — SUCCESS
+- merge commit `951c2f53ccbdda7ce01af0dac8f0a17c87fbe132`
+
+Pass 3 includes:
+
+- direct camera photo intake on camera-capable iPhones
+- camera privacy usage description in Debug and Release
+- captured photos routed through the existing private media storage + SHA-256 path
+- app-root ownership of the persistent `EvidenceStore`
+- automated two-process simulator persistence proof for case, evidence item, stored media bytes, media hash, evidence-record hash and snapshot seal
+- exact smoke media SHA-256 survives restart: `5e647718ecb46672d74a0cfa0416a8af0d7bca687ed0349fd146e1191f197728`
+- exact smoke seal SHA-256 survives restart: `f9799ea52f49197a71782d15f488545a5bd32cab7bd305e78e6aacc2b12450ff`
+
+Pass-3 boundary:
+
+- automated simulator persistence is proven
+- camera integration compiles and is wired to the same media/hash path
+- physical iPhone camera hardware and permission-prompt UX are not yet device-verified and remain a pre-release spot check
+
+Do not regress Evidaro to Foundation-only, Pass-2-pending or camera/persistence-pending state.
 
 Next Evidaro gates:
 
-1. direct camera capture without changing the existing media-hash semantics
-2. runtime/relaunch persistence smoke proving cases, evidence, seals and media references survive restart
-3. on-device OCR only after camera + persistence smoke are green
-4. PDF evidence-pack export after OCR/media stability
+1. on-device OCR as derived metadata only; original media bytes/hash remain immutable source of truth
+2. user-reviewable OCR output/provenance; extracted text must not silently replace source evidence
+3. PDF evidence-pack export after OCR/media stability
+4. physical-device camera/permission spot check before release hardening
 5. optional location/context metadata
 6. Face ID/privacy lock
 7. DE/EN + accessibility hardening
@@ -135,7 +162,7 @@ Next Evidaro gates:
 Trust boundary:
 
 - no legal-admissibility claim
-- no claim that a timestamp independently proves when a real-world event occurred
+- no claim that a timestamp independently proves when the real-world event occurred
 - hashes are integrity aids, not legal certification
 - v1 stays local-first; no evidence upload to Kamilunavo servers
 
@@ -333,7 +360,7 @@ Avoid generic house/checkmark, cartoon family, or robot/AI sparkle identity.
 3. For #011 read `apps/011-family-life-os/PROJECT_STATE.md` and `BACKEND_CONTRACT.md`.
 4. Inspect current `main` and latest relevant CI gates before code changes.
 5. Do not regress KeepMeter to pre-TestFlight/pre-StoreKit state; it is submitted to Apple review.
-6. Do not regress Evidaro to `ProofVault`, `QUEUED`, Foundation-only or Pass-2-pending state; Pass 2 is green and merged.
-7. Do not claim camera capture, runtime/relaunch persistence smoke or OCR are green until explicitly exercised by their own gates.
+6. Do not regress Evidaro to `ProofVault`, `QUEUED`, Foundation-only, Pass-2-pending or Pass-3-pending state; Pass 3 is green and merged.
+7. Do not claim physical camera validation or OCR are green until explicitly exercised by their own gates.
 8. Do not regress Family Life OS to “Build 2 not installed”, “PR #13 unverified” or “Hosted E2E untested”.
 9. Preserve every other portfolio entry when updating one workstream.
