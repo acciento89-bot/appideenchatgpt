@@ -104,7 +104,7 @@ struct FamilySettingsView: View {
                     }
                 }
 
-                Section("Account") {
+                Section {
                     Button("Daten neu laden") {
                         Task { await store.refreshHosted() }
                     }
@@ -114,6 +114,8 @@ struct FamilySettingsView: View {
                     Button("Haushalt löschen", role: .destructive) {
                         showDeleteConfirmation = true
                     }
+                } header: {
+                    Text("Account")
                 } footer: {
                     Text("Beim Löschen des Haushalts werden Plan, Inbox-Quellen, private Dateien und Familienzuordnungen entfernt. Diese Aktion kann nicht rückgängig gemacht werden.")
                 }
