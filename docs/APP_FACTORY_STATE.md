@@ -22,7 +22,7 @@ Repository purpose: persistent handoff/state repository for the full App Factory
 | # | Working title | Core idea | Planned monetization | Status |
 |---|---|---|---|---|
 | 001 | KeepMeter | Return-window + actual-usage decision tool | Freemium + Lifetime Pro | APP STORE REVIEW SUBMITTED — APPLE DECISION PENDING |
-| 002 | Evidaro (PROVISIONAL; ProofVault retired) | Case-based evidence timeline with per-item hashes, snapshot seals and proof export | Freemium + Pro / likely Lifetime | ACTIVE — FOUNDATION GREEN / PASS 2 PERSISTENCE + MEDIA INTAKE |
+| 002 | Evidaro (PROVISIONAL; ProofVault retired) | Case-based evidence timeline with per-item hashes, snapshot seals and proof export | Freemium + Pro / likely Lifetime | ACTIVE — PASS 2 GREEN/MERGED; CAMERA + RUNTIME PERSISTENCE NEXT |
 | 003 | ParcelPilot | Orders, deliveries, returns and refund tracking | Freemium | QUEUED |
 | 004 | SubZero | Detect/track subscriptions and recurring costs | Pro / Lifetime | QUEUED |
 | 005 | GiftBrain | Gift ideas per person/occasion via share sheet | Lifetime | QUEUED |
@@ -94,11 +94,17 @@ Foundation includes:
 - dedicated Xcode project/shared scheme
 - dedicated `macos-26` GitHub Actions build gate
 
-Current Pass 2 branch:
+Pass 2 green checkpoint:
 
-`agent/002-evidaro-persistence-media`
+- PR #20 `Add Evidaro SwiftData persistence and hashed media intake` — MERGED
+- final PR head `cef51f701627661b58822656641b8ce1c9f2b3a0`
+- workflow run `32329202541`
+- build job `96306455813`
+- persistence/media preflight — SUCCESS
+- Xcode iOS Simulator build — SUCCESS
+- merge commit `8874d78af3a7d4139743e5b2e9017ecd709cbdd2`
 
-Pass 2 implementation in progress:
+Pass 2 includes:
 
 - SwiftData-backed case/evidence/seal models
 - persistent ModelContainer / ModelContext
@@ -109,15 +115,16 @@ Pass 2 implementation in progress:
 - evidence-record hash includes original-media hash
 - original filename/hash displayed in timeline and manifest
 - imported original can be shared back out
+- `AddEvidenceView` decomposed into smaller SwiftUI components after Xcode 26.6 type-checker failures; only the fully green revision was merged
 
-Pass 2 is **not green until its PR CI completes successfully**.
+Do not regress Evidaro to Foundation-only or Pass-2-pending state.
 
-After Pass 2:
+Next Evidaro gates:
 
-1. direct camera capture
-2. runtime/relaunch persistence smoke
-3. on-device OCR
-4. PDF evidence-pack export
+1. direct camera capture without changing the existing media-hash semantics
+2. runtime/relaunch persistence smoke proving cases, evidence, seals and media references survive restart
+3. on-device OCR only after camera + persistence smoke are green
+4. PDF evidence-pack export after OCR/media stability
 5. optional location/context metadata
 6. Face ID/privacy lock
 7. DE/EN + accessibility hardening
@@ -147,7 +154,7 @@ Family Life OS `0.1.0 (2)` has completed the updated physical-device validation 
 User-confirmed Build-2 results:
 
 - Build 2 processed by Apple, visible in TestFlight, installed and launches
-- PR #13 completion controls work in Plan and Today for deadline/payment/task/preparation items
+- PR #13 completion controls work in Plan and Today for deadline/payment/preparation items
 - completed state survives app restart through the hosted persistence path
 - Today uses the real current date/time-derived greeting
 - old Lina/Ben fixture leakage is gone from the hosted device UI
@@ -326,7 +333,7 @@ Avoid generic house/checkmark, cartoon family, or robot/AI sparkle identity.
 3. For #011 read `apps/011-family-life-os/PROJECT_STATE.md` and `BACKEND_CONTRACT.md`.
 4. Inspect current `main` and latest relevant CI gates before code changes.
 5. Do not regress KeepMeter to pre-TestFlight/pre-StoreKit state; it is submitted to Apple review.
-6. Do not regress Evidaro to `ProofVault` or `QUEUED`; Foundation is merged and green.
-7. Do not claim Evidaro Pass 2 green until its CI is actually green.
+6. Do not regress Evidaro to `ProofVault`, `QUEUED`, Foundation-only or Pass-2-pending state; Pass 2 is green and merged.
+7. Do not claim camera capture, runtime/relaunch persistence smoke or OCR are green until explicitly exercised by their own gates.
 8. Do not regress Family Life OS to “Build 2 not installed”, “PR #13 unverified” or “Hosted E2E untested”.
 9. Preserve every other portfolio entry when updating one workstream.
