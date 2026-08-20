@@ -6,7 +6,7 @@ on:
       build:
         description: 'App Store Connect build number'
         required: false
-        default: '1'
+        default: ''
   pull_request:
     paths:
       - '.github/workflows/family-life-os-testflight.yml'
@@ -46,7 +46,7 @@ jobs:
           REQUESTED_BUILD: ${{ inputs.build }}
         run: |
           set -euo pipefail
-          BUILD="${REQUESTED_BUILD:-1}"
+          BUILD="${REQUESTED_BUILD:-$GITHUB_RUN_NUMBER}"
           [[ "$BUILD" =~ ^[0-9]+$ ]]
           echo "EFFECTIVE_BUILD=$BUILD" >> "$GITHUB_ENV"
           echo "Family Life OS build: 0.1.0 ($BUILD)"
