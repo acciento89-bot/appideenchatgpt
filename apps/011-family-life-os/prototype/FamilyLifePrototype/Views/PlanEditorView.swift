@@ -128,7 +128,7 @@ struct PlanEditorView: View {
     }
 }
 
-private extension Binding where Value == String? {
+private extension Binding where Value == String {
     init(_ source: Binding<String?>, replacingNilWith fallback: String) {
         self.init(
             get: { source.wrappedValue ?? fallback },
