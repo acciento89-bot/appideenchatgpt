@@ -1,0 +1,36 @@
+name: Kamilunavo Trace Static Release
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'apps/002-evidaro/**'
+      - '.github/workflows/kamilunavo-trace-static-release.yml'
+      - '.github/workflows/kamilunavo-trace-testflight.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'apps/002-evidaro/**'
+      - '.github/workflows/kamilunavo-trace-static-release.yml'
+      - '.github/workflows/kamilunavo-trace-testflight.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kamilunavo-trace-static-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  release-preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Foundation and integrity source preflight
+        run: python3 apps/002-evidaro/ci/preflight.py
+
+      - name: Release identity, StoreKit, icon and TestFlight preflight
+        run: python3 apps/002-evidaro/ci/release_preflight.py

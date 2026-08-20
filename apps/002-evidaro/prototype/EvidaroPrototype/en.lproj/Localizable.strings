@@ -10,7 +10,7 @@
 "home.new_case" = "New Case";
 "home.empty.title" = "No evidence cases yet";
 "home.empty.description" = "Create a case before the details get fuzzy.";
-"home.hero.title" = "Capture facts. Seal the record.";
+"home.hero.title" = "Capture facts. Trace integrity.";
 "home.hero.subtitle" = "Build a clean evidence timeline while the details are still fresh.";
 "home.hero.integrity" = "Hashes help detect later changes. They are an integrity aid, not legal certification.";
 "stats.cases" = "Cases";
@@ -19,7 +19,7 @@
 
 "privacy_lock.title" = "Privacy Lock";
 "privacy_lock.require_auth" = "Require device authentication";
-"privacy_lock.description" = "When enabled, Evidaro locks after the app moves to the background. Unlocking uses the authentication configured on this iPhone, such as Face ID, Touch ID, or the device passcode.";
+"privacy_lock.description" = "When enabled, Kamilunavo Trace locks after the app moves to the background. Unlocking uses the authentication configured on this iPhone, such as Face ID, Touch ID, or the device passcode.";
 "privacy_lock.unavailable" = "Device authentication is unavailable. Configure a device passcode or biometric authentication first.";
 "privacy_lock.confirming" = "Confirming device authentication…";
 "privacy_lock.data_boundary" = "Data boundary";
@@ -28,17 +28,17 @@
 "privacy_lock.system_unavailable_setup" = "Device authentication is not available. Set a device passcode or biometric authentication first.";
 "privacy_lock.system_unavailable" = "Device authentication is not available.";
 "privacy_lock.system_not_completed" = "Authentication was not completed.";
-"privacy_lock.enable_reason" = "Enable the Evidaro privacy lock for your evidence cases.";
-"privacy_lock.unlock_reason" = "Unlock Evidaro to view your evidence cases.";
+"privacy_lock.enable_reason" = "Enable the Kamilunavo Trace privacy lock for your evidence cases.";
+"privacy_lock.unlock_reason" = "Unlock Kamilunavo Trace to view your evidence cases.";
 
-"locked.title" = "Evidaro is locked";
+"locked.title" = "Kamilunavo Trace is locked";
 "locked.subtitle" = "Authenticate with your device to view locally stored evidence cases.";
 "locked.authenticating" = "Authenticating…";
-"locked.unlock" = "Unlock Evidaro";
-"Evidaro is locked" = "Evidaro is locked";
+"locked.unlock" = "Unlock Kamilunavo Trace";
+"Evidaro is locked" = "Kamilunavo Trace is locked";
 "Authenticate with your device to view locally stored evidence cases." = "Authenticate with your device to view locally stored evidence cases.";
 "Authenticating…" = "Authenticating…";
-"Unlock Evidaro" = "Unlock Evidaro";
+"Unlock Evidaro" = "Unlock Kamilunavo Trace";
 
 "case.section" = "Case";
 "case.title_placeholder" = "Short factual title";
@@ -92,7 +92,7 @@
 
 "integrity.section" = "Integrity";
 "integrity.media_hash_help" = "The stored media bytes receive their own SHA-256 hash. The evidence record hash also includes that media hash.";
-"integrity.storage_help" = "Media is copied into Evidaro's private Application Support storage. The foundation still makes no claim of legal certification or admissibility.";
+"integrity.storage_help" = "Media is copied into Kamilunavo Trace's private Application Support storage. The app makes no claim of legal certification or admissibility.";
 
 "snapshot.seal" = "Seal snapshot";
 "snapshot.share_manifest" = "Share manifest";
@@ -116,7 +116,7 @@
 "pdf.error_render_image" = "The original image preview for %@ could not be rendered.";
 "pdf.error_render_pdf" = "The original PDF preview for %@ could not be rendered.";
 
-"pdf.meta.title" = "Evidaro Evidence Pack — %@";
+"pdf.meta.title" = "Kamilunavo Trace Evidence Pack — %@";
 "pdf.meta.subject" = "Local evidence case export";
 "pdf.section.evidence_pack" = "Evidence pack";
 "pdf.heading.evidence_pack" = "EVIDENCE PACK";
@@ -129,10 +129,10 @@
 "pdf.snapshot.not_sealed" = "Current timeline is not represented by a matching seal";
 "pdf.field.manifest_sha" = "Current manifest SHA-256";
 "pdf.integrity_model" = "Integrity model";
-"pdf.integrity.originals" = "Original media bytes remain the source of truth. Before this PDF is created, Evidaro re-checks each stored original against its recorded SHA-256 and re-checks each evidence-record hash. The PDF is a derived presentation and does not replace the originals.";
+"pdf.integrity.originals" = "Original media bytes remain the source of truth. Before this PDF is created, Kamilunavo Trace re-checks each stored original against its recorded SHA-256 and re-checks each evidence-record hash. The PDF is a derived presentation and does not replace the originals.";
 "pdf.integrity.previews" = "Image and PDF pages shown inside this pack are previews rendered from the verified originals. Original files remain separately exportable from the case timeline.";
 "pdf.integrity.ocr" = "Recognized text is derived locally with Apple Vision. OCR is clearly labeled, can be refreshed, and is excluded from original-media hashes, evidence-record hashes and snapshot seals.";
-"pdf.integrity.legal" = "Integrity aid only. Evidaro does not provide legal advice, notarization, independent timestamp certification or a guarantee of admissibility.";
+"pdf.integrity.legal" = "Integrity aid only. Kamilunavo Trace does not provide legal advice, notarization, independent timestamp certification or a guarantee of admissibility.";
 "pdf.section.evidence_number" = "Evidence #%ld";
 "pdf.heading.evidence_number" = "EVIDENCE #%ld";
 "pdf.field.recorded" = "Recorded";
@@ -208,6 +208,30 @@
 "bundle.issue_unhashed_media" = "Evidence item %@ contains original bytes without a recorded media hash.";
 "bundle.issue_seal_count" = "Snapshot seal %@ has an impossible item count.";
 "bundle.issue_seal_hash" = "Snapshot seal hash mismatch for %@.";
+
+"pro.navigation" = "Trace Pro";
+"pro.title" = "Kamilunavo Trace Pro";
+"pro.subtitle" = "One purchase. Unlimited evidence work.";
+"pro.feature_cases" = "Unlimited active evidence cases";
+"pro.feature_pdf" = "Unlimited verified PDF evidence-pack exports";
+"pro.feature_bundle" = "Unlimited offline verification-bundle exports";
+"pro.feature_once" = "Lifetime unlock — no subscription";
+"pro.active" = "Lifetime Pro is active on this Apple ID";
+"pro.buy_lifetime" = "Unlock Lifetime Pro";
+"pro.restore" = "Restore purchases";
+"pro.trust_boundary" = "Capture, hashing, sealing, OCR, Privacy Lock and verifying received bundles remain available without Pro. Trace Pro unlocks scale and rich exports, not the integrity checks themselves.";
+"pro.price_loading" = "Loading App Store price…";
+"pro.error_unavailable" = "Lifetime Pro is currently unavailable.";
+"pro.error_verification" = "Purchase verification failed.";
+"pro.error_pending" = "The purchase is pending approval.";
+"pro.status" = "Plan";
+"pro.status_free" = "Free";
+"pro.status_pro" = "Lifetime Pro";
+"pro.upgrade" = "View Lifetime Pro";
+"pro.manage" = "View Pro status";
+"pro.case_limit_title" = "Free case limit reached";
+"pro.case_limit_body" = "Free includes up to 3 active cases. Lifetime Pro removes the limit.";
+"pro.export_hint" = "PDF and verification-bundle exports are Trace Pro features. Capture, hashes, seals, OCR and the text manifest remain available on Free.";
 
 "accessibility.case_card" = "%@, %@, %ld evidence items, %ld seals";
 "accessibility.hash_original" = "Original SHA-256 hash";

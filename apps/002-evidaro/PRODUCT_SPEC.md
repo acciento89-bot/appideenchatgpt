@@ -1,219 +1,204 @@
-# Evidaro — Product Spec v0.2
+# Kamilunavo Trace — Product Spec v0.3
+
+## Identity
+
+Public release name: **Kamilunavo Trace**
+
+Historical internal names:
+- `ProofVault` — retired
+- `Evidaro` — retired as public brand; may remain in internal project paths, migration keys and deterministic CI fixtures
+
+Release identifiers:
+- Bundle ID: `de.kamilunavo.trace`
+- Lifetime Pro product: `de.kamilunavo.trace.pro.lifetime`
+- iPhone / iOS 17+
+
+Public-name web/App Store research reduces obvious collision risk but is not legal trademark clearance.
 
 ## Problem
 
 People often need to prove what happened after the moment has passed: a damaged delivery, apartment handover, contractor defect, insurance incident, vehicle condition, administrative exchange or other dispute. Photos, notes, screenshots and documents end up scattered across apps with no coherent timeline or integrity trail.
 
-Evidaro turns one real-world situation into one structured evidence case.
+Kamilunavo Trace turns one real-world situation into one structured evidence case.
 
 ## Product promise
 
-Capture facts while they are fresh, keep the original context reachable, and create a verifiable snapshot you can export later.
+> Capture facts while they are fresh. Trace integrity later.
+
+Keep original context reachable, create repeatable integrity snapshots, export a readable evidence pack and let another person verify a portable evidence bundle without a Kamilunavo server.
 
 ## Differentiation
 
-Evidaro is deliberately not:
+Kamilunavo Trace is deliberately not:
 - a generic cloud document vault
-- a receipt tracker
-- a return-window tracker
+- a receipt/return tracker
 - a legal-advice product
-- a blockchain/notary gimmick
+- a notary service
+- a blockchain gimmick
 
 The differentiator is the **verifiable original chain**:
 
-**original bytes -> original SHA-256 -> evidence-record SHA-256 -> repeatable snapshot seals -> derived OCR -> evidence PDF + offline-verifiable exchange bundle**
-
-The app does not require a Kamilunavo server to validate that chain. A recipient can inspect an exported `.evpack` locally and recompute the recorded integrity anchors from the embedded original bytes.
+**original bytes -> original SHA-256 -> evidence-record SHA-256 -> snapshot seals -> derived OCR -> localized PDF + offline-verifiable `.evpack`**
 
 ## Core users
 
 - renters / landlords documenting handovers and defects
 - homeowners dealing with contractors or service providers
-- consumers documenting damaged or incomplete deliveries
-- drivers documenting vehicle condition or incidents
+- consumers documenting damaged/incomplete deliveries
+- drivers documenting vehicle condition/incidents
 - people preparing insurance claims
-- anyone who needs a factual timeline before a complaint/escalation
+- people documenting workplace or administrative events
 
-## Core entities
+## Core loop
+
+**Create case -> Capture evidence -> Hash -> Review timeline -> Seal snapshot -> Export/share -> Verify received bundle locally**
+
+A seal records a snapshot at that moment. Later evidence may be added and sealed again; prior seal values remain visible.
+
+## Evidence model
 
 ### Evidence Case
 - id
 - title
-- case type
+- stable raw case type
 - created timestamp
 - evidence items
-- seals
+- seal history
 
 ### Evidence Item
 - id
-- type
-- captured/recorded timestamp
-- source/context label
-- user note/description
+- stable raw evidence type
+- recorded timestamp
+- source/context
+- factual user note
 - evidence-record SHA-256
-- private original media/file reference where applicable
-- original-file SHA-256 where applicable
-- optional derived OCR text, recognition timestamp, engine and page count
+- private original media reference where applicable
+- original-media SHA-256 where applicable
+- optional derived OCR text/provenance
 
 ### Evidence Seal
 - id
 - created timestamp
 - item count
-- manifest hash
+- manifest SHA-256
 
-## MVP UX
+## Intake
 
-### Home
-- concise explanation of purpose
-- open-case count
-- total evidence count
-- latest seal count
-- list of cases with type, evidence count and last activity
-- primary `New Case` action
-- offline `Verify evidence bundle` action for received `.evpack` files
-
-### New Case
-- title
-- type
-- save
-
-### Case Detail
-- timeline header
-- evidence list with type, timestamp, source, note and record hash
-- original media filename + original-media SHA-256 where applicable
-- local `Recognize` / `Refresh` text action for images and PDFs
-- user-visible derived OCR result/provenance
-- add evidence
-- seal snapshot
-- seal history
-- share current integrity manifest
-- build/share localized PDF evidence pack
-- build/share offline-verifiable `.evpack` exchange bundle
-
-### Add Evidence
-Current capture/import layer supports:
-- note/observation
-- source/context label
-- evidence type
-- direct camera photo on camera-capable iPhones
-- existing photo through PhotosPicker
+- factual note/observation
+- source/context
+- direct iPhone camera photo
+- PhotosPicker image
 - Files/PDF import
 
-Original imported/captured bytes are copied into app-private storage and hashed before they become part of the evidence record.
+Original captured/imported bytes are copied into app-private storage and hashed before becoming part of the evidence record.
 
 ## Integrity model
 
-### Original-media hash
-For media-backed evidence, Evidaro computes SHA-256 over the stored original byte stream. OCR never replaces or rewrites these bytes.
+### Original media
+SHA-256 is computed over stored original bytes. OCR never replaces or rewrites the original.
 
-### Evidence-record hash
-The evidence-record hash covers stable canonical item metadata plus the original-media hash where one exists. Derived OCR output is intentionally excluded so recognition can be refreshed without rewriting the evidence identity.
+### Evidence record
+The record hash covers stable canonical factual fields plus the original-media hash where present. Derived OCR is excluded.
 
-### Seal hash
-The seal hashes a canonical manifest containing stable case identity plus ordered evidence-item identity/hash pairs and original-media hashes.
+### Snapshot seal
+The seal hashes a canonical manifest containing stable case identity plus ordered evidence identities/hashes/original-media hashes.
 
-### Seal semantics
-- sealing does not lock the whole case forever
-- a seal records a snapshot at that moment
-- later evidence can be added
-- a new seal represents the newer snapshot
-- prior seal hashes remain visible
-- derived OCR can be added/refreshed without changing an already-created seal
+### OCR
+Apple Vision runs locally. OCR is derived metadata, is visibly labelled, may be refreshed and must not rewrite original-media SHA-256, record SHA-256 or existing seals.
 
-This avoids pretending the app can stop a user from creating later information while still preserving evidence of what a previous snapshot contained.
+## PDF evidence pack
 
-## Offline verification bundle (`.evpack`)
-
-The exchange bundle is a deterministic JSON-based v1 format designed for local verification without an account or server.
-
-It contains:
-- stable case identity and raw case type
-- ordered evidence-item identities and stable raw evidence types
-- canonical recorded timestamps, source/context and user notes
-- recorded evidence-record SHA-256 values
-- original filenames/media types where available
-- original media SHA-256 values
-- the actual original media byte stream encoded in Base64
+The localized PDF includes:
+- Kamilunavo Trace branding
+- case identity/timeline
+- full original-media and record SHA-256 values
+- clearly labelled derived OCR
+- image/PDF previews rendered from verified originals
 - snapshot-seal history
-- derived OCR fields as explicitly non-authoritative metadata
+- integrity/legal boundary
 
-Verifier rules:
-- reject unsupported format/version
-- re-hash every embedded original byte stream and compare it with the recorded original-media SHA-256
-- recompute every evidence-record SHA-256 from stable canonical fields
-- recompute each historical snapshot seal against the evidence prefix represented by that seal's item count
-- report current manifest SHA-256 and whole-bundle SHA-256
-- report concrete integrity failures instead of silently importing bad data
-- changing derived OCR alone must not invalidate original evidence hashes or snapshot seals
+Before export, stored originals and record hashes are rechecked. The PDF is a derived presentation, not the source of truth.
 
-The export path self-verifies the generated bundle before writing it. CI also deliberately modifies a factual note and requires verification to fail, then modifies derived OCR only and requires verification to remain valid.
+## Offline `.evpack`
 
-## Derived OCR model
+`.evpack` v1 is a deterministic JSON-based portable format. The historical format identifier `de.kamilunavo.evidaro.evpack` remains stable for v1 compatibility even though the public app is now Kamilunavo Trace.
 
-Evidaro uses Apple Vision locally for supported images and PDFs.
+It carries stable factual fields, original media bytes as Base64, recorded media/record hashes, seal history and derived OCR metadata.
 
-Rules:
-- OCR is derived metadata, never the source of truth
-- before recognition, stored original bytes must still match their saved SHA-256
-- recognition runs locally; no cloud OCR/upload is required
-- recognized text, recognition time, engine and page count are stored separately
-- OCR is excluded from original-media SHA-256, evidence-record SHA-256 and snapshot seals
-- refreshing OCR cannot silently rewrite an existing sealed evidence snapshot
-- the UI identifies OCR as derived text and keeps the original media reachable
+The local verifier:
+- rejects unsupported format/version
+- re-hashes embedded original bytes
+- recomputes evidence-record hashes
+- verifies historical seals against the represented evidence prefix
+- reports current manifest SHA-256 and bundle SHA-256
+- reports concrete integrity issues
+- does not silently import received evidence into canonical app data
+
+Changing factual evidence without matching integrity anchors must fail verification. Changing only derived OCR must not invalidate original integrity.
 
 ## Privacy
 
-v1 is local-first.
+v1 is local-first:
 - no account required
 - no evidence sent to Kamilunavo servers
-- no cloud OCR required
-- offline bundle verification requires no network
+- no cloud OCR
+- received `.evpack` verification requires no network
 - no analytics/ads in the evidence core
-- later optional sync must be opt-in and separately threat-modeled
+- optional future sync must be opt-in and separately threat-modelled
 
-## Safety / legal positioning
+Privacy Lock uses device-owner authentication and is independent of evidence hashes/source bytes.
 
-Evidaro is a record-keeping and integrity-verification tool, not a law firm, not a notary and not a legal-admissibility service. Hashes and `.evpack` verification can help detect later changes to exported content and recorded snapshots, but they do not independently prove when a real-world event occurred, who created the original content, or guarantee acceptance by a court, insurer, employer or authority.
+## Trust / legal boundary
 
-## Platform
+Kamilunavo Trace is a record-keeping and integrity-verification tool, not a law firm, not a notary and not a legal-admissibility service. Hashes and portable-bundle verification can help detect changes that no longer match recorded internal anchors, but do not independently prove when a real-world event occurred, who authored an original, or guarantee acceptance by a court, insurer, employer or authority.
 
-Current technical foundation:
-- iPhone
-- iOS 17+
-- SwiftUI
-- SwiftData
-- CryptoKit SHA-256
-- PhotosUI
-- camera capture
-- file importer
-- PDFKit
-- Apple Vision OCR
-- LocalAuthentication privacy lock
-- DE/EN UI and PDF localization
-- Dynamic Type / structural VoiceOver hardening
-- integrity-checked localized PDF evidence-pack export
-- offline `.evpack` export + local verifier in Pass 8
+A self-contained unsigned v1 `.evpack` is not an external trust anchor: a party capable of deliberately rewriting content and recomputing all self-contained anchors is outside what this format alone can independently disprove.
 
-## Release-hardening boundary
+## Free / Lifetime Pro
 
-Still requires physical-device validation before public release:
-- camera hardware + permission UX
-- Apple Vision OCR on a real iPhone
-- Face ID / Touch ID / device-passcode prompt UX
-- VoiceOver navigation and largest Dynamic Type sizes
-- final public product name / App Store identity due diligence
-- final StoreKit entitlement and TestFlight/App Store packaging
+### Free
+- up to **3 active cases**
+- notes/photos/files/camera capture
+- original-media SHA-256
+- evidence-record SHA-256
+- snapshot seals
+- local OCR
+- original sharing
+- text manifest sharing
+- Privacy Lock
+- **verify received `.evpack` bundles for free**
 
-## Monetization
+### Kamilunavo Trace Pro — Lifetime
+- unlimited active cases
+- unlimited verified PDF evidence-pack exports
+- unlimited `.evpack` verification-bundle exports
+- one-time purchase; no subscription
 
-Planned: Freemium + Pro.
+Launch-price direction: **14.99 EUR** in the German storefront, with Apple storefront pricing applied elsewhere.
 
-Current direction:
-- free tier should be genuinely useful
-- do not cripple evidence capture itself
-- likely limits should focus on active case count and/or advanced exports
-- offline verification of a received bundle should remain free because verification strengthens trust in the format
-- prefer a one-time Lifetime Pro purchase while the product remains local-first
-- only consider subscription if recurring hosted costs become a real product dependency
+Core integrity checks are not the paid product. Pro sells scale and rich export capability.
 
-No final price is locked in this spec.
+## StoreKit boundary
+
+StoreKit 2 entitlement rules:
+- verified transactions only
+- `Transaction.currentEntitlements` is authoritative for recovered Pro access
+- `Transaction.updates` handles live updates
+- `Transaction.unfinished` handles interrupted-purchase recovery
+- `AppStore.sync()` is used only for explicit Restore Purchases
+- the local `.storekit` configuration is test data, not evidence that the real App Store Connect IAP exists
+
+## Release boundary
+
+Automated gates cover source wiring, simulator build, persistence, SHA integrity, OCR, DE/EN PDFs, `.evpack` tamper/derived-OCR behavior, Privacy Lock lifecycle and localization.
+
+A public release still requires the signed TestFlight physical gate in `PHYSICAL_QA.md`, especially:
+- real camera/permission UX
+- real iPhone OCR
+- Face ID/Touch ID/passcode
+- DE/EN visual review
+- VoiceOver + largest Dynamic Type
+- real TestFlight Lifetime purchase/relaunch/restore
+- PDF and `.evpack` round trip
+
+Canonical Apple setup/runbook: `APP_STORE_CONNECT_RELEASE.md`.

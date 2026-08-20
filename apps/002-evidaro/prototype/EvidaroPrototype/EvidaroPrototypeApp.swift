@@ -72,20 +72,20 @@ private struct EvidaroLockedView: View {
                 .accessibilityHidden(true)
 
             VStack(spacing: 7) {
-                Text("Evidaro is locked")
+                Text("locked.title")
                     .font(.title2.bold())
-                Text("Authenticate with your device to view locally stored evidence cases.")
+                Text("locked.subtitle")
                     .multilineTextAlignment(.center)
                     .foregroundStyle(.secondary)
             }
 
             if appLock.isAuthenticating {
-                ProgressView("Authenticating…")
+                ProgressView("locked.authenticating")
             } else {
                 Button {
                     Task { await appLock.unlockIfNeeded() }
                 } label: {
-                    Label("Unlock Evidaro", systemImage: "lock.open")
+                    Label("locked.unlock", systemImage: "lock.open")
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
@@ -211,10 +211,8 @@ private enum PersistenceSmokeRunner {
             throw SmokeRunnerError.invalidEvidencePack
         }
         let text = document.string ?? ""
-        let legalText = L10n.string("pdf.integrity.legal")
-        let legalMarker = legalText.components(separatedBy: ".").first ?? legalText
         let requiredTokens = [
-            "EVIDARO",
+            "Kamilunavo Trace",
             L10n.string("pdf.heading.evidence_pack"),
             "CI OCR Smoke",
             evidencePackSmokeCaseID.uuidString,
@@ -226,7 +224,7 @@ private enum PersistenceSmokeRunner {
             "EVIDARO 4827",
             L10n.string("pdf.seals.heading"),
             sealHash,
-            legalMarker
+            L10n.string("pdf.integrity.legal")
         ]
         for token in requiredTokens where text.range(of: token, options: .caseInsensitive) == nil {
             throw SmokeRunnerError.missingEvidencePackToken(token)

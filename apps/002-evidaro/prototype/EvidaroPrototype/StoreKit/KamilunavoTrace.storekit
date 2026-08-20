@@ -1,0 +1,38 @@
+{
+  "identifier" : "A2000001",
+  "nonRenewingSubscriptions" : [
+
+  ],
+  "products" : [
+    {
+      "displayPrice" : "14.99",
+      "familyShareable" : false,
+      "internalID" : "A2000002",
+      "localizations" : [
+        {
+          "description" : "Unlimited active cases and unlimited PDF / verification-bundle exports. Pay once.",
+          "displayName" : "Kamilunavo Trace Pro Lifetime",
+          "locale" : "en_US"
+        },
+        {
+          "description" : "Unbegrenzt aktive Fälle sowie unbegrenzte PDF- und Prüfpaket-Exporte. Einmal zahlen.",
+          "displayName" : "Kamilunavo Trace Pro – Lifetime",
+          "locale" : "de_DE"
+        }
+      ],
+      "productID" : "de.kamilunavo.trace.pro.lifetime",
+      "referenceName" : "Kamilunavo Trace Lifetime Pro",
+      "type" : "NonConsumable"
+    }
+  ],
+  "settings" : {
+
+  },
+  "subscriptionGroups" : [
+
+  ],
+  "version" : {
+    "major" : 1,
+    "minor" : 1
+  }
+}

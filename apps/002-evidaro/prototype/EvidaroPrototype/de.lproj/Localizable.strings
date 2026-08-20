@@ -10,7 +10,7 @@
 "home.new_case" = "Neuer Fall";
 "home.empty.title" = "Noch keine Beweisfälle";
 "home.empty.description" = "Erstelle einen Fall, bevor Details verloren gehen.";
-"home.hero.title" = "Fakten erfassen. Stand versiegeln.";
+"home.hero.title" = "Fakten erfassen. Integrität nachverfolgen.";
 "home.hero.subtitle" = "Baue eine klare Beweis-Zeitleiste auf, solange die Details noch frisch sind.";
 "home.hero.integrity" = "Hashes helfen, spätere Änderungen zu erkennen. Sie sind eine Integritätshilfe, keine rechtliche Zertifizierung.";
 "stats.cases" = "Fälle";
@@ -19,7 +19,7 @@
 
 "privacy_lock.title" = "Datenschutzsperre";
 "privacy_lock.require_auth" = "Geräteauthentifizierung erforderlich";
-"privacy_lock.description" = "Wenn aktiviert, sperrt sich Evidaro, sobald die App in den Hintergrund wechselt. Zum Entsperren wird die auf diesem iPhone eingerichtete Authentifizierung verwendet, etwa Face ID, Touch ID oder der Gerätecode.";
+"privacy_lock.description" = "Wenn aktiviert, sperrt sich Kamilunavo Trace, sobald die App in den Hintergrund wechselt. Zum Entsperren wird die auf diesem iPhone eingerichtete Authentifizierung verwendet, etwa Face ID, Touch ID oder der Gerätecode.";
 "privacy_lock.unavailable" = "Geräteauthentifizierung ist nicht verfügbar. Richte zuerst einen Gerätecode oder biometrische Authentifizierung ein.";
 "privacy_lock.confirming" = "Geräteauthentifizierung wird bestätigt…";
 "privacy_lock.data_boundary" = "Datengrenze";
@@ -28,17 +28,17 @@
 "privacy_lock.system_unavailable_setup" = "Geräteauthentifizierung ist nicht verfügbar. Richte zuerst einen Gerätecode oder biometrische Authentifizierung ein.";
 "privacy_lock.system_unavailable" = "Geräteauthentifizierung ist nicht verfügbar.";
 "privacy_lock.system_not_completed" = "Die Authentifizierung wurde nicht abgeschlossen.";
-"privacy_lock.enable_reason" = "Aktiviere die Evidaro-Datenschutzsperre für deine Beweisfälle.";
-"privacy_lock.unlock_reason" = "Entsperre Evidaro, um deine Beweisfälle anzuzeigen.";
+"privacy_lock.enable_reason" = "Aktiviere die Kamilunavo-Trace-Datenschutzsperre für deine Beweisfälle.";
+"privacy_lock.unlock_reason" = "Entsperre Kamilunavo Trace, um deine Beweisfälle anzuzeigen.";
 
-"locked.title" = "Evidaro ist gesperrt";
+"locked.title" = "Kamilunavo Trace ist gesperrt";
 "locked.subtitle" = "Authentifiziere dich mit deinem Gerät, um lokal gespeicherte Beweisfälle anzuzeigen.";
 "locked.authenticating" = "Authentifizierung läuft…";
-"locked.unlock" = "Evidaro entsperren";
-"Evidaro is locked" = "Evidaro ist gesperrt";
+"locked.unlock" = "Kamilunavo Trace entsperren";
+"Evidaro is locked" = "Kamilunavo Trace ist gesperrt";
 "Authenticate with your device to view locally stored evidence cases." = "Authentifiziere dich mit deinem Gerät, um lokal gespeicherte Beweisfälle anzuzeigen.";
 "Authenticating…" = "Authentifizierung läuft…";
-"Unlock Evidaro" = "Evidaro entsperren";
+"Unlock Evidaro" = "Kamilunavo Trace entsperren";
 
 "case.section" = "Fall";
 "case.title_placeholder" = "Kurzer sachlicher Titel";
@@ -92,7 +92,7 @@
 
 "integrity.section" = "Integrität";
 "integrity.media_hash_help" = "Die gespeicherten Mediendaten erhalten einen eigenen SHA-256-Hash. Der Hash des Beweisdatensatzes enthält ebenfalls diesen Medien-Hash.";
-"integrity.storage_help" = "Medien werden in Evidaros privaten Application-Support-Speicher kopiert. Die App erhebt weiterhin keinen Anspruch auf rechtliche Zertifizierung oder Zulässigkeit als Beweismittel.";
+"integrity.storage_help" = "Medien werden in den privaten Application-Support-Speicher von Kamilunavo Trace kopiert. Die App erhebt keinen Anspruch auf rechtliche Zertifizierung oder Zulässigkeit als Beweismittel.";
 
 "snapshot.seal" = "Snapshot versiegeln";
 "snapshot.share_manifest" = "Manifest teilen";
@@ -116,7 +116,7 @@
 "pdf.error_render_image" = "Die Vorschau des Originalbilds für %@ konnte nicht gerendert werden.";
 "pdf.error_render_pdf" = "Die Vorschau des Original-PDFs für %@ konnte nicht gerendert werden.";
 
-"pdf.meta.title" = "Evidaro Beweispaket — %@";
+"pdf.meta.title" = "Kamilunavo Trace Beweispaket — %@";
 "pdf.meta.subject" = "Lokaler Export eines Beweisfalls";
 "pdf.section.evidence_pack" = "Beweispaket";
 "pdf.heading.evidence_pack" = "BEWEISPAKET";
@@ -129,10 +129,10 @@
 "pdf.snapshot.not_sealed" = "Aktuelle Zeitleiste wird nicht durch ein passendes Siegel abgebildet";
 "pdf.field.manifest_sha" = "Aktueller Manifest-SHA-256";
 "pdf.integrity_model" = "Integritätsmodell";
-"pdf.integrity.originals" = "Originale Mediendaten bleiben die Quelle der Wahrheit. Vor der Erstellung dieses PDFs prüft Evidaro jedes gespeicherte Original erneut gegen seinen aufgezeichneten SHA-256 und kontrolliert jeden Beweisdatensatz-Hash. Das PDF ist eine abgeleitete Darstellung und ersetzt die Originale nicht.";
+"pdf.integrity.originals" = "Originale Mediendaten bleiben die Quelle der Wahrheit. Vor der Erstellung dieses PDFs prüft Kamilunavo Trace jedes gespeicherte Original erneut gegen seinen aufgezeichneten SHA-256 und kontrolliert jeden Beweisdatensatz-Hash. Das PDF ist eine abgeleitete Darstellung und ersetzt die Originale nicht.";
 "pdf.integrity.previews" = "In diesem Paket gezeigte Bild- und PDF-Seiten sind Vorschauen aus den verifizierten Originalen. Originaldateien können weiterhin separat aus der Fall-Zeitleiste exportiert werden.";
 "pdf.integrity.ocr" = "Erkannter Text wird lokal mit Apple Vision abgeleitet. OCR ist klar gekennzeichnet, kann aktualisiert werden und ist von Originalmedien-Hashes, Beweisdatensatz-Hashes und Snapshot-Siegeln ausgeschlossen.";
-"pdf.integrity.legal" = "Nur Integritätshilfe. Evidaro bietet keine Rechtsberatung, Beglaubigung, unabhängige Zeitstempel-Zertifizierung oder Garantie der Zulässigkeit als Beweismittel.";
+"pdf.integrity.legal" = "Nur Integritätshilfe. Kamilunavo Trace bietet keine Rechtsberatung, Beglaubigung, unabhängige Zeitstempel-Zertifizierung oder Garantie der Zulässigkeit als Beweismittel.";
 "pdf.section.evidence_number" = "Beweis #%ld";
 "pdf.heading.evidence_number" = "BEWEIS #%ld";
 "pdf.field.recorded" = "Erfasst";
@@ -171,12 +171,12 @@
 "pdf.page" = "Seite %ld";
 "pdf.continued" = "%@ • Fortsetzung";
 
-"bundle.building" = "Verifizierungspaket wird erstellt…";
-"bundle.build_share" = "Verifizierungspaket erstellen und teilen";
-"bundle.export_failed" = "Export des Verifizierungspakets fehlgeschlagen";
+"bundle.building" = "Prüfpaket wird erstellt…";
+"bundle.build_share" = "Prüfpaket erstellen und teilen";
+"bundle.export_failed" = "Export des Prüfpakets fehlgeschlagen";
 "bundle.verify_import" = "Beweispaket prüfen";
 "bundle.verify_failed" = "Beweispaket konnte nicht geprüft werden";
-"bundle.verify_title" = "Paket prüfen";
+"bundle.verify_title" = "Beweispaket prüfen";
 "bundle.result_valid" = "Integritätsprüfungen bestanden";
 "bundle.result_invalid" = "Integritätsprüfungen fehlgeschlagen";
 "bundle.result_details" = "Prüfdetails";
@@ -186,28 +186,52 @@
 "bundle.result_manifest" = "Aktueller Manifest-SHA-256";
 "bundle.result_bundle_hash" = "Paket-SHA-256";
 "bundle.result_issues" = "Integritätsprobleme";
-"bundle.result_boundary" = "Was diese Prüfung bestätigt";
-"bundle.result_boundary_text" = "Diese Prüfung bestätigt die interne Konsistenz der exportierten Originaldaten, Datensatz-Hashes und aufgezeichneten Snapshot-Siegel. Sie beweist nicht unabhängig, wann ein reales Ereignis stattgefunden hat, und garantiert keine rechtliche Anerkennung.";
+"bundle.result_boundary" = "Was diese Prüfung belegt";
+"bundle.result_boundary_text" = "Diese Prüfung bestätigt die interne Konsistenz der exportierten Originaldaten, Datensatz-Hashes und gespeicherten Snapshot-Siegel. Sie beweist nicht unabhängig, wann ein reales Ereignis stattgefunden hat, und garantiert keine rechtliche Anerkennung.";
 "bundle.error_missing_case" = "Der Beweisfall ist nicht mehr verfügbar.";
-"bundle.error_empty_case" = "Füge mindestens ein Beweiselement hinzu, bevor du ein Verifizierungspaket erstellst.";
-"bundle.error_missing_original" = "Das gespeicherte Original für %@ fehlt. Das Verifizierungspaket wurde nicht erstellt.";
-"bundle.error_original_integrity" = "Das gespeicherte Original für %@ stimmt nicht mehr mit seinem SHA-256-Hash überein. Das Verifizierungspaket wurde nicht erstellt.";
-"bundle.error_record_integrity" = "Integritätsprüfung des Beweisdatensatzes für %@ fehlgeschlagen. Das Verifizierungspaket wurde nicht erstellt.";
-"bundle.error_generated_invalid" = "Das erzeugte Verifizierungspaket hat seine eigene Integritätsprüfung nicht bestanden.";
-"bundle.error_format" = "Diese Datei ist kein unterstütztes Beweis-Verifizierungspaket.";
-"bundle.error_version" = "Version %ld des Verifizierungspakets wird nicht unterstützt.";
-"bundle.error_unreadable" = "Das Beweis-Verifizierungspaket konnte nicht gelesen werden.";
+"bundle.error_empty_case" = "Füge mindestens ein Beweiselement hinzu, bevor du ein Prüfpaket erstellst.";
+"bundle.error_missing_original" = "Das gespeicherte Original für %@ fehlt. Das Prüfpaket wurde nicht erstellt.";
+"bundle.error_original_integrity" = "Das gespeicherte Original für %@ stimmt nicht mehr mit seinem SHA-256-Hash überein. Das Prüfpaket wurde nicht erstellt.";
+"bundle.error_record_integrity" = "Integritätsprüfung des Beweisdatensatzes für %@ fehlgeschlagen. Das Prüfpaket wurde nicht erstellt.";
+"bundle.error_generated_invalid" = "Das erzeugte Prüfpaket hat seine eigene Integritätsprüfung nicht bestanden.";
+"bundle.error_format" = "Diese Datei ist kein unterstütztes Beweis-Prüfpaket.";
+"bundle.error_version" = "Prüfpaket-Version %ld wird nicht unterstützt.";
+"bundle.error_unreadable" = "Das Beweis-Prüfpaket konnte nicht gelesen werden.";
 "bundle.issue_case_id" = "Die Fall-ID ist ungültig.";
 "bundle.issue_case_type" = "Der Falltyp ist unbekannt.";
-"bundle.issue_order" = "Die Beweiselemente stehen nicht in ihrer kanonischen zeitlichen Reihenfolge.";
+"bundle.issue_order" = "Die Beweiselemente sind nicht in ihrer kanonischen chronologischen Reihenfolge.";
 "bundle.issue_item_id" = "Beweiselement %@ hat eine ungültige ID.";
 "bundle.issue_item_type" = "Beweiselement %@ hat einen unbekannten Typ.";
-"bundle.issue_record_hash" = "Beweisdatensatz-Hash stimmt für %@ nicht überein.";
-"bundle.issue_media_missing" = "Originaldaten fehlen für %@.";
-"bundle.issue_media_hash" = "Originalmedien-SHA-256 stimmt für %@ nicht überein.";
-"bundle.issue_unhashed_media" = "Beweiselement %@ enthält Originaldaten ohne aufgezeichneten Medien-Hash.";
+"bundle.issue_record_hash" = "Der Beweisdatensatz-Hash stimmt für %@ nicht überein.";
+"bundle.issue_media_missing" = "Für %@ fehlen die Originaldaten.";
+"bundle.issue_media_hash" = "Der Originalmedien-SHA-256 stimmt für %@ nicht überein.";
+"bundle.issue_unhashed_media" = "Beweiselement %@ enthält Originaldaten ohne gespeicherten Medien-Hash.";
 "bundle.issue_seal_count" = "Snapshot-Siegel %@ hat eine unmögliche Elementanzahl.";
-"bundle.issue_seal_hash" = "Snapshot-Siegel-Hash stimmt für %@ nicht überein.";
+"bundle.issue_seal_hash" = "Der Snapshot-Siegel-Hash stimmt für %@ nicht überein.";
+
+"pro.navigation" = "Trace Pro";
+"pro.title" = "Kamilunavo Trace Pro";
+"pro.subtitle" = "Ein Kauf. Unbegrenzt Beweise organisieren.";
+"pro.feature_cases" = "Unbegrenzt aktive Beweisfälle";
+"pro.feature_pdf" = "Unbegrenzt verifizierte PDF-Beweispakete exportieren";
+"pro.feature_bundle" = "Unbegrenzt Offline-Prüfpakete exportieren";
+"pro.feature_once" = "Lifetime-Freischaltung – kein Abo";
+"pro.active" = "Lifetime Pro ist für diese Apple-ID aktiv";
+"pro.buy_lifetime" = "Lifetime Pro freischalten";
+"pro.restore" = "Käufe wiederherstellen";
+"pro.trust_boundary" = "Erfassung, Hashing, Versiegeln, OCR, Datenschutzsperre und das Prüfen empfangener Pakete bleiben ohne Pro verfügbar. Trace Pro schaltet Umfang und hochwertige Exporte frei – nicht die Integritätsprüfung selbst.";
+"pro.price_loading" = "App-Store-Preis wird geladen…";
+"pro.error_unavailable" = "Lifetime Pro ist derzeit nicht verfügbar.";
+"pro.error_verification" = "Kaufprüfung fehlgeschlagen.";
+"pro.error_pending" = "Der Kauf wartet auf Freigabe.";
+"pro.status" = "Tarif";
+"pro.status_free" = "Free";
+"pro.status_pro" = "Lifetime Pro";
+"pro.upgrade" = "Lifetime Pro ansehen";
+"pro.manage" = "Pro-Status ansehen";
+"pro.case_limit_title" = "Free-Falllimit erreicht";
+"pro.case_limit_body" = "Free enthält bis zu 3 aktive Fälle. Lifetime Pro hebt das Limit auf.";
+"pro.export_hint" = "PDF- und Prüfpaket-Exporte sind Trace-Pro-Funktionen. Erfassung, Hashes, Siegel, OCR und das Textmanifest bleiben in Free verfügbar.";
 
 "accessibility.case_card" = "%@, %@, %ld Beweiselemente, %ld Siegel";
 "accessibility.hash_original" = "Original-SHA-256-Hash";

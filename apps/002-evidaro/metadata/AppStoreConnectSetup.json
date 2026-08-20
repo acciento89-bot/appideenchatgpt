@@ -1,0 +1,94 @@
+{
+  "app": {
+    "name": "Kamilunavo Trace",
+    "bundleId": "de.kamilunavo.trace",
+    "skuSuggested": "kamilunavo-trace-ios",
+    "primaryCategory": "PRODUCTIVITY",
+    "platform": "IOS",
+    "minimumOS": "17.0",
+    "marketingUrl": "https://kamilunavo.com/trace",
+    "supportUrl": "https://kamilunavo.com/support",
+    "privacyPolicyUrl": "https://kamilunavo.com/trace/privacy",
+    "copyright": "© 2026 Kamilunavo / Piotr Kaminski"
+  },
+  "localizations": {
+    "de-DE": {
+      "name": "Kamilunavo Trace",
+      "subtitle": "Beweise prüfbar sichern",
+      "promotionalText": "Originale lokal bewahren, SHA-256-Integrität prüfen, Snapshots versiegeln und nachvollziehbare PDF- oder .evpack-Beweispakete exportieren.",
+      "keywords": "beweise,dokumentation,schaden,miete,übergabe,versicherung,fotos,pdf,sha256,timeline"
+    },
+    "en-US": {
+      "name": "Kamilunavo Trace",
+      "subtitle": "Capture. Seal. Verify.",
+      "promotionalText": "Preserve originals locally, verify SHA-256 integrity, seal snapshots, and export clear PDF or offline-verifiable .evpack evidence packages.",
+      "keywords": "evidence,documentation,damage,rental,handover,insurance,photos,pdf,sha256,timeline"
+    }
+  },
+  "inAppPurchase": {
+    "referenceName": "Kamilunavo Trace Lifetime Pro",
+    "productId": "de.kamilunavo.trace.pro.lifetime",
+    "type": "NON_CONSUMABLE",
+    "launchPriceDirectionEUR": "14.99",
+    "localizations": {
+      "de-DE": {
+        "displayName": "Kamilunavo Trace Pro – Lifetime",
+        "description": "Unbegrenzte aktive Fälle sowie PDF- und .evpack-Exporte. Einmal zahlen."
+      },
+      "en-US": {
+        "displayName": "Kamilunavo Trace Pro Lifetime",
+        "description": "Unlimited active cases plus PDF and .evpack exports. Pay once."
+      }
+    }
+  },
+  "privacyDirection": {
+    "tracking": false,
+    "accountRequired": false,
+    "developerEvidenceCloud": false,
+    "thirdPartyAnalytics": false,
+    "advertising": false,
+    "provisionalAppStoreAnswer": "DATA_NOT_COLLECTED",
+    "note": "Reconfirm against Apple's current App Privacy definitions before submission. User evidence stored only on-device is not developer collection."
+  },
+  "ageRatingDirection2026": {
+    "unrestrictedWebAccess": false,
+    "userGeneratedContentBroadDistribution": false,
+    "messagingAndChat": false,
+    "socialMedia": false,
+    "advertising": false,
+    "parentalControls": false,
+    "ageAssurance": false,
+    "contentDescriptors": {
+      "gambling": "NONE",
+      "simulatedGambling": "NONE",
+      "contests": "NONE",
+      "violence": "NONE",
+      "profanityOrCrudeHumor": "NONE",
+      "matureOrSuggestiveThemes": "NONE",
+      "horrorOrFearThemes": "NONE",
+      "medicalOrTreatmentInformation": "NONE",
+      "alcoholTobaccoDrugs": "NONE",
+      "sexualContentOrNudity": "NONE"
+    },
+    "expectedGlobalRatingDirection": "4+",
+    "note": "Let the current App Store Connect questionnaire calculate the authoritative rating. Local user-created/imported evidence is not an in-app public distribution network."
+  },
+  "contentRightsDirection": {
+    "developerSuppliedThirdPartyCatalog": false,
+    "userSelectedLocalContentImport": true,
+    "publicRedistributionFeed": false,
+    "developerOwnsReleaseAssets": true,
+    "note": "Kamilunavo does not claim ownership of user-imported photos/documents. Users are responsible for having the right or permission to capture, import and share materials they choose. Answer any broad App Store Connect rights confirmation according to the actual user-selected-content behavior."
+  },
+  "exportCompliance": {
+    "usesNonExemptEncryption": false,
+    "infoPlistKey": "ITSAppUsesNonExemptEncryption",
+    "note": "Trace uses SHA-256 hashing and Apple platform security frameworks, but no proprietary or non-exempt encryption. Reconfirm the App Store Connect answers for the submitted binary."
+  },
+  "review": {
+    "accountRequired": false,
+    "notesFile": "../APP_STORE_METADATA.md",
+    "physicalQaFile": "../PHYSICAL_QA.md",
+    "iapProductId": "de.kamilunavo.trace.pro.lifetime"
+  }
+}
