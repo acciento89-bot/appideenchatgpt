@@ -92,6 +92,21 @@ checks = {
         'pdf.continued',
     ]),
     "PDF share UX": "pdf.build_share" in detail_text and "EvidencePackShareSheet" in detail_text,
+    "offline verification bundle format": 'formatIdentifier = "de.kamilunavo.evidaro.evpack"' in models_text and "EvidenceVerificationBundleDocument" in models_text and "currentVersion = 1" in models_text,
+    "offline bundle carries originals": "mediaDataBase64" in models_text and "base64EncodedString()" in models_text and "Data(base64Encoded:" in models_text,
+    "offline bundle record hash verification": "rawItemHash" in models_text and '"recordedAt=\\(recordedAtCanonical)"' in models_text and "bundle.issue_record_hash" in models_text,
+    "offline bundle media hash verification": "EvidenceHasher.sha256(bytes) != expectedMediaHash" in models_text and "bundle.issue_media_hash" in models_text,
+    "offline bundle historical seal verification": "Array(document.items.prefix(seal.itemCount))" in models_text and "expectedSeal == seal.manifestHash" in models_text,
+    "offline bundle OCR excluded from integrity": "recognizedText" in models_text and "rawItemHash" in models_text and "derivedOCRAffectedIntegrity" in models_text,
+    "offline bundle self-verifies before write": "EvidenceBundleVerifier.verify(data: data)" in models_text and "generatedBundleInvalid" in models_text and "data.write(to: url" in models_text,
+    "offline bundle export UX": "generateVerificationBundle" in detail_text and "bundle.build_share" in detail_text and "verificationBundleShareItem" in detail_text,
+    "offline bundle import UX": "showsVerificationImporter" in root_text and ".fileImporter" in root_text and "EvidenceBundleVerifier.verify(data: data)" in root_text and "VerificationResultView" in root_text,
+    "offline bundle localized verifier copy": "bundleEnglish" in localization_text and "bundleGerman" in localization_text and "bundle.result_boundary_text" in localization_text,
+    "offline bundle runtime smoke": "EvidenceBundleSmokeRunner" in models_text and "tamperAccepted" in models_text and "derivedOCRAffectedIntegrity" in models_text,
+    "offline bundle tamper rejection": 'tampered.items[0].note += " TAMPERED"' in models_text and "guard !tamperedResult.isValid" in models_text,
+    "offline bundle derived OCR tolerance": 'derivedOnly.items[0].recognizedText = "DERIVED OCR CHANGED FOR SMOKE"' in models_text and "guard derivedResult.isValid" in models_text,
+    "offline bundle process-relaunch gate": "--evidaro-verification-bundle-smoke prepare" in workflow_text and "--evidaro-verification-bundle-smoke verify" in workflow_text and "BUNDLE_VERIFIED_HASH" in workflow_text,
+    "offline bundle CI asserts trust boundary": "tamperRejected=true" in workflow_text and "derivedOCRIgnored=true" in workflow_text and 'test "${BUNDLE_VERIFIED_HASH}" = "${BUNDLE_PREPARED_HASH}"' in workflow_text,
     "privacy lock compiled": "AppLockController.swift in Sources" in project_text and "import LocalAuthentication" in lock_text,
     "Face ID usage string": "INFOPLIST_KEY_NSFaceIDUsageDescription" in project_text,
     "device-owner authentication policy": ".deviceOwnerAuthentication" in lock_text and "evaluatePolicy" in lock_text,
@@ -135,4 +150,4 @@ for label, passed in checks.items():
 if failed:
     raise SystemExit("Evidaro preflight failed: " + ", ".join(failed))
 
-print("Evidaro camera/persistence/OCR/PDF-pack/privacy-lock/localization/accessibility preflight passed")
+print("Evidaro camera/persistence/OCR/PDF-pack/offline-verifier/privacy-lock/localization/accessibility preflight passed")
