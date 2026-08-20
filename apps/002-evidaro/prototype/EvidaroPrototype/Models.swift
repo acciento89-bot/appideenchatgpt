@@ -12,6 +12,18 @@ enum EvidenceCaseKind: String, CaseIterable, Identifiable, Codable, Hashable {
 
     var id: String { rawValue }
 
+    var localizedName: String {
+        switch self {
+        case .property: L10n.string("case.kind.property")
+        case .delivery: L10n.string("case.kind.delivery")
+        case .vehicle: L10n.string("case.kind.vehicle")
+        case .contractor: L10n.string("case.kind.contractor")
+        case .insurance: L10n.string("case.kind.insurance")
+        case .workplace: L10n.string("case.kind.workplace")
+        case .other: L10n.string("case.kind.other")
+        }
+    }
+
     var symbol: String {
         switch self {
         case .property: "house"
@@ -33,6 +45,16 @@ enum EvidenceItemKind: String, CaseIterable, Identifiable, Codable, Hashable {
     case callNote = "Call note"
 
     var id: String { rawValue }
+
+    var localizedName: String {
+        switch self {
+        case .observation: L10n.string("evidence.kind.observation")
+        case .photo: L10n.string("evidence.kind.photo")
+        case .document: L10n.string("evidence.kind.document")
+        case .message: L10n.string("evidence.kind.message")
+        case .callNote: L10n.string("evidence.kind.call_note")
+        }
+    }
 
     var symbol: String {
         switch self {
