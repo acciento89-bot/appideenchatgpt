@@ -110,7 +110,7 @@ struct CaseDetailView: View {
                 .background(.background, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
             } else {
                 ForEach(evidenceCase.evidence.sorted(by: { $0.recordedAt > $1.recordedAt })) { item in
-                    EvidenceRow(store: store, item: item)
+                    EvidenceRow(store: store, caseID: evidenceCase.id, item: item)
                 }
             }
         }
@@ -162,7 +162,11 @@ struct CaseDetailView: View {
 
 private struct EvidenceRow: View {
     @ObservedObject var store: EvidenceStore
+    let caseID: UUID
     let item: EvidenceItem
+
+    @State private var isRecognizingText = false
+    @State private var recognitionError: String?
 
     var body: some View {
         HStack(alignment: .top, spacing: 13) {
@@ -171,7 +175,7 @@ private struct EvidenceRow: View {
                 .frame(width: 38, height: 38)
                 .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
 
-            VStack(alignment: .leading, spacing: 7) {
+            VStack(alignment: .leading, spacing: 9) {
                 HStack {
                     Text(item.kind.rawValue)
                         .font(.subheadline.bold())
@@ -219,6 +223,10 @@ private struct EvidenceRow: View {
                     .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
                 }
 
+                if store.canRecognizeText(for: item) {
+                    recognizedTextSection
+                }
+
                 HStack(spacing: 5) {
                     Image(systemName: "number")
                     Text("Record \(item.contentHash)")
@@ -231,5 +239,78 @@ private struct EvidenceRow: View {
         }
         .padding(15)
         .background(.background, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+    }
+
+    @ViewBuilder
+    private var recognizedTextSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 8) {
+                Label("Recognized text", systemImage: "text.viewfinder")
+                    .font(.caption.bold())
+                Spacer()
+                if isRecognizingText {
+                    ProgressView()
+                        .controlSize(.small)
+                } else {
+                    Button(item.hasRecognizedTextResult ? "Refresh" : "Recognize") {
+                        runRecognition()
+                    }
+                    .font(.caption.bold())
+                    .buttonStyle(.borderless)
+                }
+            }
+
+            if item.hasRecognizedTextResult {
+                if let text = item.recognizedText, !text.isEmpty {
+                    Text(text)
+                        .font(.footnote)
+                        .textSelection(.enabled)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                } else {
+                    Text("No text detected in this original.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+
+                HStack(spacing: 6) {
+                    if let pageCount = item.recognizedTextPageCount {
+                        Text(pageCount == 1 ? "1 page/image" : "\(pageCount) pages")
+                    }
+                    if let recognizedAt = item.recognizedTextAt {
+                        Text("•")
+                        Text(recognizedAt, style: .relative)
+                    }
+                }
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+            }
+
+            if let recognitionError {
+                Text(recognitionError)
+                    .font(.caption)
+                    .foregroundStyle(.red)
+            }
+
+            Text("Derived locally with Apple Vision. OCR is not part of the original media SHA-256, evidence-record SHA-256, or snapshot seals and can be refreshed without rewriting them.")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+        }
+        .padding(10)
+        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+
+    private func runRecognition() {
+        guard !isRecognizingText else { return }
+        isRecognizingText = true
+        recognitionError = nil
+
+        Task {
+            defer { isRecognizingText = false }
+            do {
+                try await store.recognizeText(caseID: caseID, itemID: item.id)
+            } catch {
+                recognitionError = error.localizedDescription
+            }
+        }
     }
 }
