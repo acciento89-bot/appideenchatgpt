@@ -3,6 +3,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[3]
 APP = ROOT / "apps/002-evidaro/prototype/EvidaroPrototype"
 PROJECT = ROOT / "apps/002-evidaro/prototype/EvidaroPrototype.xcodeproj/project.pbxproj"
+WORKFLOW = ROOT / ".github/workflows/evidaro-prototype-build.yml"
 STATE = ROOT / "apps/002-evidaro/PROJECT_STATE.md"
 SPEC = ROOT / "apps/002-evidaro/PRODUCT_SPEC.md"
 
@@ -14,6 +15,7 @@ required_files = [
     APP / "CaseDetailView.swift",
     APP / "AddEvidenceView.swift",
     PROJECT,
+    WORKFLOW,
     STATE,
     SPEC,
 ]
@@ -25,7 +27,10 @@ for path in required_files:
 project_text = PROJECT.read_text()
 models_text = (APP / "Models.swift").read_text()
 store_text = (APP / "EvidenceStore.swift").read_text()
+app_text = (APP / "EvidaroPrototypeApp.swift").read_text()
+root_text = (APP / "RootView.swift").read_text()
 add_text = (APP / "AddEvidenceView.swift").read_text()
+workflow_text = WORKFLOW.read_text()
 state_text = STATE.read_text()
 spec_text = SPEC.read_text()
 
@@ -40,8 +45,14 @@ checks = {
     "private media storage": "applicationSupportDirectory" in store_text and "EvidaroMedia" in store_text,
     "photo intake": "PhotosPicker" in add_text and "loadTransferable" in add_text,
     "file/PDF intake": ".fileImporter" in add_text and ".pdf" in add_text,
+    "direct camera intake": "UIImagePickerController" in add_text and "sourceType = .camera" in add_text,
+    "camera privacy string": "INFOPLIST_KEY_NSCameraUsageDescription" in project_text,
     "snapshot sealing": "func seal(caseID:" in store_text and "manifestHash" in store_text,
     "shareable manifest": "EVIDARO EVIDENCE MANIFEST" in store_text,
+    "single app-owned store": "RootView(store: store)" in app_text and "@ObservedObject var store: EvidenceStore" in root_text,
+    "relaunch smoke prepare": "preparePersistenceSmoke" in store_text and "prepared.txt" in app_text,
+    "relaunch smoke verify": "verifyPersistenceSmoke" in store_text and "verified.txt" in app_text,
+    "two-process simulator gate": "--evidaro-persistence-smoke prepare" in workflow_text and "simctl terminate" in workflow_text and "--evidaro-persistence-smoke verify" in workflow_text,
     "ProofVault retired": "`ProofVault` is retired" in state_text,
     "legal guardrail": "not a law firm" in spec_text and "not legal certification" in state_text,
 }
@@ -53,4 +64,4 @@ for label, passed in checks.items():
 if failed:
     raise SystemExit("Evidaro preflight failed: " + ", ".join(failed))
 
-print("Evidaro persistence/media preflight passed")
+print("Evidaro camera/persistence preflight passed")
