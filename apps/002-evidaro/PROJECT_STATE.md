@@ -1,7 +1,7 @@
 # Evidaro — Project State
 
 Last updated: 2026-08-20
-Status: ACTIVE — PASS 2 GREEN / PR #20 MERGE NEXT
+Status: ACTIVE — PASS 2 GREEN / MERGED
 Portfolio slot: #002 (original working title: ProofVault)
 Repository: `acciento89-bot/appideenchatgpt`
 Implementation path: `apps/002-evidaro/prototype/`
@@ -77,10 +77,9 @@ Foundation includes:
 - dedicated Xcode project/shared scheme
 - dedicated GitHub Actions simulator build gate
 
-## Pass 2 — GREEN / PR #20
+## Pass 2 — GREEN / MERGED
 
-Branch: `agent/002-evidaro-persistence-media`
-PR: #20 `Add Evidaro SwiftData persistence and hashed media intake`
+PR #20 `Add Evidaro SwiftData persistence and hashed media intake` is merged to `main`.
 
 Implemented:
 - SwiftData-backed EvidenceCase / EvidenceItem / EvidenceSeal models
@@ -96,19 +95,18 @@ Implemented:
 - app-specific preflight expanded to gate persistence/media integrity
 - `AddEvidenceView` split into smaller SwiftUI components to avoid Xcode 26.6 type-checker timeouts
 
-Verified code gate:
-- successful source head `891c0172d86e5a7477a0ac5f8a93190c3c2b3909`
-- workflow run `32329075367`
-- build job `96306102916`
+Verified final gate:
+- final PR head `cef51f701627661b58822656641b8ce1c9f2b3a0`
+- workflow run `32329202541`
+- build job `96306455813`
 - persistence/media preflight — SUCCESS
 - Xcode iOS Simulator build — SUCCESS
+- merge commit `8874d78af3a7d4139743e5b2e9017ecd709cbdd2`
 
 Earlier red attempts were not merged:
 - run `32328781825` exposed a SwiftUI type-check timeout in `AddEvidenceView`
 - run `32328949495` confirmed the same bottleneck after a smaller expression-only change
-- the view was then structurally decomposed; run `32329075367` passed completely
-
-A final CI pass on this documentation-updated PR head is required before merge so the recorded state and green source revision stay aligned.
+- the view was structurally decomposed; run `32329075367` passed, then the documentation-aligned final head also passed in run `32329202541`
 
 ## Intentionally deferred after Pass 2
 
@@ -130,7 +128,7 @@ Portfolio plan remains Freemium + Pro. Do not force a subscription. Current like
 
 ## Next gate
 
-1. Run final PR #20 CI on the documentation-updated head.
-2. Merge PR #20 only if that exact head is green.
-3. After merge, record the merge commit in the portfolio handoff.
-4. Then add direct camera capture and a runtime persistence/relaunch smoke before OCR.
+1. Add direct camera capture without changing existing imported-media hash semantics.
+2. Add a runtime/relaunch persistence smoke that proves cases, evidence, media references and seals survive process restart.
+3. Only after those gates are green, add on-device OCR.
+4. PDF evidence-pack export follows OCR/media stability.
