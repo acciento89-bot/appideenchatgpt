@@ -1,0 +1,54 @@
+name: Cleanup Pass 7 stale runs
+
+on:
+  push:
+    branches:
+      - agent/002-evidaro-localization-accessibility
+    paths:
+      - '.github/workflows/cleanup-pass7-runs.yml'
+
+permissions:
+  actions: write
+  contents: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout Pass 7 branch
+        uses: actions/checkout@v5
+        with:
+          ref: agent/002-evidaro-localization-accessibility
+          fetch-depth: 0
+
+      - name: Cancel stale Pass 7 macOS build runs
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          gh api --paginate \
+            -H 'Accept: application/vnd.github+json' \
+            "/repos/${GH_REPO}/actions/runs?branch=agent%2F002-evidaro-localization-accessibility&per_page=100" \
+            --jq '.workflow_runs[] | [.id,.name,.status] | @tsv' \
+          | while IFS=$'\t' read -r id name status; do
+              [[ "$name" == 'Evidaro Prototype Build' ]] || continue
+              case "$status" in
+                queued|pending|in_progress|waiting|requested)
+                  echo "Cancel stale build run $id ($status)"
+                  gh api --method POST "/repos/${GH_REPO}/actions/runs/${id}/cancel" || true
+                  ;;
+              esac
+            done
+
+      - name: Remove one-shot cleanup workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm .github/workflows/cleanup-pass7-runs.yml
+          git commit -m 'Remove Pass 7 run cleanup workflow'
+          git push origin HEAD:agent/002-evidaro-localization-accessibility
