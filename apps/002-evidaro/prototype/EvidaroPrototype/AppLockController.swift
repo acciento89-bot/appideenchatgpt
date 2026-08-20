@@ -148,6 +148,20 @@ enum AppLockSmokeRunner {
 
     static func runIfRequested() async {
         let arguments = CommandLine.arguments
+
+        if arguments.contains("--evidaro-localization-smoke") {
+            do {
+                let result = try verifyGermanLocalization()
+                try writeResult(result, fileName: "localization-verified.txt")
+                print("EVIDARO_LOCALIZATION_SMOKE SUCCESS: \(result)")
+            } catch {
+                let message = "localization failed: \(error.localizedDescription)"
+                try? writeResult(message, fileName: "localization-failed.txt")
+                assertionFailure("EVIDARO_LOCALIZATION_SMOKE FAILURE: \(message)")
+            }
+            return
+        }
+
         guard let flagIndex = arguments.firstIndex(of: "--evidaro-app-lock-smoke"),
               arguments.indices.contains(flagIndex + 1) else {
             return
@@ -174,6 +188,24 @@ enum AppLockSmokeRunner {
             try? writeResult(message, fileName: "lock-failed.txt")
             assertionFailure("EVIDARO_APP_LOCK_SMOKE FAILURE: \(message)")
         }
+    }
+
+    private static func verifyGermanLocalization() throws -> String {
+        let cases = L10n.string("home.cases")
+        let property = EvidenceCaseKind.property.localizedName
+        let camera = Bundle.main.localizedInfoDictionary?["NSCameraUsageDescription"] as? String
+        let faceID = Bundle.main.localizedInfoDictionary?["NSFaceIDUsageDescription"] as? String
+
+        guard cases == "Fälle",
+              property == "Immobilie",
+              camera == "Nimm Fotos direkt in einen Evidaro-Beweisdatensatz auf.",
+              faceID == "Entsperre Evidaro, um lokal gespeicherte Beweisfälle anzuzeigen." else {
+            throw AppLockSmokeError.localizationMismatch(
+                "cases=\(cases) property=\(property) camera=\(camera ?? "nil") faceID=\(faceID ?? "nil")"
+            )
+        }
+
+        return "localization-verified language=de cases=Fälle property=Immobilie camera=localized faceID=localized"
     }
 
     private static func prepare() async throws -> String {
@@ -243,6 +275,7 @@ private enum AppLockSmokeError: LocalizedError {
     case preferenceDidNotPersist
     case unlockFailed
     case disableFailed
+    case localizationMismatch(String)
 
     var errorDescription: String? {
         switch self {
@@ -262,6 +295,8 @@ private enum AppLockSmokeError: LocalizedError {
             "The persisted privacy lock could not be unlocked after process relaunch."
         case .disableFailed:
             "The privacy lock could not be disabled after verification."
+        case .localizationMismatch(let detail):
+            "The German localization runtime smoke did not resolve the expected values: \(detail)"
         }
     }
 }
