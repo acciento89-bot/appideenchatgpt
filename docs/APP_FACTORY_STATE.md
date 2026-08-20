@@ -2,7 +2,7 @@
 
 Last updated: 2026-08-20
 Status: ACTIVE
-Current user-selected workstream: #002 Evidaro (PROVISIONAL)
+Current user-selected workstream: #002 Evidaro (INTERNAL/PROVISIONAL NAME — RELEASE RENAME REQUIRED)
 Repository purpose: persistent handoff/state repository for the full App Factory so work can continue across chat limits and new conversations without losing decisions or progress.
 
 > This file is the portfolio-level single source of truth. Read it first, then the selected app-specific state. Detailed historical checkpoints remain in Git history.
@@ -22,7 +22,7 @@ Repository purpose: persistent handoff/state repository for the full App Factory
 | # | Working title | Core idea | Planned monetization | Status |
 |---|---|---|---|---|
 | 001 | KeepMeter | Return-window + actual-usage decision tool | Freemium + Lifetime Pro | APP STORE REVIEW SUBMITTED — APPLE DECISION PENDING |
-| 002 | Evidaro (PROVISIONAL; ProofVault retired) | Case-based evidence timeline with per-item hashes, snapshot seals and proof export | Freemium + Pro / likely Lifetime | ACTIVE — PASS 7 DE/EN + ACCESSIBILITY + LOCALIZED PDF IMPLEMENTED; FINAL EXACT-HEAD GATE REQUIRED |
+| 002 | Evidaro (INTERNAL/PROVISIONAL; ProofVault retired) | Local-first evidence cases + original hashes + snapshot seals + localized PDF + offline `.evpack` verifier | Freemium + likely Lifetime Pro | ACTIVE — PASS 7 FINAL GATE QUEUED; PASS 8 OFFLINE VERIFIER SOURCE IMPLEMENTED / OWN GATE PENDING; RELEASE RENAME REQUIRED |
 | 003 | ParcelPilot | Orders, deliveries, returns and refund tracking | Freemium | QUEUED |
 | 004 | SubZero | Detect/track subscriptions and recurring costs | Pro / Lifetime | QUEUED |
 | 005 | GiftBrain | Gift ideas per person/occasion via share sheet | Lifetime | QUEUED |
@@ -54,7 +54,7 @@ Current checkpoint:
 
 Do not regress KeepMeter to “StoreKit/ASC/TestFlight still open.” The next meaningful external event is Apple's review decision or review feedback.
 
-# Portfolio app #002 — Evidaro
+# Portfolio app #002 — Evidaro (internal/provisional)
 
 Authoritative app state:
 
@@ -63,7 +63,10 @@ Authoritative app state:
 Naming:
 
 - original working title `ProofVault` is retired because a substantially overlapping iPhone/iPad app now uses `ProofVault: Document Vault`
-- current candidate `Evidaro` is provisional, not legal/trademark clearance
+- `Evidaro` is now internal/provisional only
+- updated 2026-08-20 public-web research found an existing `Evidaro` project in the housing-conditions / housing-disrepair space with a surveyor-oriented product direction
+- final public naming is therefore a release blocker; do not create final App Store identity/icon/StoreKit naming around Evidaro
+- no repository research should be treated as legal trademark clearance
 
 Product thesis:
 
@@ -71,7 +74,7 @@ Product thesis:
 
 Core loop:
 
-**Create case -> Capture evidence -> Hash each item -> Review timeline -> Seal snapshot -> Build/share evidence pack**
+**Create case -> Capture evidence -> Hash each item -> Review timeline -> Seal snapshot -> Build/share PDF or `.evpack` -> Verify received bundle locally**
 
 Merged green passes:
 
@@ -85,57 +88,87 @@ Merged green passes:
 
 Current Pass 7:
 
-- PR #29 `Add Evidaro DE/EN localization and accessibility hardening` — OPEN
+- PR #29 `Add Evidaro DE/EN localization and accessibility hardening` — OPEN/DRAFT
 - branch `agent/002-evidaro-localization-accessibility`
-- first complete source gate head `ae6a3b8fbdf25eca08ac040ce614664f5fd718de`
-- workflow run `32362074699` — SUCCESS
-- build job `96403585360` — SUCCESS
-- that run proved preflight, Xcode simulator build, persistence, OCR, PDF, privacy lock and German runtime localization
+- final documentation-aligned head `79c132f31ca2ce13046e5941f872087dfc7dad07`
+- exact workflow run `32369937142` / run #43
+- build job `96427918180`
+- observed 2026-08-20 status: **QUEUED**, no failure/conclusion yet
+- earlier source head `ae6a3b8fbdf25eca08ac040ce614664f5fd718de` had workflow run `32362074699` — SUCCESS / build job `96403585360` — SUCCESS
 
-Pass-7 implementation now includes:
+Pass-7 implementation includes:
 
-- explicit English and German resources for the app UI and camera/Face ID usage descriptions
+- explicit English and German resources for app UI and camera/Face ID usage descriptions
 - hash-stable persisted enum raw values with separate localized presentation names
 - localized Home, case creation, evidence intake, case detail, OCR controls, privacy lock and device-auth prompts
 - Dynamic Type adaptive home/action layouts
 - VoiceOver headings, combined case-card semantics and full-hash accessibility labels/values
 - full DE/EN localization of the generated evidence-pack PDF: metadata, cover, fields, OCR labels, image/PDF preview pages, seal history, continuation text, footer and export errors
-- German PDF process-relaunch gate: generate in German, terminate, reopen in German, validate localized PDF again and require identical PDF SHA-256
-- PDF/localization presentation changes do not alter original media bytes, evidence-record hashes, manifests or seals
+- English and German PDF process-relaunch gates
+- localization/presentation changes do not alter original media bytes, evidence-record hashes, manifests or seals
 
-Pass-7 final merge gate:
+Pass-7 rule:
+- keep exact head `79c132f31ca2ce13046e5941f872087dfc7dad07` frozen
+- do not merge PR #29 while workflow `32369937142` is queued
+- merge only after preflight, Xcode Simulator, persistence, OCR, English PDF, German PDF, privacy lock and German runtime localization all conclude SUCCESS on that exact head
 
-1. exact documentation-aligned PR #29 head must pass preflight
-2. generic Xcode iOS Simulator build must pass
-3. persistence process-relaunch smoke must pass
-4. Apple Vision OCR + OCR persistence must pass
-5. English PDF evidence-pack integrity/relaunch smoke must pass
-6. German PDF evidence-pack localization/integrity/relaunch smoke must pass
-7. privacy-lock persistence smoke must pass
-8. German runtime localization smoke must pass
-9. only then merge PR #29
+Current Pass 8 — offline-verifiable `.evpack`:
 
-Open physical/release checks after Pass 7:
+- dependent follow-up branch `agent/002-evidaro-offline-verifier`
+- branched from exact Pass-7 head `79c132f31ca2ce13046e5941f872087dfc7dad07`
+- no PR yet; keep Pass 8 separate until Pass 7 merges
+- source implementation exists; own Xcode/simulator gate is still pending
+
+Pass-8 implementation includes:
+
+- deterministic JSON-based `.evpack` v1 format (`de.kamilunavo.evidaro.evpack`)
+- embedded original media bytes as Base64 plus their recorded SHA-256
+- stable raw case/evidence values and canonical timestamps
+- recorded evidence-record SHA-256 values and snapshot-seal history
+- derived OCR metadata carried but excluded from evidence-record/seal identity
+- exporter re-validates record hashes and original bytes before packaging
+- generated bundle self-verifies before write
+- local verifier recomputes original-media hashes, evidence-record hashes, current manifest and every historical seal against the evidence prefix represented by its item count
+- top-level offline import/verify UX reports green/red, case ID, item count, verified seals, current manifest hash, whole-bundle hash and concrete integrity issues
+- verification does not silently import received data into canonical case storage
+- DE/EN verifier UI/error copy through the localization layer
+- combined workflow extended with verification-bundle process-relaunch smoke
+- preflight now requires format, original-byte verification, historical-seal verification, export/import UX and CI trust-boundary checks
+
+Pass-8 deterministic gate requires:
+
+1. valid `.evpack` export from the existing OCR fixture
+2. one evidence item and one historical seal verify
+3. a deliberately modified factual note with unchanged recorded anchors is rejected
+4. a derived-OCR-only change remains valid
+5. original bundle survives process relaunch
+6. bundle SHA-256 before/after relaunch is identical
+7. all earlier persistence/OCR/PDF/privacy/localization regressions remain green
+
+Trust boundary:
+
+- no legal-admissibility claim
+- no independent proof that a real-world event happened at a claimed time
+- hashes are integrity aids, not legal certification
+- `.evpack` is a self-contained internal-consistency verifier, not an external signature/notary/trust anchor
+- OCR is derived metadata only
+- generated PDF is a derived presentation and does not replace originals
+- v1 stays local-first; no evidence upload to Kamilunavo servers
+
+Open physical/release checks after Pass 8:
 
 - physical iPhone camera capture + permission UX
 - physical-device OCR spot check
 - physical Face ID/Touch ID/device-passcode lock UX
 - DE/EN localization review on device
 - VoiceOver navigation + largest Dynamic Type review
-- final identity/name due diligence and App Store icon
+- physical `.evpack` share/import verification
+- **final public name / identity due diligence**
+- App Store icon after final name
 - final Freemium + likely Lifetime Pro entitlement decision
 - signed TestFlight / App Store record
 
-Trust boundary:
-
-- no legal-admissibility claim
-- no claim that a timestamp independently proves when the real-world event occurred
-- hashes are integrity aids, not legal certification
-- OCR is derived metadata only
-- generated PDF is a derived presentation and does not replace originals
-- v1 stays local-first; no evidence upload to Kamilunavo servers
-
-Do not regress Evidaro to `ProofVault`, `QUEUED`, Foundation-only, pre-OCR, pre-PDF or pre-privacy-lock state.
+Do not regress #002 to `ProofVault`, `QUEUED`, Foundation-only, pre-OCR, pre-PDF, pre-privacy-lock or pre-Pass-7 state. Do not call Pass 7 or Pass 8 green while their relevant exact-head gates have not concluded SUCCESS.
 
 # Portfolio app #011 — Family Life OS
 
@@ -331,7 +364,7 @@ Avoid generic house/checkmark, cartoon family, or robot/AI sparkle identity.
 3. For #011 read `apps/011-family-life-os/PROJECT_STATE.md` and `BACKEND_CONTRACT.md`.
 4. Inspect current `main` and latest relevant CI gates before code changes.
 5. Do not regress KeepMeter to pre-TestFlight/pre-StoreKit state; it is submitted to Apple review.
-6. Do not regress Evidaro to `ProofVault`, `QUEUED`, Foundation-only, pre-OCR, pre-PDF or pre-privacy-lock state; Pass 7 is the active DE/EN + accessibility + localized-PDF gate.
-7. Do not claim physical camera, physical-iPhone OCR, real biometric prompt, VoiceOver or largest-Dynamic-Type validation until explicitly exercised on hardware.
+6. Do not regress #002 to `ProofVault`, `QUEUED`, Foundation-only, pre-OCR, pre-PDF or pre-privacy-lock state; Pass 7 is queued on its exact final head and Pass 8 offline-verifier source is implemented on the dependent branch.
+7. Do not claim physical camera, physical-iPhone OCR, real biometric prompt, VoiceOver, largest-Dynamic-Type or physical `.evpack` verification until explicitly exercised on hardware.
 8. Do not regress Family Life OS to “Build 2 not installed”, “PR #13 unverified” or “Hosted E2E untested”.
 9. Preserve every other portfolio entry when updating one workstream.

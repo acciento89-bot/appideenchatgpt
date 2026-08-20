@@ -1,0 +1,38 @@
+name: Park Pass 8 macOS runs until Pass 7 merges
+
+on:
+  push:
+    branches:
+      - agent/002-evidaro-offline-verifier
+    paths:
+      - '.github/workflows/park-pass8-macos-runs.yml'
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  park:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Cancel non-final Pass 8 macOS build runs
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          gh api --paginate \
+            -H 'Accept: application/vnd.github+json' \
+            "/repos/${GH_REPO}/actions/runs?branch=agent%2F002-evidaro-offline-verifier&per_page=100" \
+            --jq '.workflow_runs[] | [.id,.name,.status] | @tsv' \
+          | while IFS=$'\t' read -r id name status; do
+              [[ "$name" == 'Evidaro Prototype Build' ]] || continue
+              case "$status" in
+                queued|pending|in_progress|waiting|requested)
+                  echo "Cancel non-final Pass 8 build run $id ($status)"
+                  gh api --method POST "/repos/${GH_REPO}/actions/runs/${id}/cancel" || true
+                  ;;
+              esac
+            done

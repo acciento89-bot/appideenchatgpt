@@ -37,7 +37,7 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             build 2>&1 | tee /tmp/evidaro-build.log
 
-      - name: Verify persistence, integrity, OCR, PDF pack, privacy lock and localization across process relaunch
+      - name: Verify persistence, integrity, OCR, PDF pack, verification bundle, privacy lock and localization across process relaunch
         run: |
           set -euo pipefail
 
@@ -176,6 +176,35 @@ jobs:
           GERMAN_PACK_VERIFIED_HASH="$(sed -E 's/.*pdfHash=([0-9a-f]{64}).*/\1/' "${SMOKE_DIR}/pack-verified.txt")"
           test "${GERMAN_PACK_VERIFIED_HASH}" = "${GERMAN_PACK_PREPARED_HASH}"
           cat "${SMOKE_DIR}/pack-verified.txt"
+          xcrun simctl terminate "${DEVICE_UDID}" "${BUNDLE_ID}" || true
+
+          rm -f "${SMOKE_DIR}/bundle-failed.txt" "${SMOKE_DIR}/bundle-prepared.txt" "${SMOKE_DIR}/bundle-verified.txt"
+          xcrun simctl launch "${DEVICE_UDID}" "${BUNDLE_ID}" --evidaro-verification-bundle-smoke prepare
+          for _ in $(seq 1 30); do
+            test -f "${SMOKE_DIR}/bundle-prepared.txt" && break
+            test -f "${SMOKE_DIR}/bundle-failed.txt" && { cat "${SMOKE_DIR}/bundle-failed.txt"; exit 1; }
+            sleep 1
+          done
+          test -f "${SMOKE_DIR}/bundle-prepared.txt"
+          grep -q '^bundle-prepared hash=' "${SMOKE_DIR}/bundle-prepared.txt"
+          grep -q 'tamperRejected=true' "${SMOKE_DIR}/bundle-prepared.txt"
+          grep -q 'derivedOCRIgnored=true' "${SMOKE_DIR}/bundle-prepared.txt"
+          BUNDLE_PREPARED_HASH="$(sed -E 's/.*hash=([0-9a-f]{64}).*/\1/' "${SMOKE_DIR}/bundle-prepared.txt")"
+          test "${#BUNDLE_PREPARED_HASH}" -eq 64
+          cat "${SMOKE_DIR}/bundle-prepared.txt"
+
+          xcrun simctl terminate "${DEVICE_UDID}" "${BUNDLE_ID}"
+          xcrun simctl launch "${DEVICE_UDID}" "${BUNDLE_ID}" --evidaro-verification-bundle-smoke verify
+          for _ in $(seq 1 20); do
+            test -f "${SMOKE_DIR}/bundle-verified.txt" && break
+            test -f "${SMOKE_DIR}/bundle-failed.txt" && { cat "${SMOKE_DIR}/bundle-failed.txt"; exit 1; }
+            sleep 1
+          done
+          test -f "${SMOKE_DIR}/bundle-verified.txt"
+          grep -q '^bundle-verified hash=' "${SMOKE_DIR}/bundle-verified.txt"
+          BUNDLE_VERIFIED_HASH="$(sed -E 's/.*hash=([0-9a-f]{64}).*/\1/' "${SMOKE_DIR}/bundle-verified.txt")"
+          test "${BUNDLE_VERIFIED_HASH}" = "${BUNDLE_PREPARED_HASH}"
+          cat "${SMOKE_DIR}/bundle-verified.txt"
           xcrun simctl terminate "${DEVICE_UDID}" "${BUNDLE_ID}" || true
 
           rm -f "${SMOKE_DIR}/lock-failed.txt" "${SMOKE_DIR}/lock-prepared.txt" "${SMOKE_DIR}/lock-verified.txt"

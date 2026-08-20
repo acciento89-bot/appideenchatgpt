@@ -193,19 +193,21 @@ enum AppLockSmokeRunner {
     private static func verifyGermanLocalization() throws -> String {
         let cases = L10n.string("home.cases")
         let property = EvidenceCaseKind.property.localizedName
+        let bundleVerify = L10n.string("bundle.verify_import")
         let camera = Bundle.main.localizedInfoDictionary?["NSCameraUsageDescription"] as? String
         let faceID = Bundle.main.localizedInfoDictionary?["NSFaceIDUsageDescription"] as? String
 
         guard cases == "Fälle",
               property == "Immobilie",
+              bundleVerify == "Beweispaket prüfen",
               camera == "Nimm Fotos direkt in einen Evidaro-Beweisdatensatz auf.",
               faceID == "Entsperre Evidaro, um lokal gespeicherte Beweisfälle anzuzeigen." else {
             throw AppLockSmokeError.localizationMismatch(
-                "cases=\(cases) property=\(property) camera=\(camera ?? "nil") faceID=\(faceID ?? "nil")"
+                "cases=\(cases) property=\(property) bundle=\(bundleVerify) camera=\(camera ?? "nil") faceID=\(faceID ?? "nil")"
             )
         }
 
-        return "localization-verified language=de cases=Fälle property=Immobilie camera=localized faceID=localized"
+        return "localization-verified language=de cases=Fälle property=Immobilie bundle=localized camera=localized faceID=localized"
     }
 
     private static func prepare() async throws -> String {

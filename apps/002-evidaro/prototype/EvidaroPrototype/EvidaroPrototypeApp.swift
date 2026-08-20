@@ -8,7 +8,9 @@ struct EvidaroPrototypeApp: App {
 
     init() {
 #if DEBUG
-        let smokeRequested = CommandLine.arguments.contains("--evidaro-persistence-smoke")
+        let arguments = CommandLine.arguments
+        let smokeRequested = arguments.contains("--evidaro-persistence-smoke")
+            || arguments.contains("--evidaro-verification-bundle-smoke")
 #else
         let smokeRequested = false
 #endif
@@ -22,6 +24,7 @@ struct EvidaroPrototypeApp: App {
                 .task {
                     await PersistenceSmokeRunner.runIfRequested(using: store)
                     await AppLockSmokeRunner.runIfRequested()
+                    await EvidenceBundleSmokeRunner.runIfRequested(using: store)
                 }
 #endif
         }
