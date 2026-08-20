@@ -59,7 +59,7 @@ struct AddEvidenceView: View {
                         VStack(alignment: .leading, spacing: 5) {
                             Label(mediaDraft.originalName, systemImage: "checkmark.circle.fill")
                                 .font(.subheadline.bold())
-                            Text(ByteCountFormatter.string(fromByteCount: Int64(mediaDraft.data.count), countStyle: .file))
+                            Text(formattedFileSize(for: mediaDraft.data))
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                             Text(mediaDraft.utTypeIdentifier)
@@ -118,6 +118,11 @@ struct AddEvidenceView: View {
 
     private var canSave: Bool {
         !note.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || mediaDraft != nil
+    }
+
+    private func formattedFileSize(for data: Data) -> String {
+        let byteCount = Int64(data.count)
+        return ByteCountFormatter.string(fromByteCount: byteCount, countStyle: .file)
     }
 
     @MainActor
