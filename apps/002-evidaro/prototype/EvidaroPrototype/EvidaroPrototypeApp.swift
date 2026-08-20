@@ -18,7 +18,7 @@ struct EvidaroPrototypeApp: App {
             RootView(store: store)
 #if DEBUG
                 .task {
-                    PersistenceSmokeRunner.runIfRequested(using: store)
+                    await PersistenceSmokeRunner.runIfRequested(using: store)
                 }
 #endif
         }
@@ -28,7 +28,7 @@ struct EvidaroPrototypeApp: App {
 #if DEBUG
 @MainActor
 private enum PersistenceSmokeRunner {
-    static func runIfRequested(using store: EvidenceStore) {
+    static func runIfRequested(using store: EvidenceStore) async {
         let arguments = CommandLine.arguments
         guard let flagIndex = arguments.firstIndex(of: "--evidaro-persistence-smoke"),
               arguments.indices.contains(flagIndex + 1) else {
@@ -46,6 +46,12 @@ private enum PersistenceSmokeRunner {
             case "verify":
                 result = try store.verifyPersistenceSmoke()
                 fileName = "verified.txt"
+            case "ocr-prepare":
+                result = try await store.prepareOCRSmoke()
+                fileName = "ocr-prepared.txt"
+            case "ocr-verify":
+                result = try store.verifyOCRSmoke()
+                fileName = "ocr-verified.txt"
             default:
                 throw SmokeRunnerError.unknownCommand(command)
             }
