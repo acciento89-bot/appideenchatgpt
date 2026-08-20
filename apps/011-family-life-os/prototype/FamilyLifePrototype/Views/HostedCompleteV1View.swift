@@ -113,7 +113,7 @@ private struct CompleteAuthView: View {
                     .padding(.vertical, 8)
                 }
 
-                Section("E-Mail") {
+                Section {
                     TextField("name@beispiel.de", text: $email)
                         .textContentType(.emailAddress)
                         .textInputAutocapitalization(.never)
@@ -129,6 +129,8 @@ private struct CompleteAuthView: View {
                     }
                     .buttonStyle(.borderedProminent)
                     .disabled(!validEmail || isSending)
+                } header: {
+                    Text("E-Mail")
                 } footer: {
                     Text("Der Link öffnet diese App wieder und erstellt eine sichere Supabase-Session.")
                 }
