@@ -22,7 +22,7 @@ Repository purpose: persistent handoff/state repository for the full App Factory
 | # | Working title | Core idea | Planned monetization | Status |
 |---|---|---|---|---|
 | 001 | KeepMeter | Return-window + actual-usage decision tool | Freemium + Lifetime Pro | APP STORE REVIEW SUBMITTED — APPLE DECISION PENDING |
-| 002 | Evidaro (PROVISIONAL; ProofVault retired) | Case-based evidence timeline with per-item hashes, snapshot seals and proof export | Freemium + Pro / likely Lifetime | ACTIVE — PASS 3 CAMERA + PROCESS-RELAUNCH PERSISTENCE GREEN/MERGED; OCR NEXT |
+| 002 | Evidaro (PROVISIONAL; ProofVault retired) | Case-based evidence timeline with per-item hashes, snapshot seals and proof export | Freemium + Pro / likely Lifetime | ACTIVE — PASS 4 LOCAL VISION OCR FIRST FULL GATE GREEN; FINAL DOC-ALIGNED GATE REQUIRED |
 | 003 | ParcelPilot | Orders, deliveries, returns and refund tracking | Freemium | QUEUED |
 | 004 | SubZero | Detect/track subscriptions and recurring costs | Pro / Lifetime | QUEUED |
 | 005 | GiftBrain | Gift ideas per person/occasion via share sheet | Lifetime | QUEUED |
@@ -127,6 +127,8 @@ Pass 3 green checkpoint:
 - Xcode iOS Simulator build — SUCCESS
 - process-relaunch persistence smoke — SUCCESS
 - merge commit `951c2f53ccbdda7ce01af0dac8f0a17c87fbe132`
+- post-merge handoff PR #23 — MERGED
+- handoff merge commit `0be5e5e08bdd045bbb0994c1da508d9a86ab6951`
 
 Pass 3 includes:
 
@@ -144,14 +146,46 @@ Pass-3 boundary:
 - camera integration compiles and is wired to the same media/hash path
 - physical iPhone camera hardware and permission-prompt UX are not yet device-verified and remain a pre-release spot check
 
-Do not regress Evidaro to Foundation-only, Pass-2-pending or camera/persistence-pending state.
+Pass 4 current checkpoint:
+
+- PR #24 `Add local derived OCR with integrity gate` — OPEN / draft until final exact-head gate
+- first green source head `848e365961f6e764948f1920ebf8ef4714af3588`
+- workflow run `32335007814`
+- build job `96322753291`
+- OCR/camera/persistence preflight — SUCCESS
+- Xcode iOS Simulator build — SUCCESS
+- existing process-relaunch persistence smoke — SUCCESS
+- real Apple Vision OCR smoke in iPhone Simulator — SUCCESS
+- OCR persistence after app-process restart — SUCCESS
+
+Pass 4 includes:
+
+- local Apple Vision OCR for stored images and PDFs
+- OCR stored separately as derived text + recognition time + engine + page count
+- recognition validates original stored bytes against the saved original-media SHA-256 before OCR
+- OCR never rewrites original media bytes, media SHA-256, evidence-record SHA-256 or prior snapshot seals
+- OCR output is intentionally excluded from the canonical integrity manifest/seal and can be refreshed independently
+- user-visible `Recognize` / `Refresh` flow with explicit derived-data trust messaging
+- deterministic runtime fixture recognizes `EVIDARO 4827`, then verifies the result and integrity state again after process restart
+- exact OCR smoke media SHA-256 before/after: `d94f8834fd845ea011f36f753c9ddb91d7dd1dbb24ac2e5b04d7b508d9724355`
+- exact OCR smoke evidence-record SHA-256 before/after: `dee235dd17e24fdb04b6a215d4077e03acaea41872c681da55edd996bebaea42`
+- exact pre-OCR seal SHA-256 unchanged after OCR/restart: `86fc0200ebf3c861c686c693cc42437c7ab8716d98f7b42ff158140f71aa4ed8`
+
+Pass-4 boundary:
+
+- Vision OCR is runtime-proven in an iPhone Simulator, not yet on a physical iPhone
+- OCR remains derived/reviewable data, not authoritative evidence
+- physical iPhone camera hardware/permission UX is still open
+- because spec/state documentation advances PR #24 beyond the first green source head, the exact final documentation-aligned head must pass the same complete gate before merge
+
+Do not regress Evidaro to Foundation-only, Pass-2-pending, camera/persistence-pending, or “OCR not implemented.”
 
 Next Evidaro gates:
 
-1. on-device OCR as derived metadata only; original media bytes/hash remain immutable source of truth
-2. user-reviewable OCR output/provenance; extracted text must not silently replace source evidence
+1. rerun preflight + Xcode + persistence + Vision OCR + OCR relaunch verification on the exact final PR #24 documentation head
+2. merge PR #24 only after that exact-head gate is green
 3. PDF evidence-pack export after OCR/media stability
-4. physical-device camera/permission spot check before release hardening
+4. physical-device camera/permission + OCR spot check before release hardening
 5. optional location/context metadata
 6. Face ID/privacy lock
 7. DE/EN + accessibility hardening
@@ -164,6 +198,7 @@ Trust boundary:
 - no legal-admissibility claim
 - no claim that a timestamp independently proves when the real-world event occurred
 - hashes are integrity aids, not legal certification
+- OCR is derived metadata only
 - v1 stays local-first; no evidence upload to Kamilunavo servers
 
 # Portfolio app #011 — Family Life OS
@@ -360,7 +395,7 @@ Avoid generic house/checkmark, cartoon family, or robot/AI sparkle identity.
 3. For #011 read `apps/011-family-life-os/PROJECT_STATE.md` and `BACKEND_CONTRACT.md`.
 4. Inspect current `main` and latest relevant CI gates before code changes.
 5. Do not regress KeepMeter to pre-TestFlight/pre-StoreKit state; it is submitted to Apple review.
-6. Do not regress Evidaro to `ProofVault`, `QUEUED`, Foundation-only, Pass-2-pending or Pass-3-pending state; Pass 3 is green and merged.
-7. Do not claim physical camera validation or OCR are green until explicitly exercised by their own gates.
+6. Do not regress Evidaro to `ProofVault`, `QUEUED`, Foundation-only, Pass-2-pending or Pass-3-pending state; Pass 3 is green/merged and Pass 4 OCR is implemented with a first full green runtime gate.
+7. Do not claim physical camera or physical-iPhone OCR validation until explicitly exercised on hardware.
 8. Do not regress Family Life OS to “Build 2 not installed”, “PR #13 unverified” or “Hosted E2E untested”.
 9. Preserve every other portfolio entry when updating one workstream.
