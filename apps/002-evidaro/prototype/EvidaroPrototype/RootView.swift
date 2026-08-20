@@ -4,9 +4,11 @@ import UniformTypeIdentifiers
 struct RootView: View {
     @ObservedObject var store: EvidenceStore
     @ObservedObject var appLock: AppLockController
+    @ObservedObject private var entitlement = EntitlementStore.shared
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var showsNewCase = false
     @State private var showsSettings = false
+    @State private var showsPro = false
     @State private var showsVerificationImporter = false
     @State private var verificationResult: EvidenceBundleVerificationResult?
     @State private var verificationError: String?
@@ -24,12 +26,42 @@ struct RootView: View {
                             .accessibilityHeading(.h2)
                         Spacer()
                         Button {
-                            showsNewCase = true
+                            if entitlement.canCreateCase(currentCount: store.cases.count) {
+                                showsNewCase = true
+                            } else {
+                                showsPro = true
+                            }
                         } label: {
                             Label("home.new_case", systemImage: "plus")
                                 .font(.subheadline.bold())
                         }
                         .buttonStyle(.borderedProminent)
+                    }
+
+                    if !entitlement.isPro && store.cases.count >= EntitlementStore.freeActiveCaseLimit {
+                        Button {
+                            showsPro = true
+                        } label: {
+                            HStack(spacing: 10) {
+                                Image(systemName: "sparkles")
+                                    .accessibilityHidden(true)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("pro.case_limit_title")
+                                        .font(.subheadline.bold())
+                                    Text("pro.case_limit_body")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .font(.caption.bold())
+                                    .foregroundStyle(.secondary)
+                                    .accessibilityHidden(true)
+                            }
+                            .padding(14)
+                            .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                        }
+                        .buttonStyle(.plain)
                     }
 
                     if store.cases.isEmpty {
@@ -56,7 +88,7 @@ struct RootView: View {
                 .padding()
             }
             .background(Color(uiColor: .systemGroupedBackground))
-            .navigationTitle("Evidaro")
+            .navigationTitle("Kamilunavo Trace")
             .toolbarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -81,6 +113,9 @@ struct RootView: View {
             }
             .sheet(isPresented: $showsSettings) {
                 PrivacySettingsView(appLock: appLock)
+            }
+            .sheet(isPresented: $showsPro) {
+                ProUpgradeView(entitlement: entitlement)
             }
             .sheet(item: $verificationResult) { result in
                 VerificationResultView(result: result)
@@ -129,7 +164,7 @@ struct RootView: View {
     }
 
     private var heroIcon: some View {
-        Image(systemName: "checkmark.shield.fill")
+        Image(systemName: "point.3.connected.trianglepath.dotted")
             .font(.system(size: 28, weight: .bold))
             .frame(width: 52, height: 52)
             .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
@@ -258,12 +293,24 @@ private struct VerificationResultView: View {
 
 private struct PrivacySettingsView: View {
     @ObservedObject var appLock: AppLockController
+    @ObservedObject private var entitlement = EntitlementStore.shared
     @Environment(\.dismiss) private var dismiss
     @State private var isUpdating = false
+    @State private var showsPro = false
 
     var body: some View {
         NavigationStack {
             Form {
+                Section("pro.navigation") {
+                    LabeledContent(
+                        L10n.string("pro.status"),
+                        value: entitlement.isPro ? L10n.string("pro.status_pro") : L10n.string("pro.status_free")
+                    )
+                    Button(entitlement.isPro ? L10n.string("pro.manage") : L10n.string("pro.upgrade")) {
+                        showsPro = true
+                    }
+                }
+
                 Section("privacy_lock.title") {
                     Toggle(
                         "privacy_lock.require_auth",
@@ -322,6 +369,10 @@ private struct PrivacySettingsView: View {
             }
             .task {
                 appLock.refreshAvailability()
+                await entitlement.refreshEntitlements()
+            }
+            .sheet(isPresented: $showsPro) {
+                ProUpgradeView(entitlement: entitlement)
             }
         }
     }

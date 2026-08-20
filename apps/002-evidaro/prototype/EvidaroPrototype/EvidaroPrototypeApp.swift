@@ -72,20 +72,20 @@ private struct EvidaroLockedView: View {
                 .accessibilityHidden(true)
 
             VStack(spacing: 7) {
-                Text("Evidaro is locked")
+                Text("locked.title")
                     .font(.title2.bold())
-                Text("Authenticate with your device to view locally stored evidence cases.")
+                Text("locked.subtitle")
                     .multilineTextAlignment(.center)
                     .foregroundStyle(.secondary)
             }
 
             if appLock.isAuthenticating {
-                ProgressView("Authenticating…")
+                ProgressView("locked.authenticating")
             } else {
                 Button {
                     Task { await appLock.unlockIfNeeded() }
                 } label: {
-                    Label("Unlock Evidaro", systemImage: "lock.open")
+                    Label("locked.unlock", systemImage: "lock.open")
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
@@ -214,7 +214,7 @@ private enum PersistenceSmokeRunner {
         let legalText = L10n.string("pdf.integrity.legal")
         let legalMarker = legalText.components(separatedBy: ".").first ?? legalText
         let requiredTokens = [
-            "EVIDARO",
+            "Kamilunavo Trace",
             L10n.string("pdf.heading.evidence_pack"),
             "CI OCR Smoke",
             evidencePackSmokeCaseID.uuidString,
@@ -241,7 +241,7 @@ private enum PersistenceSmokeRunner {
         ).first ?? FileManager.default.temporaryDirectory
         return appSupport
             .appendingPathComponent("EvidaroExports", isDirectory: true)
-            .appendingPathComponent("Evidaro-\(evidencePackSmokeCaseID.uuidString.lowercased())-Evidence-Pack.pdf")
+            .appendingPathComponent("Kamilunavo-Trace-\(evidencePackSmokeCaseID.uuidString.lowercased())-Evidence-Pack.pdf")
     }
 
     private static func writeResult(_ result: String, fileName: String) throws {

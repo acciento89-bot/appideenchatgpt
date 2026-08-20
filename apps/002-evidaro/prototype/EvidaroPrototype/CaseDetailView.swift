@@ -3,9 +3,11 @@ import UIKit
 
 struct CaseDetailView: View {
     @ObservedObject var store: EvidenceStore
+    @ObservedObject private var entitlement = EntitlementStore.shared
     let caseID: UUID
 
     @State private var showsAddEvidence = false
+    @State private var showsPro = false
     @State private var latestSeal: EvidenceSeal?
     @State private var isGeneratingEvidencePack = false
     @State private var evidencePackShareItem: EvidencePackShareItem?
@@ -31,6 +33,9 @@ struct CaseDetailView: View {
                 .navigationBarTitleDisplayMode(.inline)
                 .sheet(isPresented: $showsAddEvidence) {
                     AddEvidenceView(store: store, caseID: caseID)
+                }
+                .sheet(isPresented: $showsPro) {
+                    ProUpgradeView(entitlement: entitlement)
                 }
                 .sheet(item: $evidencePackShareItem) { shareItem in
                     EvidencePackShareSheet(url: shareItem.url)
@@ -144,7 +149,7 @@ struct CaseDetailView: View {
                     }
                     Label(
                         isGeneratingEvidencePack ? L10n.string("pdf.building") : L10n.string("pdf.build_share"),
-                        systemImage: "doc.richtext"
+                        systemImage: entitlement.isPro ? "doc.richtext" : "lock.doc"
                     )
                 }
                 .frame(maxWidth: .infinity)
@@ -164,13 +169,20 @@ struct CaseDetailView: View {
                         isGeneratingVerificationBundle
                             ? L10n.string("bundle.building")
                             : L10n.string("bundle.build_share"),
-                        systemImage: "checkmark.shield"
+                        systemImage: entitlement.isPro ? "checkmark.shield" : "lock.shield"
                     )
                 }
                 .frame(maxWidth: .infinity)
             }
             .buttonStyle(.bordered)
             .disabled(evidenceCase.evidence.isEmpty || isGeneratingVerificationBundle || isGeneratingEvidencePack)
+
+            if !entitlement.isPro {
+                Text("pro.export_hint")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
         }
     }
 
@@ -267,6 +279,10 @@ struct CaseDetailView: View {
     }
 
     private func generateEvidencePack() {
+        guard entitlement.isPro else {
+            showsPro = true
+            return
+        }
         guard !isGeneratingEvidencePack else { return }
         isGeneratingEvidencePack = true
         evidencePackError = nil
@@ -283,6 +299,10 @@ struct CaseDetailView: View {
     }
 
     private func generateVerificationBundle() {
+        guard entitlement.isPro else {
+            showsPro = true
+            return
+        }
         guard !isGeneratingVerificationBundle else { return }
         isGeneratingVerificationBundle = true
         verificationBundleError = nil

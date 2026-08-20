@@ -1,4 +1,4 @@
-name: Evidaro Prototype Build
+name: Kamilunavo Trace Build
 
 on:
   pull_request:
@@ -22,10 +22,10 @@ jobs:
       - name: Show Xcode version
         run: xcodebuild -version
 
-      - name: Run Evidaro foundation preflight
+      - name: Run Kamilunavo Trace preflight
         run: python3 apps/002-evidaro/ci/preflight.py
 
-      - name: Build Evidaro prototype for iOS Simulator
+      - name: Build Kamilunavo Trace for iOS Simulator
         run: |
           set -o pipefail
           xcodebuild \
@@ -67,7 +67,7 @@ jobs:
             build
 
           APP_PATH="/tmp/evidaro-smoke-derived/Build/Products/Debug-iphonesimulator/EvidaroPrototype.app"
-          BUNDLE_ID="de.kamilunavo.evidaro.prototype"
+          BUNDLE_ID="de.kamilunavo.trace"
           xcrun simctl uninstall "${DEVICE_UDID}" "${BUNDLE_ID}" 2>/dev/null || true
           xcrun simctl install "${DEVICE_UDID}" "${APP_PATH}"
 
@@ -252,7 +252,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: evidaro-xcode-diagnostics
+          name: kamilunavo-trace-xcode-diagnostics
           path: |
             /tmp/evidaro-build.log
             /tmp/evidaro-diagnostics.txt

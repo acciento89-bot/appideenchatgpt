@@ -200,8 +200,8 @@ enum AppLockSmokeRunner {
         guard cases == "Fälle",
               property == "Immobilie",
               bundleVerify == "Beweispaket prüfen",
-              camera == "Nimm Fotos direkt in einen Evidaro-Beweisdatensatz auf.",
-              faceID == "Entsperre Evidaro, um lokal gespeicherte Beweisfälle anzuzeigen." else {
+              camera == "Nimm Fotos direkt in einen Kamilunavo-Trace-Beweisdatensatz auf.",
+              faceID == "Entsperre Kamilunavo Trace, um lokal gespeicherte Beweisfälle anzuzeigen." else {
             throw AppLockSmokeError.localizationMismatch(
                 "cases=\(cases) property=\(property) bundle=\(bundleVerify) camera=\(camera ?? "nil") faceID=\(faceID ?? "nil")"
             )

@@ -213,7 +213,7 @@ struct EvidenceBundleVerificationResult: Identifiable, Sendable {
 }
 
 struct EvidenceVerificationBundleDocument: Codable, Sendable {
-    static let formatIdentifier = "de.kamilunavo.evidaro.evpack"
+    static let formatIdentifier = "de.kamilunavo.trace.evpack"
     static let currentVersion = 1
 
     var format: String
@@ -538,7 +538,7 @@ enum EvidenceVerificationBundleIO {
         ).first ?? FileManager.default.temporaryDirectory
         return appSupport
             .appendingPathComponent("EvidaroExports", isDirectory: true)
-            .appendingPathComponent("Evidaro-\(caseID.uuidString.lowercased())-Verification.evpack")
+            .appendingPathComponent("Kamilunavo-Trace-\(caseID.uuidString.lowercased())-Verification.evpack")
     }
 }
 
