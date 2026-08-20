@@ -96,7 +96,8 @@ actor SupabaseFamilyRepository: FamilyRepository {
                     amountMinor: row.amountMinor,
                     currency: row.currency,
                     isIncluded: row.isIncluded,
-                    requiresMemberResolution: !row.unresolvedFields.isEmpty,
+                    requiresMemberResolution: row.unresolvedFields["member"] != nil,
+                    unresolvedFields: row.unresolvedFields,
                     reviewStatus: ProposalReviewStatus(rawValue: row.reviewStatus) ?? .proposed
                 )
             }
@@ -177,6 +178,13 @@ actor SupabaseFamilyRepository: FamilyRepository {
         }
 
         for proposal in proposals where proposal.reviewStatus == .proposed {
+            var unresolvedFields = proposal.unresolvedFields
+            if proposal.requiresMemberResolution && proposal.memberIDs.isEmpty {
+                unresolvedFields["member"] = "required"
+            } else {
+                unresolvedFields.removeValue(forKey: "member")
+            }
+
             try await client
                 .from("action_proposals")
                 .update(
@@ -190,9 +198,7 @@ actor SupabaseFamilyRepository: FamilyRepository {
                         notes: proposal.note,
                         amountMinor: proposal.amountMinor,
                         currency: proposal.currency,
-                        unresolvedFields: proposal.requiresMemberResolution && proposal.memberIDs.isEmpty
-                            ? ["member": "required"]
-                            : [:],
+                        unresolvedFields: unresolvedFields,
                         isIncluded: proposal.isIncluded
                     )
                 )
