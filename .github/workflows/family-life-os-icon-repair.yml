@@ -1,0 +1,55 @@
+name: Family Life OS Repair App Icon
+
+on:
+  push:
+    branches:
+      - 'agent/family-pro-release-hardening'
+    paths:
+      - 'apps/011-family-life-os/ci/family_app_icon.swift'
+      - '.github/workflows/family-life-os-icon-repair.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: family-life-os-icon-repair-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  repair:
+    runs-on: macos-26
+    timeout-minutes: 10
+    steps:
+      - name: Checkout release branch
+        uses: actions/checkout@v5
+        with:
+          ref: agent/family-pro-release-hardening
+          fetch-depth: 0
+
+      - name: Generate deterministic Gather to Order icon
+        shell: bash
+        run: |
+          set -euo pipefail
+          ICON='apps/011-family-life-os/prototype/FamilyLifePrototype/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png'
+          swift apps/011-family-life-os/ci/family_app_icon.swift generate "$ICON"
+          test "$(sips -g pixelWidth "$ICON" 2>/dev/null | awk '/pixelWidth/ {print $2}')" = '1024'
+          test "$(sips -g pixelHeight "$ICON" 2>/dev/null | awk '/pixelHeight/ {print $2}')" = '1024'
+          test "$(sips -g hasAlpha "$ICON" 2>/dev/null | awk '/hasAlpha/ {print $2}')" = 'no'
+          test "$(stat -f%z "$ICON")" -gt 15000
+
+      - name: Commit repaired binary asset
+        shell: bash
+        run: |
+          set -euo pipefail
+          ICON='apps/011-family-life-os/prototype/FamilyLifePrototype/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png'
+          if git diff --quiet -- "$ICON"; then
+            echo 'Generated AppIcon already matches the checked-in binary.' >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- "$ICON"
+          git commit -m 'Fix Family app icon binary'
+          git push origin HEAD:agent/family-pro-release-hardening
+          echo 'Committed a non-black RGB 1024x1024 Family AppIcon to the release branch.' >> "$GITHUB_STEP_SUMMARY"
