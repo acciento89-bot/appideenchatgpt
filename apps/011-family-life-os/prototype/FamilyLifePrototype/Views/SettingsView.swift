@@ -49,11 +49,9 @@ struct FamilySettingsView: View {
                                 HStack {
                                     VStack(alignment: .leading, spacing: 2) {
                                         Text(product.displayName)
-                                        if let subscription = product.subscription {
-                                            Text(subscription.subscriptionPeriod.debugDescription)
-                                                .font(.caption2)
-                                                .foregroundStyle(.secondary)
-                                        }
+                                        Text(product.id == FamilyProPolicy.annualID ? "Jährliche Abrechnung" : "Monatliche Abrechnung")
+                                            .font(.caption2)
+                                            .foregroundStyle(.secondary)
                                     }
                                     Spacer()
                                     Text(product.displayPrice).fontWeight(.semibold)
