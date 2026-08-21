@@ -176,11 +176,31 @@ struct ActionProposal: Identifiable, Hashable, Codable, Sendable {
     var currency: String?
     var isIncluded: Bool
     var requiresMemberResolution: Bool
+    var unresolvedFields: [String: String] = [:]
     var reviewStatus: ProposalReviewStatus = .proposed
     var suggestedReminderAt: Date? = nil
 
     var isReadyToConfirm: Bool {
-        !requiresMemberResolution || !memberIDs.isEmpty
+        unresolvedFields.isEmpty && (!requiresMemberResolution || !memberIDs.isEmpty)
+    }
+
+    var unresolvedDisplayNames: [String] {
+        unresolvedFields.keys.sorted().map { field in
+            switch field {
+            case "member": "Person"
+            case "time": "Uhrzeit"
+            case "starts_at": "Datum und Uhrzeit"
+            case "due_at": "Fälligkeit"
+            default: field.replacingOccurrences(of: "_", with: " ").capitalized
+            }
+        }
+    }
+
+    mutating func resolveUncertainty(_ field: String) {
+        unresolvedFields.removeValue(forKey: field)
+        if field == "member" {
+            requiresMemberResolution = false
+        }
     }
 }
 

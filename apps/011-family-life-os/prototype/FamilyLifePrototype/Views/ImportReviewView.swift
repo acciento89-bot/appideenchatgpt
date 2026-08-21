@@ -105,7 +105,7 @@ struct ImportReviewView: View {
                     .fixedSize(horizontal: false, vertical: true)
                     .padding(.top, 10)
             } else {
-                Text("Originalquelle ist für diesen Fixture-Eintrag nicht als Text hinterlegt.")
+                Text("Originalquelle ist für diesen Eintrag nicht als Text hinterlegt.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -138,7 +138,7 @@ struct ImportReviewView: View {
     private var confirmationBar: some View {
         VStack(spacing: 8) {
             if store.hasBlockingProposal {
-                Label("Bitte offene Zuordnung prüfen", systemImage: "exclamationmark.circle.fill")
+                Label("Bitte offene Angaben prüfen", systemImage: "exclamationmark.circle.fill")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(.orange)
                     .accessibilityIdentifier("import-blocker")
@@ -177,11 +177,8 @@ private struct ProposalEditor: View {
         members.filter { proposal.memberIDs.contains($0.id) }
     }
 
-    private var assignmentCandidates: [FamilyMember] {
-        if proposal.requiresMemberResolution {
-            return members.filter { $0.role == .child }
-        }
-        return members
+    private var memberNeedsResolution: Bool {
+        proposal.requiresMemberResolution || proposal.unresolvedFields["member"] != nil
     }
 
     var body: some View {
@@ -202,80 +199,19 @@ private struct ProposalEditor: View {
                 .font(.headline)
                 .accessibilityLabel("Titel")
 
-            if proposal.startsAt != nil {
-                dateControl(
-                    title: "Beginn",
-                    date: Binding(
-                        get: { proposal.startsAt ?? .now },
-                        set: { proposal.startsAt = $0 }
-                    )
-                )
+            timingControls
+            assignmentControl
 
-                if proposal.endsAt != nil {
-                    dateControl(
-                        title: "Ende",
-                        date: Binding(
-                            get: { proposal.endsAt ?? proposal.startsAt ?? .now },
-                            set: { proposal.endsAt = $0 }
-                        )
-                    )
-                }
-            }
-
-            if proposal.dueAt != nil {
-                dateControl(
-                    title: proposal.kind == .preparation ? "Erinnerung" : "Fällig",
-                    date: Binding(
-                        get: { proposal.dueAt ?? .now },
-                        set: { proposal.dueAt = $0 }
-                    )
+            if !proposal.unresolvedFields.isEmpty {
+                Label(
+                    "Noch offen: \(proposal.unresolvedDisplayNames.joined(separator: ", "))",
+                    systemImage: "exclamationmark.triangle.fill"
                 )
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.orange)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("proposal-unresolved")
             }
-
-            Menu {
-                ForEach(assignmentCandidates) { member in
-                    Button {
-                        if proposal.requiresMemberResolution {
-                            proposal.memberIDs = [member.id]
-                            proposal.requiresMemberResolution = false
-                        } else if proposal.memberIDs.contains(member.id) {
-                            proposal.memberIDs.remove(member.id)
-                        } else {
-                            proposal.memberIDs.insert(member.id)
-                        }
-                    } label: {
-                        if proposal.memberIDs.contains(member.id) {
-                            Label(member.name, systemImage: "checkmark")
-                        } else {
-                            Text(member.name)
-                        }
-                    }
-                }
-            } label: {
-                HStack(alignment: .center, spacing: 10) {
-                    Image(systemName: proposal.memberIDs.isEmpty ? "person.crop.circle.badge.questionmark" : "person.2.fill")
-                        .accessibilityHidden(true)
-                    if assignedMembers.isEmpty {
-                        Text("Welches Kind?")
-                            .fontWeight(.semibold)
-                    } else {
-                        Text(assignedMembers.map(\.name).joined(separator: ", "))
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                    Spacer(minLength: 8)
-                    Image(systemName: "chevron.up.chevron.down")
-                        .font(.caption)
-                        .accessibilityHidden(true)
-                }
-                .foregroundStyle(proposal.isReadyToConfirm ? Color.primary : Color.orange)
-                .padding(12)
-                .background(
-                    proposal.isReadyToConfirm ? Color.secondary.opacity(0.08) : Color.orange.opacity(0.12),
-                    in: RoundedRectangle(cornerRadius: 12, style: .continuous)
-                )
-            }
-            .accessibilityLabel(assignedMembers.isEmpty ? "Person zuordnen, noch offen" : "Zugeordnet zu \(assignedMembers.map(\.name).joined(separator: ", "))")
-            .accessibilityHint("Öffnet die Auswahl der Familienmitglieder")
 
             if let location = proposal.location {
                 Label(location, systemImage: "mappin.and.ellipse")
@@ -295,6 +231,153 @@ private struct ProposalEditor: View {
         .background(.background, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
         .opacity(proposal.isIncluded ? 1 : 0.55)
         .accessibilityIdentifier("proposal-\(proposal.id.uuidString)")
+    }
+
+    @ViewBuilder
+    private var timingControls: some View {
+        if proposal.unresolvedFields["starts_at"] != nil {
+            requiredDateControl(
+                title: "Datum und Uhrzeit festlegen",
+                date: Binding(
+                    get: { proposal.startsAt ?? .now },
+                    set: {
+                        proposal.startsAt = $0
+                        proposal.resolveUncertainty("starts_at")
+                        proposal.resolveUncertainty("time")
+                    }
+                ),
+                components: [.date, .hourAndMinute]
+            )
+        } else if let start = proposal.startsAt {
+            if proposal.unresolvedFields["time"] != nil {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Datum erkannt: \(start.formatted(date: .abbreviated, time: .omitted))")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                    requiredDateControl(
+                        title: "Uhrzeit festlegen",
+                        date: Binding(
+                            get: { proposal.startsAt ?? start },
+                            set: {
+                                proposal.startsAt = $0
+                                proposal.resolveUncertainty("time")
+                            }
+                        ),
+                        components: .hourAndMinute
+                    )
+                }
+            } else {
+                dateControl(
+                    title: "Beginn",
+                    date: Binding(
+                        get: { proposal.startsAt ?? start },
+                        set: { proposal.startsAt = $0 }
+                    )
+                )
+            }
+
+            if proposal.endsAt != nil {
+                dateControl(
+                    title: "Ende",
+                    date: Binding(
+                        get: { proposal.endsAt ?? proposal.startsAt ?? .now },
+                        set: { proposal.endsAt = $0 }
+                    )
+                )
+            }
+        }
+
+        if proposal.unresolvedFields["due_at"] != nil {
+            requiredDateControl(
+                title: proposal.kind == .preparation ? "Vorbereitung festlegen" : "Fälligkeit festlegen",
+                date: Binding(
+                    get: { proposal.dueAt ?? .now },
+                    set: {
+                        proposal.dueAt = $0
+                        proposal.resolveUncertainty("due_at")
+                    }
+                ),
+                components: [.date, .hourAndMinute]
+            )
+        } else if proposal.dueAt != nil {
+            dateControl(
+                title: proposal.kind == .preparation ? "Erinnerung" : "Fällig",
+                date: Binding(
+                    get: { proposal.dueAt ?? .now },
+                    set: { proposal.dueAt = $0 }
+                )
+            )
+        }
+    }
+
+    private var assignmentControl: some View {
+        Menu {
+            ForEach(members) { member in
+                Button {
+                    if memberNeedsResolution {
+                        proposal.memberIDs = [member.id]
+                        proposal.resolveUncertainty("member")
+                    } else if proposal.memberIDs.contains(member.id) {
+                        proposal.memberIDs.remove(member.id)
+                    } else {
+                        proposal.memberIDs.insert(member.id)
+                    }
+                } label: {
+                    if proposal.memberIDs.contains(member.id) {
+                        Label(member.name, systemImage: "checkmark")
+                    } else {
+                        Text(member.name)
+                    }
+                }
+            }
+        } label: {
+            HStack(alignment: .center, spacing: 10) {
+                Image(systemName: assignedMembers.isEmpty ? "person.crop.circle.badge.questionmark" : "person.2.fill")
+                    .accessibilityHidden(true)
+                if assignedMembers.isEmpty {
+                    Text(memberNeedsResolution ? "Person zuordnen" : "Keine Zuordnung")
+                        .fontWeight(memberNeedsResolution ? .semibold : .regular)
+                } else {
+                    Text(assignedMembers.map(\.name).joined(separator: ", "))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Spacer(minLength: 8)
+                Image(systemName: "chevron.up.chevron.down")
+                    .font(.caption)
+                    .accessibilityHidden(true)
+            }
+            .foregroundStyle(memberNeedsResolution && assignedMembers.isEmpty ? Color.orange : Color.primary)
+            .padding(12)
+            .background(
+                memberNeedsResolution && assignedMembers.isEmpty ? Color.orange.opacity(0.12) : Color.secondary.opacity(0.08),
+                in: RoundedRectangle(cornerRadius: 12, style: .continuous)
+            )
+        }
+        .accessibilityLabel(
+            assignedMembers.isEmpty
+                ? (memberNeedsResolution ? "Person zuordnen, noch offen" : "Keine Person zugeordnet")
+                : "Zugeordnet zu \(assignedMembers.map(\.name).joined(separator: ", "))"
+        )
+        .accessibilityHint("Öffnet die Auswahl der Familienmitglieder")
+    }
+
+    @ViewBuilder
+    private func requiredDateControl(
+        title: String,
+        date: Binding<Date>,
+        components: DatePickerComponents
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Label(title, systemImage: "exclamationmark.circle.fill")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.orange)
+            DatePicker(title, selection: date, displayedComponents: components)
+                .labelsHidden()
+                .datePickerStyle(.compact)
+                .accessibilityLabel(title)
+        }
+        .padding(12)
+        .background(Color.orange.opacity(0.10), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
     @ViewBuilder

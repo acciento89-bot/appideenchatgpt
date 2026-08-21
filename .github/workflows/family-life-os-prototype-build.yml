@@ -5,11 +5,13 @@ on:
     branches: [main]
     paths:
       - 'apps/011-family-life-os/prototype/**'
+      - 'apps/011-family-life-os/supabase/functions/process-family-source/**'
       - '.github/workflows/family-life-os-prototype-build.yml'
   push:
     branches: [main]
     paths:
       - 'apps/011-family-life-os/prototype/**'
+      - 'apps/011-family-life-os/supabase/functions/process-family-source/**'
       - '.github/workflows/family-life-os-prototype-build.yml'
 
 jobs:
@@ -22,6 +24,17 @@ jobs:
 
       - name: Show Xcode version
         run: xcodebuild -version
+
+      - name: Test household timezone conversion
+        run: node --test apps/011-family-life-os/supabase/functions/process-family-source/timezone.test.mjs
+
+      - name: Test proposal review blockers
+        run: |
+          swiftc \
+            apps/011-family-life-os/prototype/FamilyLifePrototype/Domain/Models.swift \
+            apps/011-family-life-os/prototype/Tests/ProposalModelRegression.swift \
+            -o /tmp/family-proposal-regression
+          /tmp/family-proposal-regression
 
       - name: Build Family Life OS prototype for iOS Simulator
         run: |
