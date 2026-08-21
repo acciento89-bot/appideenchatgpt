@@ -3,6 +3,7 @@ import SwiftUI
 struct RootView: View {
     @Bindable var store: DemoStore
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.scenePhase) private var scenePhase
     @State private var selectedSection: AppSection = .today
     @State private var isShowingSettings = false
     @State private var appLock = FamilyAppLock()
@@ -61,6 +62,13 @@ struct RootView: View {
             Button("OK", role: .cancel) { store.repositoryErrorMessage = nil }
         } message: {
             Text(store.repositoryErrorMessage ?? "Unbekannter Fehler")
+        }
+        .task {
+            await store.restoreAndSyncOfflineSourcesV1()
+        }
+        .onChange(of: scenePhase) { _, phase in
+            guard phase == .active else { return }
+            Task { await store.restoreAndSyncOfflineSourcesV1() }
         }
     }
 
