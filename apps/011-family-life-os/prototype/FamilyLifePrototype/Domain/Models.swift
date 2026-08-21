@@ -252,6 +252,31 @@ struct FamilyEntitlement: Hashable, Codable, Sendable {
     static let free = FamilyEntitlement(tier: .free, productID: nil, expiresAt: nil)
 }
 
+enum FamilyProPolicy {
+    static let monthlyID = "de.kamilunavo.family.familypro.monthly"
+    static let annualID = "de.kamilunavo.family.familypro.annual"
+    static let productIDs = [monthlyID, annualID]
+
+    static func productRank(_ productID: String) -> Int {
+        switch productID {
+        case monthlyID: 0
+        case annualID: 1
+        default: 2
+        }
+    }
+
+    static func isEntitled(
+        productID: String,
+        revocationDate: Date?,
+        expirationDate: Date?,
+        now: Date = .now
+    ) -> Bool {
+        guard productIDs.contains(productID), revocationDate == nil else { return false }
+        guard let expirationDate else { return true }
+        return expirationDate > now
+    }
+}
+
 struct NotificationPreferences: Hashable, Codable, Sendable {
     var eventReminders = true
     var taskReminders = true
