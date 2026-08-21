@@ -11,16 +11,31 @@ Record before testing:
 - App Store name: **Kamilunavo Trace**
 - Bundle ID: `de.kamilunavo.trace`
 - Version: `0.1.0`
-- TestFlight build: `<record after upload>`
-- Device / iOS: `<record on test>`
+- TestFlight build: **2**
+- Device / iOS: **real iPhone — user-confirmed hardware pass on 2026-08-21**
 - Lifetime Pro product: `de.kamilunavo.trace.pro.lifetime`
+
+## User-confirmed Build 2 checkpoint — 2026-08-21
+
+The signed TestFlight Build 2 is installed and the following release-critical path is confirmed on real hardware:
+
+- fresh release installation launches without the old seeded `Damaged delivery` demo evidence;
+- the production app starts with the intended empty evidence state;
+- the Trace Pro sheet resolves the real App Store product/price;
+- Lifetime Pro is presented as a one-time purchase, not a subscription;
+- the real TestFlight/App Store purchase path succeeds;
+- Pro becomes active after purchase;
+- force-quit/relaunch preserves the verified Pro entitlement;
+- Restore purchases succeeds and recovers the Lifetime Pro entitlement as intended.
+
+This is a **partial physical QA checkpoint**, not full release acceptance. Camera/OCR/device authentication/DE+EN PDF/VoiceOver/Dynamic Type/physical `.evpack` round-trip remain open until explicitly exercised on hardware.
 
 ## 1 — Fresh install / brand / icon
 
-- [ ] Fresh TestFlight install succeeds.
+- [x] Fresh TestFlight install succeeds.
 - [ ] Home-screen icon is the production Trace icon, not a blank/default asset.
 - [ ] Home-screen/app display name is `Kamilunavo Trace`.
-- [ ] App launches without migration/store crash.
+- [x] App launches without migration/store crash.
 - [ ] English and German public UI contain no user-facing `Evidaro`/`ProofVault` branding.
 
 ## 2 — Free core must remain useful
@@ -106,22 +121,22 @@ Test one camera image with clear text and one imported PDF.
 
 Use the actual TestFlight/App Store sandbox path, not only Xcode local StoreKit.
 
-- [ ] Trace Pro sheet loads the App Store price.
-- [ ] Product shown is Lifetime / one-time, not a subscription.
-- [ ] Buy Lifetime Pro succeeds.
-- [ ] Pro status changes to active without app restart.
+- [x] Trace Pro sheet loads the App Store price.
+- [x] Product shown is Lifetime / one-time, not a subscription.
+- [x] Buy Lifetime Pro succeeds.
+- [x] Pro status changes to active without app restart.
 - [ ] Case 4 can now be created.
 - [ ] PDF evidence-pack export is unlocked.
 - [ ] `.evpack` export is unlocked.
-- [ ] Force quit/relaunch; Pro remains active from verified entitlement recovery.
+- [x] Force quit/relaunch; Pro remains active from verified entitlement recovery.
 - [ ] Reboot/relaunch spot-check; Pro remains active.
 
 ## 8 — Restore purchase
 
 On a state/device where restore is meaningful:
 
-- [ ] `Restore purchases` is visible without requiring another purchase.
-- [ ] Restore invokes Apple flow and recovers Lifetime Pro.
+- [x] `Restore purchases` is visible without requiring another purchase.
+- [x] Restore invokes Apple flow and recovers Lifetime Pro.
 - [ ] Restore does not create a fake local entitlement when Apple returns no verified Lifetime transaction.
 
 ## 9 — PDF evidence pack after Pro
@@ -154,7 +169,7 @@ Use a case with at least one image/PDF, OCR and a seal.
 - [ ] Create evidence, seal, OCR, then force quit.
 - [ ] Relaunch: case/evidence/original/OCR/seal remain.
 - [ ] Background/foreground cycles do not lose data.
-- [ ] No duplicate demo fixture appears after normal relaunch.
+- [x] No duplicate demo fixture appears after normal relaunch.
 - [ ] No unexpected evidence upload/account requirement appears; v1 remains local-first.
 
 ## 12 — Release acceptance
@@ -162,7 +177,7 @@ Use a case with at least one image/PDF, OCR and a seal.
 The physical gate is GREEN only when:
 
 - [ ] all critical items above pass;
-- [ ] purchase + relaunch + restore are proven on the signed TestFlight path;
+- [x] purchase + relaunch + restore are proven on the signed TestFlight path;
 - [ ] real camera and real device authentication are proven;
 - [ ] DE/EN PDF and verifier are visually sane;
 - [ ] VoiceOver and largest Dynamic Type have no release-blocking issue;
