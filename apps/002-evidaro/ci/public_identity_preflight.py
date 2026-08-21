@@ -20,9 +20,9 @@ checks = {
 "Trace PDF smoke filename": 'Kamilunavo-Trace-' in APP_ENTRY,
 "Free case wording EN": 'Free includes up to 3 cases.' in EN and '3 active cases' not in EN,
 "Free case wording DE": 'Free enthält bis zu 3 Fälle.' in DE and '3 aktive Fälle' not in DE,
-"Pass 7/8 merged app state": 'PASS 7/8 GREEN / MERGED' in STATE,
+"Pass 7/8 merged app state": '## Pass 7 — DE/EN + accessibility + localized PDF — GREEN / MERGED' in STATE and '## Pass 8 — offline-verifiable `.evpack` — GREEN / MERGED' in STATE,
 "Pass 8 final gate recorded": '32408185123' in STATE,
-"portfolio release identity": '#002 Kamilunavo Trace' in FACTORY and 'PASS 7/8 GREEN/MERGED' in FACTORY,
+"portfolio release identity": '# Portfolio app #002 — Kamilunavo Trace' in FACTORY and 'Release pass — Kamilunavo Trace' in FACTORY and '- PR #33 — GREEN / MERGED' in FACTORY,
 }
 failed=[k for k,v in checks.items() if not v]
 for k,v in checks.items(): print(("✓" if v else "✗"), k)
