@@ -13,6 +13,9 @@ struct FamilySettingsView: View {
     @State private var showDeleteConfirmation = false
     @State private var statusMessage: String?
 
+    private let familyPrivacyURL = URL(string: "https://www.kamilunavo.com/family/privacy")!
+    private let familyTermsURL = URL(string: "https://www.kamilunavo.com/family/terms")!
+
     var body: some View {
         NavigationStack {
             Form {
@@ -31,20 +34,36 @@ struct FamilySettingsView: View {
                     }
 
                     if !proStore.isPro {
+                        if isLoading && proStore.products.isEmpty {
+                            HStack {
+                                ProgressView()
+                                Text("Family Pro wird geladen …")
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+
                         ForEach(proStore.products, id: \.id) { product in
                             Button {
                                 Task { await proStore.purchase(product) }
                             } label: {
                                 HStack {
-                                    Text(product.displayName)
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(product.displayName)
+                                        if let subscription = product.subscription {
+                                            Text(subscription.subscriptionPeriod.debugDescription)
+                                                .font(.caption2)
+                                                .foregroundStyle(.secondary)
+                                        }
+                                    }
                                     Spacer()
                                     Text(product.displayPrice).fontWeight(.semibold)
                                 }
                             }
+                            .disabled(proStore.isBusy)
                         }
 
-                        if proStore.products.isEmpty && !proStore.isBusy {
-                            Text("Family-Pro-Produkte sind für diesen internen Build noch nicht in App Store Connect verfügbar. Die App bleibt vollständig testbar.")
+                        if proStore.products.isEmpty && !isLoading && !proStore.isBusy {
+                            Text("Family-Pro-Produkte konnten noch nicht aus App Store Connect geladen werden. Die übrige App bleibt testbar.")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
@@ -54,6 +73,34 @@ struct FamilySettingsView: View {
                         Task { await proStore.restore() }
                     }
                     .disabled(proStore.isBusy)
+
+                    if proStore.isBusy {
+                        ProgressView()
+                    }
+
+                    if let proStatus = proStore.statusMessage {
+                        Label(proStatus, systemImage: "checkmark.circle")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    if let proError = proStore.errorMessage {
+                        Label(proError, systemImage: "exclamationmark.triangle.fill")
+                            .font(.caption)
+                            .foregroundStyle(.red)
+                    }
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Family Pro ist ein automatisch verlängerndes Abonnement. Die Abrechnung erfolgt über Apple. Das Abo verlängert sich, sofern es nicht mindestens 24 Stunden vor Ablauf in den Apple-ID-Abonnementeinstellungen gekündigt wird.")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+
+                        HStack(spacing: 16) {
+                            Link("Datenschutz", destination: familyPrivacyURL)
+                            Link("Nutzungsbedingungen", destination: familyTermsURL)
+                        }
+                        .font(.caption)
+                    }
                 }
 
                 Section("Benachrichtigungen") {
@@ -84,6 +131,8 @@ struct FamilySettingsView: View {
                     Label("AI-Verarbeitung läuft ausschließlich serverseitig.", systemImage: "server.rack")
                         .font(.caption)
                         .foregroundStyle(.secondary)
+                    Link("Datenschutzhinweise für die Familien-App", destination: familyPrivacyURL)
+                        .font(.caption)
                 }
 
                 if !store.activity.isEmpty {
