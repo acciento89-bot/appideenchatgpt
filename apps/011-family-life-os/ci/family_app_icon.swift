@@ -1,6 +1,7 @@
 #!/usr/bin/env swift
 import AppKit
 import Foundation
+import ImageIO
 
 let defaultPath = "apps/011-family-life-os/prototype/FamilyLifePrototype/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png"
 let arguments = Array(CommandLine.arguments.dropFirst())
@@ -94,15 +95,16 @@ func generateIcon(at outputPath: String) throws {
 }
 
 func verifyIcon(at inputPath: String) {
-    guard let image = NSImage(contentsOfFile: inputPath),
-          let tiff = image.tiffRepresentation,
-          let bitmap = NSBitmapImageRep(data: tiff) else {
+    let inputURL = URL(fileURLWithPath: inputPath) as CFURL
+    guard let source = CGImageSourceCreateWithURL(inputURL, nil),
+          let cgImage = CGImageSourceCreateImageAtIndex(source, 0, nil) else {
         fail("Could not decode AppIcon PNG at \(inputPath)")
     }
-    guard bitmap.pixelsWide == 1024 && bitmap.pixelsHigh == 1024 else {
-        fail("AppIcon must be exactly 1024x1024, got \(bitmap.pixelsWide)x\(bitmap.pixelsHigh)")
+    guard cgImage.width == 1024 && cgImage.height == 1024 else {
+        fail("AppIcon must be exactly 1024x1024, got \(cgImage.width)x\(cgImage.height)")
     }
 
+    let bitmap = NSBitmapImageRep(cgImage: cgImage)
     var samples: [Double] = []
     let step = 32
     for y in stride(from: 16, to: bitmap.pixelsHigh, by: step) {
