@@ -22,6 +22,7 @@ ASC_JSON = APP_ROOT / "metadata/AppStoreConnectSetup.json"
 QA_DOC = APP_ROOT / "PHYSICAL_QA.md"
 TESTFLIGHT = ROOT / ".github/workflows/kamilunavo-trace-testflight.yml"
 STATIC_WORKFLOW = ROOT / ".github/workflows/kamilunavo-trace-static-release.yml"
+APP_ENTRY = APP / "EvidaroPrototypeApp.swift"
 
 PRODUCT_ID = "de.kamilunavo.trace.pro.lifetime"
 BUNDLE_ID = "de.kamilunavo.trace"
@@ -45,6 +46,7 @@ required = [
     QA_DOC,
     TESTFLIGHT,
     STATIC_WORKFLOW,
+    APP_ENTRY,
 ]
 for path in required:
     if not path.exists():
@@ -59,9 +61,15 @@ metadata_doc = APP_STORE_METADATA.read_text()
 qa_doc = QA_DOC.read_text()
 testflight = TESTFLIGHT.read_text()
 static_workflow = STATIC_WORKFLOW.read_text()
+app_entry = APP_ENTRY.read_text()
 
 checks: dict[str, bool] = {
     "release bundle id": BUNDLE_ID in project,
+    "release build starts without demo evidence": (
+        "let seedDemoData = false" in app_entry
+        and "EvidenceStore(seedDemoData: seedDemoData)" in app_entry
+        and "EvidenceStore(seedDemoData: !smokeRequested)" not in app_entry
+    ),
     "release display name": (
         f'INFOPLIST_KEY_CFBundleDisplayName = "{DISPLAY_NAME}";' in project
         or f"INFOPLIST_KEY_CFBundleDisplayName = {DISPLAY_NAME};" in project
