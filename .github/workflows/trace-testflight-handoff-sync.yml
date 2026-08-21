@@ -1,0 +1,155 @@
+name: Trace TestFlight Handoff Sync
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/trace-testflight-handoff-sync.yml'
+      - 'apps/002-evidaro/PROJECT_STATE.md'
+      - 'docs/APP_FACTORY_STATE.md'
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.head_ref }}
+      - name: Record successful TestFlight Build 1 handoff
+        shell: python
+        run: |
+          from pathlib import Path
+
+          app = Path('apps/002-evidaro/PROJECT_STATE.md')
+          master = Path('docs/APP_FACTORY_STATE.md')
+          a = app.read_text()
+          m = master.read_text()
+
+          def rep(text, old, new, label):
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'{label}: expected exactly 1 match, found {count}')
+              return text.replace(old, new)
+
+          a = rep(a, 'Last updated: 2026-08-20', 'Last updated: 2026-08-21', 'app date')
+          a = rep(a,
+              'Status: ACTIVE — PASS 7/8 GREEN / MERGED; KAMILUNAVO TRACE FINAL RELEASE GATES IN PROGRESS; EXTERNAL APP STORE / PHYSICAL QA PENDING',
+              'Status: TESTFLIGHT BUILD 1 UPLOADED — APPLE PROCESSING / LIFETIME PRO IAP + PHYSICAL QA PENDING',
+              'app status')
+          a = rep(a, 'Release branch: `agent/002-kamilunavo-trace-release`', 'Canonical branch: `main`', 'canonical branch')
+          a = rep(a, '## Latest release checkpoint — 2026-08-20', '## Latest release checkpoint — 2026-08-21', 'checkpoint date')
+          a = rep(a,
+              '- dependent release PR: #33 `Release Kamilunavo Trace with Lifetime Pro and TestFlight hardening`',
+              '- release PR #33 `Release Kamilunavo Trace with Lifetime Pro and TestFlight hardening` — GREEN / MERGED\n- final tested release head `090b1471…`; static release run `32412043585`, unsigned iPhone Release/TestFlight validation run `32412043598`, and full simulator run `32412043953` — SUCCESS\n- release merge on `main`: `69b8a1d99082ff804f2a532c636af3008d79546a`\n- App Store Connect app record for `de.kamilunavo.trace` — EXISTS\n- signed TestFlight Build 1 `0.1.0 (1)` upload — SUCCESS via protected One More Floor bridge\n- bridge run `32445560808`; upload job `96665754912`; exact Apple result includes `Progress 100%: Upload succeeded.` and `** EXPORT SUCCEEDED **`\n- Apple package processing / TestFlight visibility — PENDING external confirmation',
+              'release checkpoint')
+          a = rep(a,
+              '- static release workflow run `32379763657` completed SUCCESS after App Icon, StoreKit, metadata and release-identity hardening; current PR head must still be inspected for the latest rerun after documentation-only updates\n- Pass 7 PR #29 and Pass 8 PR #32 remain blocked only by their required macOS-26 exact-head runs; never bypass those gates\n- App Store Connect app/IAP creation, signed TestFlight processing and physical iPhone QA remain external release steps',
+              '- Pass 7 PR #29, Pass 8 PR #32 and Release PR #33 are all GREEN / MERGED\n- App Store Connect app record exists and signed Build 1 has been uploaded successfully\n- Lifetime Pro IAP creation/price readiness, Apple processing visibility and physical iPhone QA remain external release steps',
+              'obsolete blockers')
+          a = rep(a,
+              'Release PR #33 is a clean child of verified Pass-8 `main` and contains only the release layer below.',
+              'Release PR #33 is GREEN / MERGED. Final release code is on `main` at merge `69b8a1d99082ff804f2a532c636af3008d79546a`. Its static, full simulator and unsigned iPhone Release gates all passed before merge.',
+              'release intro')
+          a = rep(a, '- up to 3 active cases', '- up to 3 cases', 'free wording')
+          a = rep(a, '- unlimited active cases', '- unlimited cases', 'pro wording')
+          a = rep(a, '- case-limit upsell at the fourth active case', '- case-limit upsell at the fourth case', 'upsell wording')
+          a = rep(a, '### App Store Connect handoff — PREPARED', '### App Store Connect / TestFlight — BUILD 1 UPLOADED', 'asc heading')
+          a = rep(a,
+              'Still requires work in Apple\'s systems because this repository cannot create/confirm the App Store record or IAP record by itself:\n- create/confirm app record for bundle id `de.kamilunavo.trace`\n- create non-consumable `de.kamilunavo.trace.pro.lifetime`\n- set final territory price around the planned €14.99 launch point\n- complete tax/banking/agreements if Apple requires them\n- attach IAP to the first submitted version as required',
+              'Current Apple checkpoint:\n- app record for bundle id `de.kamilunavo.trace` exists\n- signed Build 1 `0.1.0 (1)` upload succeeded and Apple accepted the package for processing\n- TestFlight visibility/processing is not yet externally confirmed\n\nStill requires work in Apple\'s systems:\n- create/configure non-consumable `de.kamilunavo.trace.pro.lifetime` if it does not yet exist\n- set final territory price around the planned €14.99 launch point\n- complete tax/banking/agreements if Apple requires them\n- attach IAP to the first submitted version as required',
+              'asc requirements')
+          old_auto = '''## What can still be completed automatically
+
+1. Keep the Kamilunavo Trace release PR and fast static release gate green.
+2. Keep Pass 7/8 exact-head macOS jobs under observation; merge only after SUCCESS.
+3. Once Pass 7 then Pass 8 are green/merged, retarget/rebase the release PR cleanly onto `main`, rerun static + full macOS + unsigned Release-device gates, and merge only when all required exact-head checks are green.
+4. After release code is on `main`, the TestFlight workflow can upload only if the App Store record/bundle id and repository ASC secrets are valid.'''
+          new_auto = '''## Repository / automation checkpoint
+
+Repository release work for Build 1 is complete: Pass 7, Pass 8 and Release PR #33 are merged, all required release gates are green, and the signed Build 1 upload succeeded through the protected bridge. Do not create another Build 1 upload unless Apple reports a processing/rejection problem that requires a new binary.'''
+          a = rep(a, old_auto, new_auto, 'automation section')
+          a = rep(a,
+              '- App Store Connect app-record creation/verification\n- App Store Connect Lifetime Pro IAP creation/price readiness\n- Apple\'s signed/TestFlight processing if the Apple record is absent',
+              '- App Store Connect Lifetime Pro IAP creation/price readiness\n- Apple TestFlight processing/visibility after the successful signed upload',
+              'external blockers')
+
+          m = rep(m, 'Last updated: 2026-08-20', 'Last updated: 2026-08-21', 'master date')
+          m = rep(m,
+              'Current user-selected workstream: #002 Kamilunavo Trace — final release hardening',
+              'Current user-selected workstream: #002 Kamilunavo Trace — TestFlight Build 1 uploaded / Apple processing + IAP/device QA next',
+              'master workstream')
+          m = rep(m,
+              '| 002 | Kamilunavo Trace (internal path `002-evidaro`) | Local-first evidence cases + original hashes + snapshot seals + localized PDF + offline `.evpack` verifier | Freemium + Lifetime Pro | ACTIVE — PASS 7/8 GREEN/MERGED; FINAL RELEASE GATES IN PROGRESS |',
+              '| 002 | Kamilunavo Trace (internal path `002-evidaro`) | Local-first evidence cases + original hashes + snapshot seals + localized PDF + offline `.evpack` verifier | Freemium + Lifetime Pro | TESTFLIGHT BUILD 1 UPLOADED — APPLE PROCESSING / IAP + DEVICE QA PENDING |',
+              'master queue')
+          m = rep(m,
+              '- `Evidaro` is now internal/provisional only\n- updated 2026-08-20 public-web research found an existing `Evidaro` project in the housing-conditions / housing-disrepair space with a surveyor-oriented product direction\n- final public naming is therefore a release blocker; do not create final App Store identity/icon/StoreKit naming around Evidaro',
+              '- `Evidaro` is retired as the public name and retained only where historical internal paths/fixtures make renaming unnecessary\n- updated 2026-08-20 public-web research found an existing `Evidaro` project in the housing-conditions / housing-disrepair space with a surveyor-oriented product direction\n- final public name is locked for this release as `Kamilunavo Trace`',
+              'master naming')
+          old_release = '''Release pass — Kamilunavo Trace:
+
+- PR #33 — FINAL GATES IN PROGRESS
+- public name `Kamilunavo Trace`; bundle `de.kamilunavo.trace`
+- public `.evpack` v1 format id `de.kamilunavo.trace.evpack`
+- Lifetime Pro non-consumable `de.kamilunavo.trace.pro.lifetime`
+- Free: up to 3 cases; received-bundle verification remains free
+- Pro: unlimited cases + PDF export + `.evpack` export
+- App Icon, privacy manifest, DE/EN metadata, ASC runbook, physical QA and TestFlight workflow prepared
+- merge requires exact final-head static + full simulator integrity + unsigned Release-device gates green
+
+External after repository gates:
+
+- App Store Connect app/IAP record readiness
+- signed TestFlight processing
+- physical iPhone camera/OCR/biometric/VoiceOver/Dynamic Type QA
+- real TestFlight purchase, relaunch entitlement recovery and Restore'''
+          new_release = '''Release pass — Kamilunavo Trace — GREEN / MERGED / BUILD 1 UPLOADED:
+
+- PR #33 — GREEN / MERGED
+- final tested release head `090b1471…`
+- static release run `32412043585` — SUCCESS
+- unsigned iPhone Release/TestFlight validation run `32412043598` — SUCCESS
+- full simulator integrity/relaunch run `32412043953` — SUCCESS
+- release merge `69b8a1d99082ff804f2a532c636af3008d79546a`
+- public name `Kamilunavo Trace`; bundle `de.kamilunavo.trace`
+- public `.evpack` v1 format id `de.kamilunavo.trace.evpack`
+- Lifetime Pro non-consumable `de.kamilunavo.trace.pro.lifetime`
+- Free: up to 3 cases; received-bundle verification remains free
+- Pro: unlimited cases + PDF export + `.evpack` export
+- App Store Connect app record — EXISTS
+- signed TestFlight Build 1 `0.1.0 (1)` upload — SUCCESS via protected One More Floor bridge
+- bridge run `32445560808`; upload job `96665754912`; Apple export result `Upload succeeded.` / `EXPORT SUCCEEDED`
+- Apple processing / TestFlight visibility — PENDING external confirmation
+
+External next:
+
+- create/configure Lifetime Pro IAP `de.kamilunavo.trace.pro.lifetime` and final price if not already done
+- wait for/confirm Apple TestFlight processing visibility
+- physical iPhone camera/OCR/biometric/VoiceOver/Dynamic Type QA
+- real TestFlight Lifetime purchase, relaunch entitlement recovery and Restore'''
+          m = rep(m, old_release, new_release, 'master release section')
+          m = rep(m,
+              '6. Do not regress #002 to `ProofVault`, `QUEUED`, Foundation-only, pre-OCR, pre-PDF or pre-privacy-lock state; Pass 7 is queued on its exact final head and Pass 8 offline-verifier source is implemented on the dependent branch.',
+              '6. Do not regress #002 to `ProofVault`, `Evidaro` public branding, pre-Pass-8, pre-release or pre-TestFlight state; Pass 7/8 and Release PR #33 are merged and signed Build 1 upload succeeded.',
+              'master handoff guard')
+
+          app.write_text(a)
+          master.write_text(m)
+      - name: Verify recorded checkpoint
+        run: |
+          grep -q 'TESTFLIGHT BUILD 1 UPLOADED' apps/002-evidaro/PROJECT_STATE.md
+          grep -q '32445560808' apps/002-evidaro/PROJECT_STATE.md
+          grep -q '96665754912' apps/002-evidaro/PROJECT_STATE.md
+          grep -q 'TESTFLIGHT BUILD 1 UPLOADED' docs/APP_FACTORY_STATE.md
+          grep -q '69b8a1d99082ff804f2a532c636af3008d79546a' docs/APP_FACTORY_STATE.md
+      - name: Commit handoff
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add apps/002-evidaro/PROJECT_STATE.md docs/APP_FACTORY_STATE.md
+          git diff --cached --quiet && exit 0
+          git commit -m 'docs: record Trace TestFlight Build 1 upload'
+          git push origin HEAD:${{ github.head_ref }}
