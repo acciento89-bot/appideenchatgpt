@@ -153,6 +153,8 @@ struct InboxSource: Identifiable, Hashable, Codable, Sendable {
     var fileName: String? = nil
     var sizeBytes: Int? = nil
     var isArchived: Bool = false
+    var clientRequestID: UUID? = nil
+    var isLocalOnly: Bool = false
 }
 
 enum ProposalReviewStatus: String, CaseIterable, Codable, Sendable {
@@ -306,6 +308,7 @@ struct SourceIngestionRequest: Sendable {
     var fileName: String?
     var contentType: String?
     var extractedText: String?
+    var clientRequestID: UUID? = nil
 }
 
 struct SourceDocumentData: Sendable {
