@@ -1,204 +1,156 @@
 # Family Life OS — Project State
 
 Last updated: 2026-08-21
-Status: COMPLETE V1 BASELINE + TRUST/TIMEZONE HARDENING + DURABLE OFFLINE QUEUE GREEN IN CI
+Status: COMPLETE V1 + PR #31/#34 MERGED + HOSTED BACKEND PROMOTED + BUILD 4 UPLOADED
 Internal portfolio slot: #011
 Public brand/name: NOT LOCKED
 Implementation location: `apps/011-family-life-os/`
 
-> This file is the app-specific single source of truth. Continue from this file, not from stale chat summaries. Older checkpoints remain in Git history.
+> This file is the app-specific single source of truth. Continue from this checkpoint, not from stale chat summaries. Older checkpoints remain in Git history.
 
 ## Executive checkpoint
 
-Family Life OS has moved well beyond the old Build-2 hosted-text prototype checkpoint.
-
-The current product direction is a complete Family Inbox/workflow system with this locked trust boundary:
+Family Life OS is now a complete Family Inbox/workflow baseline with the locked trust boundary:
 
 **Capture -> Understand -> Review -> Act -> Follow up**
 
-The complete-v1 baseline is already merged on `main`. Two follow-up hardening PRs are intentionally still unmerged:
+The complete-v1 baseline and both release-critical hardening passes are merged on `main`. The source-ingestion migration and timezone/review-hardened Edge Function have also been intentionally promoted to the hosted Supabase project. Build 4 was accepted by App Store Connect/TestFlight upload tooling.
 
-- PR #31 — timezone + proposal-review trust hardening
-- PR #34 — durable offline source queue + idempotent retry + processing lease + automatic connectivity resume, stacked on PR #31
+The next unproven boundary is no longer deployment. It is the first real authenticated Build-4/Edge-v2 canary on a physical device.
 
-Neither PR #31 nor PR #34 has been promoted to the hosted Supabase backend yet.
-
-## Current Git / PR state
+## Git / promotion state
 
 ### PR #31 — timezone and review trust boundary
 
-Branch:
+- PR: `#31 Family Life OS: harden timezone and review trust boundary`
+- validated head: `29b942fca118792146acc6079a0fe07697a3bd8d`
+- merged to `main`: `0db452c41a4c197cb95d0bb48b9455561435f8d4`
+- Prototype / Database / iPhone-iPad validation: GREEN
 
-`agent/family-life-os-timezone-hardening`
+Key behavior now merged and deployed:
 
-PR:
-
-`#31 Family Life OS: harden timezone and review trust boundary`
-
-Validated head:
-
-`29b942fca118792146acc6079a0fe07697a3bd8d`
-
-State:
-
-- draft/open
-- CI green
-- not merged
-- Edge Function changes not deployed live
-
-Key fixes:
-
-- preserve backend `unresolved_fields` instead of collapsing every blocker into member assignment
+- preserve complete backend `unresolved_fields`
 - member/date/time/due blockers resolve independently
-- confirmation remains blocked until all unresolved fields are genuinely resolved
+- confirmation remains blocked until required ambiguities are resolved
 - deterministic extraction uses the household IANA timezone
-- no invented 09:00 when source text contains a date but no time
-- provider timestamps require explicit offset or `Z`
+- no fabricated 09:00 for a source that contains a date but no time
+- provider timestamps without `Z` or an explicit UTC offset are rejected
 - unresolved proposals do not receive reminder suggestions
-- DST summer/winter/gap/overlap regression coverage
+- Europe/Berlin summer/winter/DST gap/overlap regressions are covered
 
 ### PR #34 — durable offline source queue
 
-Branch:
+- PR: `#34 Family Life OS: durable offline source queue`
+- final exact PR head after merging current `main`: `1802a909b27e61ee4ecc5b0ce3d8f9342529d84d`
+- exact-head Database Tests: `32464891177` — SUCCESS
+- exact-head Prototype Build: `32464891211` — SUCCESS
+- exact-head iPhone/iPad TestFlight/device validation: `32464891184` — SUCCESS
+- merged to `main`: `1de4a500b15fa733306f75605f817dd10b5fa43b`
 
-`agent/family-life-os-offline-queue`
+Durable capture behavior:
 
-PR:
-
-`#34 Family Life OS: durable offline source queue`
-
-Base:
-
-`agent/family-life-os-timezone-hardening` / PR #31
-
-Latest fully validated app-code head:
-
-`fd7381e97c349dd282df5b12ffcf68c4bd476538`
-
-Exact green validation on that head:
-
-- Family Life OS Prototype Build run `32455964319` / #73 — SUCCESS
-- Family Life OS Database Tests run `32455964347` / #57 — SUCCESS
-- Family Life OS TestFlight/device validation run `32455964321` / #58 — SUCCESS
-
-The TestFlight/device validation workflow compiled the unsigned iPhone/iPad device target. It did not publish a new Apple build because this repository does not contain App Store Connect signing secrets.
-
-State:
-
-- draft/open
-- cleanly stacked on #31
-- full Simulator/device/database validation green
-- not merged
-- migration not deployed live
-
-## Durable offline capture — implemented in PR #34
-
-Every supported source is persisted locally before network work begins:
-
-- text
-- photo library / screenshot
-- camera
-- PDF / document
-- voice
-
-Durability behavior:
-
-- queue metadata and binary payload are stored separately under Application Support
-- atomic writes
-- file protection enabled
-- queued item appears immediately in Inbox
-- local-only actions are `Jetzt senden` and `Verwerfen`
+- text/photo/camera/PDF/voice persisted locally before network work begins
+- protected atomic local queue under Application Support
+- queued sources appear immediately in Inbox
+- local actions are `Jetzt senden` / `Verwerfen`
 - queue survives app restart
-- sync runs on normal app load, foreground activation and manual Inbox refresh
+- startup, foreground, manual refresh and real offline -> online transitions resume sync
+- initial/repeated online observations do not duplicate startup sync
+- in-flight guard serializes overlapping sync triggers
+- queue record is bound to authenticated user + target household
+- stable `clientRequestID` drives server idempotency
+- deterministic Storage path/upsert supports retry after a lost response
+- fresh processing lease avoids parallel duplicate extraction
+- review/partial/done server states skip duplicate processing
 
-### Automatic connectivity resume
+## Hosted Supabase — LIVE as of 2026-08-21
 
-PR #34 now also uses `NWPathMonitor` through an async stream.
+Project:
 
-Rules:
+- ref `bqctetqraszsvknczjjr`
+- region `eu-central-1` / Frankfurt
+- household locale/timezone observed as `de-DE` / `Europe/Berlin`
+- Supabase Swift client `2.54.1`
 
-- initial online observation does not duplicate normal startup sync
-- repeated online observations do not retrigger
-- going offline is passive
-- a real offline -> online transition automatically resumes the queue
-- launching offline and later becoming online automatically resumes
-- existing `beginSync()` in-flight guard serializes overlapping Scene/network events
+### Migration promoted
 
-Regression:
+Migration `source_ingestion_idempotency` was applied to the hosted project from the merged repository migration:
 
-`prototype/Tests/ConnectivityResumePolicyRegression.swift`
+`supabase/migrations/20260821060000_source_ingestion_idempotency.sql`
 
-The complete app compiles green for Simulator and generic iPhone/iPad device targets with this monitor enabled.
+Post-deploy verification confirmed:
 
-## Offline idempotency and household isolation
+- `source_items.client_request_id` exists
+- tenant-scoped partial unique index exists on `(household_id, client_request_id)`
+- `create_source_item(text,text,text,uuid,uuid)` is active
+- `finalize_source_upload(uuid,text,text,text,bigint,text,boolean)` is active
+- `anon` cannot execute either new privileged RPC
+- `authenticated` can execute them
+- legacy calls remain compatible through defaults
 
-Each durable source receives a stable client request UUID.
+### Edge Function promoted
 
-Database hardening in PR #34:
+Hosted `process-family-source` is now:
 
-- `source_items.client_request_id`
-- tenant-scoped unique idempotency index
-- retry-safe source creation
-- deterministic Storage path
-- retry-safe Storage upsert
-- legacy source-creation/finalization signatures remain compatible
+- version `2`
+- status `ACTIVE`
+- `verify_jwt = true`
+- schema version `3`
 
-Queue ownership:
+The deployed code includes the timezone helpers, unresolved-field rules, explicit-offset provider validation, reminder suppression while unresolved, and normalized-output timezone metadata.
 
-- each local queue record is bound to the authenticated user ID
-- each record is bound to the household ID active when captured
-- a different login does not see or upload another user's local queue
-- a different household does not inherit another household's queued source
-- server rejects an explicit target household the authenticated adult cannot manage
-- anonymous role cannot execute the new privileged ingestion signatures
+Provider selection remains server-side:
 
-## Processing lease / interrupted Edge response
+- `openai` only when `OPENAI_API_KEY` exists
+- deterministic `rules` fallback otherwise
+- default configured OpenAI model string in code: `gpt-5.6-luna`
+- deterministic fallback model marker: `family-rules-v2`
 
-PR #34 also protects against the hardest retry race: the network response disappears after server-side extraction has already started.
+Do not infer from configuration that OpenAI is actually available. A real production run must prove the provider/model.
 
-Behavior:
+## Production DB canaries — GREEN / rolled back
 
-- idempotent queue imports begin in a neutral queued state
-- Edge processing establishes the processing lease
-- a fresh `processing` state means wait rather than starting a duplicate extraction
-- stale processing can be recovered after the lease window
-- review/partial/done sources skip duplicate Edge processing
+A production-database canary was executed inside a transaction and fully rolled back, so it left no test source rows behind.
 
-This prevents parallel extraction while still allowing recovery from a crashed or abandoned processing attempt.
+Verified:
 
-The fresh Supabase startup + pgTAP suite is green after this change.
+- same `clientRequestID` twice returns the same source
+- exactly one source row exists for the idempotency key
+- durable text begins `queued`, attempts `0`, no processing lease timestamp
+- routing to an unrelated household is rejected
+- deferred file finalize can be repeated without duplicating the attachment
+- deferred finalize remains `queued`, attempts `0`, no processing timestamp
+- retry after a simulated fresh processing start still resolves to the same source
 
-## Complete-v1 baseline already on main
+This proves the hosted DB/RPC/idempotency layer. It does **not** substitute for a real JWT HTTP invocation of Edge Function v2.
 
-Complete-v1 functionality from the earlier merged integration includes:
+## Remaining live Edge/provider evidence boundary
 
-- hosted auth and invite acceptance
-- household/member management
-- Realtime refresh
-- photo/camera/screenshot capture
-- PDF/document capture
-- text capture
-- voice recording + transcription
-- private Supabase Storage
-- image/PDF OCR
-- server-side structured extraction + deterministic fallback
-- editable `Import prüfen` trust boundary
-- source provenance/original-source viewer
-- retry/archive lifecycle
-- agenda/week Plan
-- Plan CRUD
-- persisted completion
-- optimistic version conflicts
-- activity history
-- notification preferences/local reminders
-- biometric app lock
-- StoreKit 2 Family Pro purchase/restore surface
-- offline snapshot-cache foundation
-- share-extension intake foundation
-- release/privacy permissions
-- internal diagnostics
+No authenticated Edge-v2 invocation was generated by the deployment tooling itself.
 
-Do not regress to the old checkpoint that claimed Realtime, Storage, photo/PDF, OCR or complete-v1 intake were still unimplemented.
+After deployment, `extraction_runs` still contained only the older fixture evidence:
+
+- provider `fixture`
+- model `school-letter-v1`
+- schema version `1`
+
+Therefore, as of this checkpoint:
+
+- do not claim a real `openai` run occurred
+- do not claim `OPENAI_API_KEY` exists
+- do not claim the `rules` fallback ran on Edge v2 either
+- do not claim the 18:00 timezone or missing-time behavior is production-runtime proven until Build 4 creates a real v2 extraction run
+
+## Security advisor boundary
+
+The hosted security advisor still reports:
+
+- `rpc_run_hosted_e2e` as security-definer
+- `create_source_item` as security-definer
+- `finalize_source_upload` as security-definer
+- leaked-password protection disabled
+
+For the two new ingestion RPCs, execution is explicitly revoked from `public`/`anon`, granted to `authenticated`, and the functions enforce active adult/owner household membership plus household permission checks. The advisor warnings themselves remain present and must not be described as fixed.
 
 ## Apple / TestFlight checkpoint
 
@@ -210,144 +162,119 @@ Apple team:
 
 `TKG684N5GL`
 
-Marketing version used by the current internal line:
+Marketing version:
 
 `0.1.0`
 
 ### Build 2
 
-Build 2 was user-verified on a physical iPhone:
+User-verified on a physical iPhone:
 
 - installed and launched
-- completion controls work from Plan and Today
-- completion persistence survives restart
+- Plan/Today completion controls work
+- completion persists across restart
 - hosted E2E diagnostic passed including cleanup
 
 ### Build 3
 
-Build 3 is **already present in App Store Connect/TestFlight history**.
+Build 3 already existed in App Store Connect. A later protected bridge retry was rejected only because bundle version `3` had already been used. Do not describe Build 3 as missing.
 
-Evidence:
+### Build 4 — upload SUCCESS
 
-- direct Family workflow run `32365949304` compiled successfully but could not perform a signed upload from `appideenchatgpt` because ASC secrets are not stored there
-- protected bridge repo: `acciento89-bot/onemorefloor`
-- bridge run `32366765776`
-- bridge branch head `3f300e3a70f33d86a73a26195eea0b2f3775a9f9`
+The app repository was not source-bumped solely for the build number. The protected bridge overrides `CURRENT_PROJECT_VERSION` during archive.
 
-Important interpretation of the bridge run:
+Bridge:
 
-- archive/preflight/signing preparation succeeded
-- the workflow step named `Upload Family Life OS to TestFlight` is intentionally `continue-on-error` and records the real `xcodebuild -exportArchive` exit status separately
-- Apple rejected that bridge attempt because build number `3` had **already been uploaded previously**
-- exact Apple diagnostic: the bundle version must be higher than the previously uploaded version `3`
+- repo `acciento89-bot/onemorefloor`
+- branch `agent/family-life-os-testflight-bridge`
+- bridge commit `bc77c18f5ee5ef65ea2a1822635fc86c8b41fa10`
+- workflow run `32466397060`
+- upload job `96723790084`
+- source ref built: `acciento89-bot/appideenchatgpt` `main`
+- app source merge at promotion checkpoint: `1de4a500b15fa733306f75605f817dd10b5fa43b`
 
-Therefore do **not** describe Build 3 as missing or as a failed first upload. The bridge run was a duplicate-build-number attempt against an App Store Connect state that already contained build 3.
+Apple exporter evidence:
 
-Any next Apple upload must use a build number greater than `3`.
+- `ARCHIVE SUCCEEDED`
+- `Upload succeeded`
+- `The app was uploaded successfully.`
+- `EXPORT SUCCEEDED`
+- final bridge status: SUCCESS
 
-## Hosted Supabase checkpoint
+Safe claim: **Family Life OS 0.1.0 (4) was successfully uploaded/handed to App Store Connect/TestFlight.**
 
-Project ref:
+Do not claim Apple processing or TestFlight visibility until it is actually observed.
 
-`bqctetqraszsvknczjjr`
+## Complete-v1 baseline
 
-Region:
+Already included before the two hardening passes:
 
-`eu-central-1` / Frankfurt
+- hosted auth + invite acceptance
+- household/member management
+- Realtime refresh
+- photo/camera/screenshot capture
+- PDF/document capture
+- text capture
+- voice recording + transcription
+- private Supabase Storage
+- image/PDF OCR
+- server-side structured extraction + deterministic fallback
+- editable `Import prüfen` review boundary
+- original-source provenance/viewer
+- source retry/archive lifecycle
+- agenda/week Plan + Plan CRUD
+- persisted completion
+- optimistic version conflicts + activity history
+- notification preferences/local reminders
+- biometric app lock
+- StoreKit 2 Family Pro surface/restore
+- offline snapshot-cache foundation
+- share-extension intake foundation
+- release/privacy permissions
+- internal diagnostics
 
-Supabase Swift:
-
-`2.54.1`
-
-Known hosted state:
-
-- project healthy
-- collaborative public tables have RLS enabled
-- Edge Function `process-family-source` is active with JWT verification
-- household locale/timezone confirmed as `de-DE` / `Europe/Berlin`
-- publishable key only in iOS client
-- service-role/provider secrets remain server-side
-
-Important deployment boundary:
-
-- PR #31 timezone/extraction changes are NOT live yet
-- PR #34 idempotency/offline migration is NOT live yet
-- do not test the new offline upload protocol against production until its database migration has intentionally been deployed
-
-## Real AI evidence boundary
-
-Do not claim the real provider path has been proven yet.
-
-At the last hosted audit:
-
-- observed `extraction_runs` were fixture runs
-- no confirmed OpenAI production extraction run was present
-- existence of `OPENAI_API_KEY` was therefore not proven through a real run
-
-The Edge Function can use deterministic rules fallback when provider configuration is absent.
-
-A post-deploy live canary must verify which provider actually ran.
+Do not regress to a roadmap that says Realtime, Storage, photo/PDF intake, OCR or complete-v1 are still unimplemented.
 
 ## StoreKit boundary
 
-StoreKit 2 foundation exists in the client:
+Client foundation exists for:
 
-- Family Pro monthly ID: `de.kamilunavo.family.familypro.monthly`
-- Family Pro annual ID: `de.kamilunavo.family.familypro.annual`
+- monthly `de.kamilunavo.family.familypro.monthly`
+- annual `de.kamilunavo.family.familypro.annual`
 - product loading
 - current entitlements
 - purchase
-- restore via `AppStore.sync()`
+- `AppStore.sync()` restore
 
-Do not claim paid IAP release readiness until App Store Connect product configuration and a real sandbox/review purchase path are verified.
+Do not claim paid-IAP release readiness until App Store Connect products and a real TestFlight/sandbox purchase/restore path are verified.
 
-## Locked architecture and product rules
+## Next physical-device sequence
+
+Do these one at a time after Build 4 becomes visible in TestFlight:
+
+1. Install Build 4 and create a text source exactly: `Elternabend am 21.08.2026 um 18:00 Uhr.`
+2. Verify review shows the event at 18:00 Europe/Berlin. Then inspect the resulting live `extraction_runs` provider/model.
+3. Only after step 2 is proven, test a date without time and confirm it stays unresolved instead of receiving a fake time.
+4. Then test capture while offline -> reconnect -> exactly one source.
+5. Then test physical-device household/account isolation and remaining StoreKit/release gates.
+
+## Locked product rules
 
 - native SwiftUI
-- iPhone + intentional iPad adaptation
+- intentional iPhone + iPad support
 - iOS/iPadOS 18+
 - DACH-first
 - Supabase/Postgres + RLS as primary household isolation boundary
 - server-side AI only
 - no service-role/provider secret in iOS
-- source provenance is preserved
+- source provenance preserved
 - OCR/AI creates editable proposals only
 - canonical Plan data requires explicit user confirmation
 - ambiguous required values remain blocking; never invent missing date/time/person data
 
-## Immediate promotion sequence
-
-The next safe promotion path is intentionally sequential:
-
-1. Merge PR #31 only after explicit merge authorization.
-2. Once #31 is on `main`, retarget/update PR #34 against the new `main` and verify the resulting exact head/merge state.
-3. Merge PR #34 only after explicit merge authorization.
-4. Deploy PR #31 Edge changes and PR #34 database migration to hosted Supabase only after explicit live-deployment authorization.
-5. Run live hosted canaries:
-   - timezone canary: `Elternabend am 21.08.2026 um 18:00 Uhr.` must resolve to 18:00 Europe/Berlin, not UTC wall-clock time
-   - date-without-time proposal must remain explicitly unresolved, never become fake 09:00
-   - offline capture -> network returns -> exactly one canonical source
-   - account/household isolation for queued sources
-   - interrupted processing response must not create parallel extraction
-   - inspect `extraction_runs` provider/model to determine whether OpenAI or rules actually ran
-6. Create the next TestFlight build with a build number greater than 3.
-7. Perform physical-device offline/online QA and the remaining StoreKit/App Store release gates separately.
-
-## Current non-actions / guardrails
-
-As of this checkpoint:
-
-- PR #31 has NOT been merged
-- PR #34 has NOT been merged
-- the new Supabase migration has NOT been deployed live
-- the timezone-hardened Edge Function has NOT been deployed live
-- no new TestFlight build above 3 has been published from these PRs
-
-Do not perform any of those promotion actions without explicit authorization.
-
 ## Brand guardrail
 
-`Family Life OS` remains an internal name.
+`Family Life OS` remains internal only.
 
 Rejected first-pass names:
 
@@ -358,21 +285,19 @@ Rejected first-pass names:
 
 Preferred icon direction: **Gather -> Order**.
 
-Avoid generic house/checkmark, cartoon-family and robot/AI-sparkle identity.
-
 Final public name still requires current App Store/web + EUIPO/DPMA/domain clearance.
 
 ## Canonical docs
 
-- `apps/011-family-life-os/PRODUCT_SPEC.md`
-- `apps/011-family-life-os/DESIGN_SYSTEM.md`
-- `apps/011-family-life-os/UX_SCREEN_SPEC.md`
-- `apps/011-family-life-os/BRAND_DIRECTION.md`
-- `apps/011-family-life-os/TECH_ARCHITECTURE.md`
-- `apps/011-family-life-os/UI_FIXTURES.md`
-- `apps/011-family-life-os/BACKEND_CONTRACT.md`
-- `apps/011-family-life-os/PROJECT_STATE.md`
-- `apps/011-family-life-os/prototype/README.md`
+- `PRODUCT_SPEC.md`
+- `DESIGN_SYSTEM.md`
+- `UX_SCREEN_SPEC.md`
+- `BRAND_DIRECTION.md`
+- `TECH_ARCHITECTURE.md`
+- `UI_FIXTURES.md`
+- `BACKEND_CONTRACT.md`
+- `PROJECT_STATE.md`
+- `prototype/README.md`
 
 ## Handoff rule
 
@@ -380,11 +305,11 @@ For every continuation/new chat:
 
 1. read `docs/APP_FACTORY_STATE.md`
 2. read this file
-3. inspect current `main`
-4. inspect PR #31 and PR #34 exact heads/statuses
-5. treat `fd7381e97c349dd282df5b12ffcf68c4bd476538` as the latest fully validated PR-34 **app-code** checkpoint unless newer code has since passed all gates
-6. do not regress to the old Build-2-only roadmap
-7. do not say Build 3 is missing: Apple already had build 3 when the bridge retried it
-8. do not claim PR #31/#34 behavior is live until the hosted deployment is explicitly performed and verified
-9. do not claim real OpenAI extraction is proven until a hosted `extraction_runs` record confirms it
-10. preserve the Review trust boundary and household isolation on every future feature pass
+3. inspect current `main` and any newer Family PRs
+4. treat PR #31 and #34 as merged, not pending
+5. treat the migration and Edge Function v2 as hosted/live, not pending deployment
+6. treat Build 4 as uploaded successfully but processing/visibility as unconfirmed until observed
+7. do not say Build 3 is missing
+8. do not claim real OpenAI/rules provider execution until a schema-v3 hosted `extraction_runs` record proves it
+9. preserve the Review trust boundary and household isolation on every future feature pass
+10. next physical gate is Build-4 installation followed by the 18:00 Europe/Berlin canary
