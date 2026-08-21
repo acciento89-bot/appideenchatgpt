@@ -11,10 +11,11 @@ struct EvidaroPrototypeApp: App {
         let arguments = CommandLine.arguments
         let smokeRequested = arguments.contains("--evidaro-persistence-smoke")
             || arguments.contains("--evidaro-verification-bundle-smoke")
+        let seedDemoData = !smokeRequested
 #else
-        let smokeRequested = false
+        let seedDemoData = false
 #endif
-        _store = StateObject(wrappedValue: EvidenceStore(seedDemoData: !smokeRequested))
+        _store = StateObject(wrappedValue: EvidenceStore(seedDemoData: seedDemoData))
     }
 
     var body: some Scene {
