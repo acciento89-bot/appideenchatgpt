@@ -317,3 +317,13 @@ struct SourceDocumentData: Sendable {
     var fileName: String
     var contentType: String
 }
+
+struct ConnectivityResumePolicy: Sendable {
+    private var previousAvailability: Bool?
+
+    mutating func shouldResumeSync(isNetworkAvailable: Bool) -> Bool {
+        defer { previousAvailability = isNetworkAvailable }
+        guard let previousAvailability else { return false }
+        return !previousAvailability && isNetworkAvailable
+    }
+}
