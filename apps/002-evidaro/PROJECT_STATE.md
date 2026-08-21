@@ -1,7 +1,7 @@
 # Kamilunavo Trace — Project State
 
 Last updated: 2026-08-21
-Status: TESTFLIGHT BUILD 1 UPLOADED — APPLE PROCESSING / LIFETIME PRO IAP + PHYSICAL QA PENDING
+Status: TESTFLIGHT BUILD 2 VALID — FRESH INSTALL + LIFETIME PURCHASE/RELAUNCH/RESTORE GREEN / REMAINING PHYSICAL QA PENDING
 Portfolio slot: #002
 Repository: `acciento89-bot/appideenchatgpt`
 Implementation path: `apps/002-evidaro/`
@@ -14,28 +14,42 @@ This file is the authoritative app-specific handoff for portfolio app #002.
 For future work:
 1. Read `docs/APP_FACTORY_STATE.md` first.
 2. Read this file second.
-3. Inspect current `main`, PR #29, PR #32, the Kamilunavo Trace release PR/branch, and their exact-head workflow conclusions.
+3. Inspect current `main`, the latest Kamilunavo Trace release/QA commits, and their exact-head workflow conclusions.
 4. Never call a queued workflow green and never merge a pass by bypassing a required integrity gate.
 5. After any major release change, keep this file and `docs/APP_FACTORY_STATE.md` synchronized.
+6. Do not mark the remaining physical camera/OCR/biometric/accessibility/`.evpack` checks green until they are explicitly exercised on real hardware.
 
 ## Latest release checkpoint — 2026-08-21
 
 - release PR #33 `Release Kamilunavo Trace with Lifetime Pro and TestFlight hardening` — GREEN / MERGED
-- final tested release head `090b1471…`; static release run `32412043585`, unsigned iPhone Release/TestFlight validation run `32412043598`, and full simulator run `32412043953` — SUCCESS
-- release merge on `main`: `69b8a1d99082ff804f2a532c636af3008d79546a`
+- original release merge on `main`: `69b8a1d99082ff804f2a532c636af3008d79546a`
+- Build-2 release-hardening PR #36 `Fix Trace fresh-install demo evidence` — GREEN / MERGED
+- PR #36 exact tested head `5d940abe3ac0dfa816ee39c4a3df789c07aa9be5`
+- PR #36 full simulator/integrity run `32456257928` / job `96694028306` — SUCCESS
+- static release gate and unsigned iPhone Release gate for the same Build-2 head — SUCCESS
+- PR #36 merge on `main`: `62a79d823a6f719fb9b511d329d997aa31dea170`
+- Build 2 production behavior: release starts without seeded demo evidence; DEBUG/CI fixtures remain available
 - App Store Connect app record for `de.kamilunavo.trace` — EXISTS
-- signed TestFlight Build 1 `0.1.0 (1)` upload — SUCCESS via protected One More Floor bridge
-- bridge run `32445560808`; upload job `96665754912`; exact Apple result includes `Progress 100%: Upload succeeded.` and `** EXPORT SUCCEEDED **`
-- Apple package processing / TestFlight visibility — PENDING external confirmation
+- signed TestFlight Build 2 `0.1.0 (2)` upload — SUCCESS
+- protected upload bridge run `32456992113` / job `96696079890` — SUCCESS
+- exact Apple upload result includes `Progress 100%: Upload succeeded.` and `** EXPORT SUCCEEDED **`
+- read-only processing run `32457277789` / job `96696886840` — SUCCESS
+- Apple processing result: `processingState=VALID`
+- Apple uploadedDate: `2026-08-21T00:07:29-07:00`
+- temporary Build-2 bridge PR #115 in `acciento89-bot/onemorefloor` — CLOSED WITHOUT MERGE after upload/processing confirmation
 - public identity: `Kamilunavo Trace`, bundle `de.kamilunavo.trace`
-- Lifetime Pro: non-consumable `de.kamilunavo.trace.pro.lifetime`, local launch-price fixture `14.99`
+- Lifetime Pro: non-consumable `de.kamilunavo.trace.pro.lifetime`
+- real TestFlight StoreKit product/price resolution — USER-CONFIRMED on iPhone
+- real Lifetime purchase — USER-CONFIRMED on iPhone
+- verified Pro entitlement survives force-quit/relaunch — USER-CONFIRMED
+- Restore purchases recovers Lifetime Pro as intended — USER-CONFIRMED
+- fresh Build-2 install launches in the intended empty evidence state; old `Damaged delivery` release seed is gone — USER-CONFIRMED
+- physical QA remains PARTIAL: camera/OCR/device authentication/DE+EN PDF/VoiceOver/Dynamic Type/physical `.evpack` round-trip still need explicit hardware exercise
 - production App Icon: 1024×1024 RGB PNG, no alpha; enforced by release preflight
 - App Store DE/EN metadata package + structured ASC JSON + release runbook are committed
-- Kamilunavo website has `/trace`, `/trace/privacy` and Trace support coverage; website release-check PR #24 exercises TypeScript + production Next.js build
+- Kamilunavo website has `/trace`, `/trace/privacy` and Trace support coverage
 - `PrivacyInfo.xcprivacy` is bundled in the iOS target; tracking is disabled, tracking domains/data collection are empty, and app-owned `UserDefaults` use declares required-reason category `NSPrivacyAccessedAPICategoryUserDefaults` with Apple-approved reason `CA92.1`
-- Pass 7 PR #29, Pass 8 PR #32 and Release PR #33 are all GREEN / MERGED
-- App Store Connect app record exists and signed Build 1 has been uploaded successfully
-- Lifetime Pro IAP creation/price readiness, Apple processing visibility and physical iPhone QA remain external release steps
+- Pass 7 PR #29, Pass 8 PR #32, Release PR #33 and Build-2 hardening PR #36 are GREEN / MERGED
 
 ## Final public identity
 
@@ -139,7 +153,7 @@ Core chain:
 
 ## Release pass — Kamilunavo Trace
 
-Release PR #33 is GREEN / MERGED. Final release code is on `main` at merge `69b8a1d99082ff804f2a532c636af3008d79546a`. Its static, full simulator and unsigned iPhone Release gates all passed before merge.
+Release PR #33 is GREEN / MERGED. Build-2 hardening PR #36 is also GREEN / MERGED. The current release candidate source is `main` merge `62a79d823a6f719fb9b511d329d997aa31dea170`, version `0.1.0 (2)`.
 
 ### Branding / identity — IMPLEMENTED
 - public name `Kamilunavo Trace`
@@ -148,7 +162,7 @@ Release PR #33 is GREEN / MERGED. Final release code is on `main` at merge `69b8
 - historical deterministic `EVIDARO 4827` OCR fixture intentionally preserved
 - 1024×1024 no-alpha production icon committed and wired as `AppIcon`
 
-### Lifetime Pro / StoreKit 2 — IMPLEMENTED
+### Lifetime Pro / StoreKit 2 — IMPLEMENTED + REAL DEVICE CORE PATH GREEN
 Product id: `de.kamilunavo.trace.pro.lifetime`
 Local StoreKit launch price fixture: `14.99`
 Type: non-consumable
@@ -161,6 +175,14 @@ Entitlement rules:
 - `Transaction.unfinished` recovers interrupted purchase finishing
 - `AppStore.sync()` is used only from explicit Restore
 - revoked/refunded entitlement does not remain Pro
+
+User-confirmed real TestFlight/iPhone behavior on Build 2:
+- App Store product and live price resolve in the Trace Pro sheet
+- Lifetime/one-time presentation is correct
+- purchase succeeds
+- Pro activates
+- force-quit/relaunch recovers and retains the verified Pro entitlement
+- Restore purchases recovers Lifetime Pro as intended
 
 Free tier:
 - up to 3 cases
@@ -180,6 +202,18 @@ Lifetime Pro:
 - PDF and `.evpack` export gates route to the same paywall
 - verifier itself is not paywalled
 
+### Build-2 release hardening — GREEN / MERGED
+
+PR #36 removed seeded demo evidence from production release behavior while preserving DEBUG/CI fixtures. Build number advanced to 2.
+
+Exact gate/merge checkpoint:
+- tested head `5d940abe3ac0dfa816ee39c4a3df789c07aa9be5`
+- full simulator/integrity run `32456257928` / job `96694028306` — SUCCESS
+- static release gate — SUCCESS
+- unsigned iPhone Release gate — SUCCESS
+- merge `62a79d823a6f719fb9b511d329d997aa31dea170`
+- real fresh TestFlight install with intended empty evidence state — USER-CONFIRMED
+
 ### TestFlight pipeline — IMPLEMENTED
 Workflow: `.github/workflows/kamilunavo-trace-testflight.yml`
 
@@ -190,6 +224,8 @@ It validates an unsigned Release iPhone build on PRs and, after promotion to `ma
 
 Release upload path uses App Store Connect export, Apple cloud distribution signing and hard-fails when an attempted upload fails. PR validation never uploads to TestFlight.
 
+Build 2 was uploaded via a temporary protected bridge pinned to exact source merge `62a79d823a6f719fb9b511d329d997aa31dea170`. The bridge was closed without merge after Apple processing reached VALID.
+
 ### Fast release preflight — IMPLEMENTED
 Workflow: `.github/workflows/kamilunavo-trace-static-release.yml`
 Script: `apps/002-evidaro/ci/release_preflight.py`
@@ -197,6 +233,7 @@ Runner: `ubuntu-latest`
 
 This gate exists specifically so release identity can be checked while macOS-26 runners are queued. It validates:
 - bundle id / display name
+- production release starts without seeded demo evidence
 - AppIcon project wiring
 - icon manifest and actual PNG dimensions
 - icon has no alpha channel
@@ -205,7 +242,7 @@ This gate exists specifically so release identity can be checked while macOS-26 
 - TestFlight workflow boundaries
 - ASC and physical-QA handoffs
 
-### App Store Connect / TestFlight — BUILD 1 UPLOADED
+### App Store Connect / TestFlight — BUILD 2 VALID
 Runbooks/metadata:
 - `apps/002-evidaro/APP_STORE_CONNECT_RELEASE.md`
 - `apps/002-evidaro/APP_STORE_METADATA.md`
@@ -213,44 +250,66 @@ Runbooks/metadata:
 
 Current Apple checkpoint:
 - app record for bundle id `de.kamilunavo.trace` exists
-- signed Build 1 `0.1.0 (1)` upload succeeded and Apple accepted the package for processing
-- TestFlight visibility/processing is not yet externally confirmed
+- signed Build 2 `0.1.0 (2)` upload succeeded
+- upload run `32456992113` / job `96696079890` — SUCCESS
+- Apple upload log records `Upload succeeded.` / `EXPORT SUCCEEDED`
+- read-only processing run `32457277789` / job `96696886840` — SUCCESS
+- Build 2 reached `processingState=VALID`
+- uploadedDate `2026-08-21T00:07:29-07:00`
+- Build 2 is installed and exercised by the user on a real iPhone
+- Lifetime Pro real StoreKit product resolves and the purchase/relaunch/restore path is green on TestFlight
 
-Still requires work in Apple's systems:
-- create/configure non-consumable `de.kamilunavo.trace.pro.lifetime` if it does not yet exist
-- set final territory price around the planned €14.99 launch point
-- complete tax/banking/agreements if Apple requires them
-- attach IAP to the first submitted version as required
+Remaining Apple-side release work:
+- keep the non-consumable `de.kamilunavo.trace.pro.lifetime` attached/configured for the first submitted version
+- provide/confirm the required IAP App Review screenshot/metadata in App Store Connect
+- complete any remaining first-version App Store submission metadata/review fields
 
-### Physical iPhone QA — PREPARED, NOT YET PERFORMED
+### Physical iPhone QA — PARTIAL / STOREKIT CORE GREEN
 Checklist: `apps/002-evidaro/PHYSICAL_QA.md`
 
-One consolidated physical-device pass covers:
-- app icon/name
-- camera permission + real capture
-- image/PDF import
-- Apple Vision OCR on device
-- hash/seal stability through relaunch
-- Face ID/Touch ID/passcode privacy lock
-- DE/EN
-- VoiceOver + largest Dynamic Type
-- 3-case Free boundary
-- real Lifetime purchase
-- Pro recovery after relaunch
-- Restore
-- PDF export
-- `.evpack` export/import verification and tamper rejection
+User-confirmed on signed Build 2:
+- fresh TestFlight install succeeds
+- production app launches without the seeded demo evidence and starts in the intended empty state
+- Trace Pro resolves the real StoreKit product/price
+- Lifetime purchase succeeds
+- Pro activates
+- force-quit/relaunch preserves verified entitlement
+- Restore purchases recovers Lifetime Pro
+
+Still intentionally open until explicitly tested on real hardware:
+- home-screen icon/name spot-check
+- full Free three-case boundary and Pro gating of case 4/PDF/`.evpack` export
+- physical camera permission + capture + original share/hash persistence
+- image and PDF OCR on real hardware
+- real Face ID/Touch ID/passcode privacy-lock lifecycle
+- DE/EN generated PDF visual pass
+- physical `.evpack` export/share/import round trip
+- VoiceOver
+- largest Dynamic Type
+- full persistence/destructive pass across captured evidence/OCR/seals
+
+Do not call the overall physical release gate GREEN until those remaining critical items are explicitly exercised.
 
 ## Repository / automation checkpoint
 
-Repository release work for Build 1 is complete: Pass 7, Pass 8 and Release PR #33 are merged, all required release gates are green, and the signed Build 1 upload succeeded through the protected bridge. Do not create another Build 1 upload unless Apple reports a processing/rejection problem that requires a new binary.
+Repository release work for Build 2 is current: Pass 7, Pass 8, Release PR #33 and Build-2 hardening PR #36 are merged; exact Build-2 gates are green; signed Build 2 upload succeeded; Apple processing reached VALID; the protected temporary upload bridge was closed without merge.
+
+Do not create another Build 2 upload unless a new source fix requires Build 3. Apple has already accepted and processed `0.1.0 (2)` successfully.
 
 ## External / user-device blockers
 
-The following cannot honestly be marked complete from repository automation alone:
-- App Store Connect Lifetime Pro IAP creation/price readiness
-- Apple TestFlight processing/visibility after the successful signed upload
-- physical iPhone camera/OCR/biometric/accessibility QA
-- real sandbox/TestFlight purchase + restore/relaunch verification
+The following remain honest release gates:
+- remaining physical iPhone camera/OCR/biometric/accessibility QA
+- full physical PDF + `.evpack` export/import review
+- Free three-case / case-4 upsell / Pro export-unlock spot-check if not already exercised
+- IAP App Review screenshot/metadata attachment/confirmation in App Store Connect
+- final first-version App Store submission metadata/review completion
 
-These are release gates, not optional polish.
+The following are no longer blockers and must not be regressed in future handoffs:
+- App Store Connect app record
+- TestFlight Build 2 upload
+- Apple Build 2 processing/visibility state (`VALID`)
+- fresh release start without demo evidence
+- real Lifetime Pro purchase
+- verified Pro entitlement recovery after relaunch
+- Restore purchases recovery

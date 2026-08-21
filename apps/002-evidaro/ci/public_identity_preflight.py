@@ -22,7 +22,9 @@ checks = {
 "Free case wording DE": 'Free enthält bis zu 3 Fälle.' in DE and '3 aktive Fälle' not in DE,
 "Pass 7/8 merged app state": '## Pass 7 — DE/EN + accessibility + localized PDF — GREEN / MERGED' in STATE and '## Pass 8 — offline-verifiable `.evpack` — GREEN / MERGED' in STATE,
 "Pass 8 final gate recorded": '32408185123' in STATE,
-"portfolio release identity": '# Portfolio app #002 — Kamilunavo Trace' in FACTORY and 'Release pass — Kamilunavo Trace' in FACTORY and '- PR #33 — GREEN / MERGED' in FACTORY,
+"portfolio release identity": '# Portfolio app #002 — Kamilunavo Trace' in FACTORY and 'Release pass — Kamilunavo Trace' in FACTORY and 'Release PR #33 — GREEN / MERGED' in FACTORY,
+"Build 2 release checkpoint": 'TESTFLIGHT BUILD 2 VALID' in FACTORY and 'Build-2 hardening PR #36' in FACTORY and '62a79d823a6f719fb9b511d329d997aa31dea170' in STATE,
+"real StoreKit checkpoint recorded": 'real Lifetime purchase — USER-CONFIRMED' in FACTORY and 'Restore purchases recovery — USER-CONFIRMED' in FACTORY,
 }
 failed=[k for k,v in checks.items() if not v]
 for k,v in checks.items(): print(("✓" if v else "✗"), k)
