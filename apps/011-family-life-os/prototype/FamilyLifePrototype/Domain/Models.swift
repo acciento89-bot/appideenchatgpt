@@ -309,6 +309,7 @@ struct SourceIngestionRequest: Sendable {
     var contentType: String?
     var extractedText: String?
     var clientRequestID: UUID? = nil
+    var targetHouseholdID: UUID? = nil
 }
 
 struct SourceDocumentData: Sendable {
