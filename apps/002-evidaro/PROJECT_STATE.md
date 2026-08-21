@@ -1,11 +1,11 @@
 # Kamilunavo Trace — Project State
 
-Last updated: 2026-08-20
-Status: ACTIVE — PASS 7/8 GREEN / MERGED; KAMILUNAVO TRACE FINAL RELEASE GATES IN PROGRESS; EXTERNAL APP STORE / PHYSICAL QA PENDING
+Last updated: 2026-08-21
+Status: TESTFLIGHT BUILD 1 UPLOADED — APPLE PROCESSING / LIFETIME PRO IAP + PHYSICAL QA PENDING
 Portfolio slot: #002
 Repository: `acciento89-bot/appideenchatgpt`
 Implementation path: `apps/002-evidaro/`
-Release branch: `agent/002-kamilunavo-trace-release`
+Canonical branch: `main`
 
 ## Handoff rule
 
@@ -18,18 +18,24 @@ For future work:
 4. Never call a queued workflow green and never merge a pass by bypassing a required integrity gate.
 5. After any major release change, keep this file and `docs/APP_FACTORY_STATE.md` synchronized.
 
-## Latest release checkpoint — 2026-08-20
+## Latest release checkpoint — 2026-08-21
 
-- dependent release PR: #33 `Release Kamilunavo Trace with Lifetime Pro and TestFlight hardening`
+- release PR #33 `Release Kamilunavo Trace with Lifetime Pro and TestFlight hardening` — GREEN / MERGED
+- final tested release head `090b1471…`; static release run `32412043585`, unsigned iPhone Release/TestFlight validation run `32412043598`, and full simulator run `32412043953` — SUCCESS
+- release merge on `main`: `69b8a1d99082ff804f2a532c636af3008d79546a`
+- App Store Connect app record for `de.kamilunavo.trace` — EXISTS
+- signed TestFlight Build 1 `0.1.0 (1)` upload — SUCCESS via protected One More Floor bridge
+- bridge run `32445560808`; upload job `96665754912`; exact Apple result includes `Progress 100%: Upload succeeded.` and `** EXPORT SUCCEEDED **`
+- Apple package processing / TestFlight visibility — PENDING external confirmation
 - public identity: `Kamilunavo Trace`, bundle `de.kamilunavo.trace`
 - Lifetime Pro: non-consumable `de.kamilunavo.trace.pro.lifetime`, local launch-price fixture `14.99`
 - production App Icon: 1024×1024 RGB PNG, no alpha; enforced by release preflight
 - App Store DE/EN metadata package + structured ASC JSON + release runbook are committed
 - Kamilunavo website has `/trace`, `/trace/privacy` and Trace support coverage; website release-check PR #24 exercises TypeScript + production Next.js build
 - `PrivacyInfo.xcprivacy` is bundled in the iOS target; tracking is disabled, tracking domains/data collection are empty, and app-owned `UserDefaults` use declares required-reason category `NSPrivacyAccessedAPICategoryUserDefaults` with Apple-approved reason `CA92.1`
-- static release workflow run `32379763657` completed SUCCESS after App Icon, StoreKit, metadata and release-identity hardening; current PR head must still be inspected for the latest rerun after documentation-only updates
-- Pass 7 PR #29 and Pass 8 PR #32 remain blocked only by their required macOS-26 exact-head runs; never bypass those gates
-- App Store Connect app/IAP creation, signed TestFlight processing and physical iPhone QA remain external release steps
+- Pass 7 PR #29, Pass 8 PR #32 and Release PR #33 are all GREEN / MERGED
+- App Store Connect app record exists and signed Build 1 has been uploaded successfully
+- Lifetime Pro IAP creation/price readiness, Apple processing visibility and physical iPhone QA remain external release steps
 
 ## Final public identity
 
@@ -133,7 +139,7 @@ Core chain:
 
 ## Release pass — Kamilunavo Trace
 
-Release PR #33 is a clean child of verified Pass-8 `main` and contains only the release layer below.
+Release PR #33 is GREEN / MERGED. Final release code is on `main` at merge `69b8a1d99082ff804f2a532c636af3008d79546a`. Its static, full simulator and unsigned iPhone Release gates all passed before merge.
 
 ### Branding / identity — IMPLEMENTED
 - public name `Kamilunavo Trace`
@@ -157,12 +163,12 @@ Entitlement rules:
 - revoked/refunded entitlement does not remain Pro
 
 Free tier:
-- up to 3 active cases
+- up to 3 cases
 - evidence capture, originals, SHA-256, snapshot seals, OCR, privacy lock and text manifest remain usable
 - received `.evpack` verification remains free
 
 Lifetime Pro:
-- unlimited active cases
+- unlimited cases
 - PDF evidence-pack export
 - `.evpack` export
 
@@ -170,7 +176,7 @@ Lifetime Pro:
 - one consistent Lifetime Pro sheet
 - purchase + restore actions
 - Free/Pro status in Settings
-- case-limit upsell at the fourth active case
+- case-limit upsell at the fourth case
 - PDF and `.evpack` export gates route to the same paywall
 - verifier itself is not paywalled
 
@@ -199,15 +205,19 @@ This gate exists specifically so release identity can be checked while macOS-26 
 - TestFlight workflow boundaries
 - ASC and physical-QA handoffs
 
-### App Store Connect handoff — PREPARED
+### App Store Connect / TestFlight — BUILD 1 UPLOADED
 Runbooks/metadata:
 - `apps/002-evidaro/APP_STORE_CONNECT_RELEASE.md`
 - `apps/002-evidaro/APP_STORE_METADATA.md`
 - `apps/002-evidaro/metadata/AppStoreConnectSetup.json`
 
-Still requires work in Apple's systems because this repository cannot create/confirm the App Store record or IAP record by itself:
-- create/confirm app record for bundle id `de.kamilunavo.trace`
-- create non-consumable `de.kamilunavo.trace.pro.lifetime`
+Current Apple checkpoint:
+- app record for bundle id `de.kamilunavo.trace` exists
+- signed Build 1 `0.1.0 (1)` upload succeeded and Apple accepted the package for processing
+- TestFlight visibility/processing is not yet externally confirmed
+
+Still requires work in Apple's systems:
+- create/configure non-consumable `de.kamilunavo.trace.pro.lifetime` if it does not yet exist
 - set final territory price around the planned €14.99 launch point
 - complete tax/banking/agreements if Apple requires them
 - attach IAP to the first submitted version as required
@@ -231,19 +241,15 @@ One consolidated physical-device pass covers:
 - PDF export
 - `.evpack` export/import verification and tamper rejection
 
-## What can still be completed automatically
+## Repository / automation checkpoint
 
-1. Keep the Kamilunavo Trace release PR and fast static release gate green.
-2. Keep Pass 7/8 exact-head macOS jobs under observation; merge only after SUCCESS.
-3. Once Pass 7 then Pass 8 are green/merged, retarget/rebase the release PR cleanly onto `main`, rerun static + full macOS + unsigned Release-device gates, and merge only when all required exact-head checks are green.
-4. After release code is on `main`, the TestFlight workflow can upload only if the App Store record/bundle id and repository ASC secrets are valid.
+Repository release work for Build 1 is complete: Pass 7, Pass 8 and Release PR #33 are merged, all required release gates are green, and the signed Build 1 upload succeeded through the protected bridge. Do not create another Build 1 upload unless Apple reports a processing/rejection problem that requires a new binary.
 
 ## External / user-device blockers
 
 The following cannot honestly be marked complete from repository automation alone:
-- App Store Connect app-record creation/verification
 - App Store Connect Lifetime Pro IAP creation/price readiness
-- Apple's signed/TestFlight processing if the Apple record is absent
+- Apple TestFlight processing/visibility after the successful signed upload
 - physical iPhone camera/OCR/biometric/accessibility QA
 - real sandbox/TestFlight purchase + restore/relaunch verification
 
