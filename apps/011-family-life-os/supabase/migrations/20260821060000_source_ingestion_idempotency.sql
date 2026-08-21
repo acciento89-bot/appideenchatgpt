@@ -64,7 +64,7 @@ begin
 
     if v_source_id is null then
         begin
-            insert into public.source_items(
+            insert into public.source_items as s (
                 household_id,
                 created_by_member_id,
                 source_type,
@@ -85,7 +85,7 @@ begin
                 case when p_source_type = 'text' then now() else null end,
                 p_client_request_id
             )
-            returning public.source_items.id into v_source_id;
+            returning s.id into v_source_id;
         exception
             when unique_violation then
                 if p_client_request_id is null then raise; end if;
