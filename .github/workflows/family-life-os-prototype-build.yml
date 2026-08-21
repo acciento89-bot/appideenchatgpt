@@ -28,6 +28,9 @@ jobs:
       - name: Test household timezone conversion
         run: node --test apps/011-family-life-os/supabase/functions/process-family-source/timezone.test.mjs
 
+      - name: Test explicit clock parsing
+        run: node --test apps/011-family-life-os/supabase/functions/process-family-source/clock-time.test.mjs
+
       - name: Test proposal review blockers
         run: |
           swiftc \
@@ -51,6 +54,19 @@ jobs:
             apps/011-family-life-os/prototype/Tests/ConnectivityResumePolicyRegression.swift \
             -o /tmp/family-connectivity-resume-regression
           /tmp/family-connectivity-resume-regression
+
+      - name: Test Family Pro entitlement policy
+        run: |
+          swiftc \
+            apps/011-family-life-os/prototype/FamilyLifePrototype/Domain/Models.swift \
+            apps/011-family-life-os/prototype/Tests/FamilyProPolicyRegression.swift \
+            -o /tmp/family-pro-policy-regression
+          /tmp/family-pro-policy-regression
+
+      - name: Verify Family Pro legal links
+        run: |
+          grep -F 'https://www.kamilunavo.com/family/privacy' apps/011-family-life-os/prototype/FamilyLifePrototype/Views/SettingsView.swift
+          grep -F 'https://www.kamilunavo.com/family/terms' apps/011-family-life-os/prototype/FamilyLifePrototype/Views/SettingsView.swift
 
       - name: Build Family Life OS prototype for iOS Simulator
         run: |
