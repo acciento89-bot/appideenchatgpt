@@ -35,5 +35,8 @@ jobs:
       - name: Release identity, StoreKit, icon and TestFlight preflight
         run: python3 apps/002-evidaro/ci/release_preflight.py
 
+      - name: Approved production AppIcon guard
+        run: python3 apps/002-evidaro/ci/icon_no_alpha.py
+
       - name: Final public identity preflight
         run: python3 apps/002-evidaro/ci/public_identity_preflight.py
