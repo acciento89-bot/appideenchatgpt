@@ -251,6 +251,12 @@ actor FamilyOfflineSourceQueue {
         try? write(record)
     }
 
+    func markWaiting(_ id: UUID, message: String) {
+        guard var record = loadRecord(at: metadataURL(for: id)) else { return }
+        record.lastError = String(message.prefix(240))
+        try? write(record)
+    }
+
     func clearFailure(_ id: UUID) {
         guard var record = loadRecord(at: metadataURL(for: id)) else { return }
         record.lastError = nil
@@ -299,6 +305,10 @@ struct QueuedSourceIngestionResult: Sendable {
     let sourceID: UUID
 }
 
+private enum OfflineQueueSyncError: Error {
+    case processingInProgress
+}
+
 extension SupabaseFamilyRepository {
     func ingestQueuedSource(_ request: SourceIngestionRequest) async throws -> QueuedSourceIngestionResult {
         guard let clientRequestID = request.clientRequestID,
@@ -330,11 +340,23 @@ extension SupabaseFamilyRepository {
 
         let states: [OfflineSourceStateRow] = try await client
             .from("source_items")
-            .select("storage_path,processing_status")
+            .select("storage_path,processing_status,last_processing_started_at")
             .eq("id", value: source.sourceItemID)
             .execute()
             .value
         guard var state = states.first else { throw FamilyRepositoryError.invalidResponse }
+
+        if ["review", "partial", "done"].contains(state.processingStatus) {
+            return QueuedSourceIngestionResult(
+                snapshot: try await currentSnapshot(),
+                sourceID: source.sourceItemID
+            )
+        }
+
+        if state.processingStatus == "processing",
+           OfflineProcessingLease.isFresh(state.lastProcessingStartedAt) {
+            throw OfflineQueueSyncError.processingInProgress
+        }
 
         if let data = request.fileData, state.storagePath == nil {
             let fileName = OfflineSourceSanitizer.fileName(request.fileName ?? "Quelle")
@@ -362,25 +384,25 @@ extension SupabaseFamilyRepository {
                         fileName: fileName,
                         contentType: contentType,
                         sizeBytes: data.count,
-                        extractedText: request.extractedText
+                        extractedText: request.extractedText,
+                        deferProcessing: true
                     )
                 )
                 .execute()
             state.storagePath = path
-            state.processingStatus = "processing"
+            state.processingStatus = "queued"
+            state.lastProcessingStartedAt = nil
         }
 
-        if !["review", "partial", "done"].contains(state.processingStatus) {
-            let _: OfflineProcessResult = try await client.functions.invoke(
-                "process-family-source",
-                options: FunctionInvokeOptions(
-                    body: OfflineProcessSourceBody(
-                        sourceItemID: source.sourceItemID,
-                        textOverride: request.text ?? request.extractedText
-                    )
+        let _: OfflineProcessResult = try await client.functions.invoke(
+            "process-family-source",
+            options: FunctionInvokeOptions(
+                body: OfflineProcessSourceBody(
+                    sourceItemID: source.sourceItemID,
+                    textOverride: request.text ?? request.extractedText
                 )
             )
-        }
+        )
 
         return QueuedSourceIngestionResult(
             snapshot: try await currentSnapshot(),
@@ -477,6 +499,13 @@ extension DemoStore {
                     proposals = result.snapshot.proposals.filter { $0.sourceID == source.id }
                     isImportReviewPresented = true
                 }
+            } catch OfflineQueueSyncError.processingInProgress {
+                await FamilyOfflineSourceQueue.shared.markWaiting(
+                    record.id,
+                    message: "Analyse läuft bereits auf dem Server."
+                )
+                await overlayOfflineSourcesV1()
+                break
             } catch {
                 await FamilyOfflineSourceQueue.shared.markAttemptFailed(record.id, message: error.localizedDescription)
                 await overlayOfflineSourcesV1()
@@ -517,10 +546,12 @@ private struct OfflineCreatedSourceRow: Decodable, Sendable {
 private struct OfflineSourceStateRow: Decodable, Sendable {
     var storagePath: String?
     var processingStatus: String
+    var lastProcessingStartedAt: String?
 
     enum CodingKeys: String, CodingKey {
         case storagePath = "storage_path"
         case processingStatus = "processing_status"
+        case lastProcessingStartedAt = "last_processing_started_at"
     }
 }
 
@@ -531,6 +562,7 @@ private struct OfflineFinalizeUploadParams: Encodable, Sendable {
     let contentType: String
     let sizeBytes: Int
     let extractedText: String?
+    let deferProcessing: Bool
 
     enum CodingKeys: String, CodingKey {
         case sourceItemID = "p_source_item_id"
@@ -539,6 +571,7 @@ private struct OfflineFinalizeUploadParams: Encodable, Sendable {
         case contentType = "p_content_type"
         case sizeBytes = "p_size_bytes"
         case extractedText = "p_extracted_text"
+        case deferProcessing = "p_defer_processing"
     }
 }
 
@@ -559,6 +592,25 @@ private struct OfflineProcessResult: Decodable, Sendable {
     enum CodingKeys: String, CodingKey {
         case sourceItemID = "source_item_id"
         case proposalCount = "proposal_count"
+    }
+}
+
+private enum OfflineProcessingLease {
+    private static let leaseSeconds: TimeInterval = 10 * 60
+
+    static func isFresh(_ raw: String?) -> Bool {
+        guard let raw,
+              let startedAt = parse(raw) else {
+            return true
+        }
+        return Date().timeIntervalSince(startedAt) < leaseSeconds
+    }
+
+    private static func parse(_ raw: String) -> Date? {
+        let fractional = ISO8601DateFormatter()
+        fractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        if let date = fractional.date(from: raw) { return date }
+        return ISO8601DateFormatter().date(from: raw)
     }
 }
 
