@@ -1,3 +1,4 @@
+import Network
 import SwiftUI
 
 struct RootView: View {
@@ -66,6 +67,15 @@ struct RootView: View {
         .task {
             await store.restoreAndSyncOfflineSourcesV1()
         }
+        .task {
+            var resumePolicy = ConnectivityResumePolicy()
+            for await isNetworkAvailable in FamilyNetworkAvailability.updates() {
+                guard !Task.isCancelled else { break }
+                if resumePolicy.shouldResumeSync(isNetworkAvailable: isNetworkAvailable) {
+                    await store.restoreAndSyncOfflineSourcesV1()
+                }
+            }
+        }
         .onChange(of: scenePhase) { _, phase in
             guard phase == .active else { return }
             Task { await store.restoreAndSyncOfflineSourcesV1() }
@@ -128,6 +138,21 @@ struct RootView: View {
         case .inbox: InboxView(store: store)
         case .plan: PlanView(store: store)
         case .family: FamilyView(store: store)
+        }
+    }
+}
+
+private enum FamilyNetworkAvailability {
+    static func updates() -> AsyncStream<Bool> {
+        AsyncStream(bufferingPolicy: .bufferingNewest(1)) { continuation in
+            let monitor = NWPathMonitor()
+            monitor.pathUpdateHandler = { path in
+                continuation.yield(path.status == .satisfied)
+            }
+            continuation.onTermination = { _ in
+                monitor.cancel()
+            }
+            monitor.start(queue: DispatchQueue(label: "de.kamilunavo.family.network-monitor", qos: .utility))
         }
     }
 }
