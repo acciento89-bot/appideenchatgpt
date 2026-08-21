@@ -59,6 +59,40 @@ jobs:
           DATA_CONTAINER="$(xcrun simctl get_app_container "$DEVICE_UDID" "$BUNDLE_ID" data)"
           echo "DATA_CONTAINER=$DATA_CONTAINER" >> "$GITHUB_ENV"
 
+      - name: Seed and verify deterministic OCR fixture
+        shell: bash
+        run: |
+          set -euo pipefail
+          BUNDLE_ID="de.kamilunavo.trace"
+          SMOKE_DIR="$DATA_CONTAINER/Library/Application Support/EvidaroSmoke"
+
+          rm -f "$SMOKE_DIR/failed.txt" "$SMOKE_DIR/ocr-prepared.txt" "$SMOKE_DIR/ocr-verified.txt"
+          xcrun simctl launch "$DEVICE_UDID" "$BUNDLE_ID" --evidaro-persistence-smoke ocr-prepare -AppleLanguages "(de)" -AppleLocale "de_DE"
+          for _ in $(seq 1 30); do
+            test -f "$SMOKE_DIR/ocr-prepared.txt" && break
+            test -f "$SMOKE_DIR/failed.txt" && { cat "$SMOKE_DIR/failed.txt"; exit 1; }
+            sleep 1
+          done
+          test -f "$SMOKE_DIR/ocr-prepared.txt"
+          grep -q '^ocr-prepared text=' "$SMOKE_DIR/ocr-prepared.txt"
+          grep -qi 'EVIDARO' "$SMOKE_DIR/ocr-prepared.txt"
+          grep -q '4827' "$SMOKE_DIR/ocr-prepared.txt"
+          cat "$SMOKE_DIR/ocr-prepared.txt"
+
+          xcrun simctl terminate "$DEVICE_UDID" "$BUNDLE_ID"
+          xcrun simctl launch "$DEVICE_UDID" "$BUNDLE_ID" --evidaro-persistence-smoke ocr-verify -AppleLanguages "(de)" -AppleLocale "de_DE"
+          for _ in $(seq 1 20); do
+            test -f "$SMOKE_DIR/ocr-verified.txt" && break
+            test -f "$SMOKE_DIR/failed.txt" && { cat "$SMOKE_DIR/failed.txt"; exit 1; }
+            sleep 1
+          done
+          test -f "$SMOKE_DIR/ocr-verified.txt"
+          grep -q '^ocr-verified text=' "$SMOKE_DIR/ocr-verified.txt"
+          grep -qi 'EVIDARO' "$SMOKE_DIR/ocr-verified.txt"
+          grep -q '4827' "$SMOKE_DIR/ocr-verified.txt"
+          cat "$SMOKE_DIR/ocr-verified.txt"
+          xcrun simctl terminate "$DEVICE_UDID" "$BUNDLE_ID" || true
+
       - name: Generate and verify German PDF smoke pack
         shell: bash
         run: |
