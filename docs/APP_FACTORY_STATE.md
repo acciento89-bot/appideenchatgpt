@@ -2,7 +2,7 @@
 
 Last updated: 2026-08-21
 Status: ACTIVE
-Current user-selected workstream: #011 Family Life OS (INTERNAL CODENAME)
+Current user-selected workstream: #002 Kamilunavo Trace — TestFlight Build 1 uploaded / Apple processing + IAP/device QA next
 Repository purpose: persistent handoff/state repository for the full App Factory so work can continue across chat limits and new conversations without losing decisions or progress.
 
 > This file is the portfolio-level single source of truth. Read it first, then the selected app-specific state. Detailed historical checkpoints remain in Git history.
@@ -22,7 +22,7 @@ Repository purpose: persistent handoff/state repository for the full App Factory
 | # | Working title | Core idea | Planned monetization | Status |
 |---|---|---|---|---|
 | 001 | KeepMeter | Return-window + actual-usage decision tool | Freemium + Lifetime Pro | APP STORE REVIEW SUBMITTED — APPLE DECISION PENDING |
-| 002 | Evidaro (PROVISIONAL; ProofVault retired) | Case-based evidence timeline with per-item hashes, snapshot seals and proof export | Freemium + Pro / likely Lifetime | ACTIVE — PASS 4 LOCAL VISION OCR FIRST FULL GATE GREEN; FINAL DOC-ALIGNED GATE REQUIRED |
+| 002 | Kamilunavo Trace (internal path `002-evidaro`) | Local-first evidence cases + original hashes + snapshot seals + localized PDF + offline `.evpack` verifier | Freemium + Lifetime Pro | TESTFLIGHT BUILD 1 UPLOADED — APPLE PROCESSING / IAP + DEVICE QA PENDING |
 | 003 | ParcelPilot | Orders, deliveries, returns and refund tracking | Freemium | QUEUED |
 | 004 | SubZero | Detect/track subscriptions and recurring costs | Pro / Lifetime | QUEUED |
 | 005 | GiftBrain | Gift ideas per person/occasion via share sheet | Lifetime | QUEUED |
@@ -31,7 +31,7 @@ Repository purpose: persistent handoff/state repository for the full App Factory
 | 008 | BeforeAfter | Guided repeat photography/alignment/comparison | Pro / Lifetime | QUEUED |
 | 009 | ScamLens | Analyze screenshots/messages for suspicious indicators | Credits / Pro | QUEUED |
 | 010 | SwipeOrDie | Fast portrait reaction/high-score game | Ads + IAP | QUEUED |
-| 011 | Family Life OS (INTERNAL CODENAME) | Family Inbox: photo/PDF/text/voice -> reviewed events/tasks/deadlines/payments/preparation | Freemium + Family Pro subscription | COMPLETE V1 BASELINE + PR #31/#34 FULL CI GREEN / PROMOTION + LIVE CANARY PENDING |
+| 011 | Family Life OS (INTERNAL CODENAME) | Family Inbox: photo/PDF/text/voice -> reviewed events/tasks/deadlines/payments/preparation | Freemium + Family Pro subscription | COMPLETE V1 / PR #31 MERGED / PR #34 FINAL PROMOTION |
 
 # Portfolio app #001 — KeepMeter
 
@@ -54,7 +54,7 @@ Current checkpoint:
 
 Do not regress KeepMeter to “StoreKit/ASC/TestFlight still open.” The next meaningful external event is Apple's review decision or review feedback.
 
-# Portfolio app #002 — Evidaro
+# Portfolio app #002 — Kamilunavo Trace
 
 Authoritative app state:
 
@@ -63,7 +63,10 @@ Authoritative app state:
 Naming:
 
 - original working title `ProofVault` is retired because a substantially overlapping iPhone/iPad app now uses `ProofVault: Document Vault`
-- current candidate `Evidaro` is provisional, not legal/trademark clearance
+- `Evidaro` is retired as the public name and retained only where historical internal paths/fixtures make renaming unnecessary
+- updated 2026-08-20 public-web research found an existing `Evidaro` project in the housing-conditions / housing-disrepair space with a surveyor-oriented product direction
+- final public name is locked for this release as `Kamilunavo Trace`
+- no repository research should be treated as legal trademark clearance
 
 Product thesis:
 
@@ -71,135 +74,72 @@ Product thesis:
 
 Core loop:
 
-**Create case -> Capture evidence -> Hash each item -> Review timeline -> Seal snapshot -> Share/export manifest**
+**Create case -> Capture evidence -> Hash each item -> Review timeline -> Seal snapshot -> Build/share PDF or `.evpack` -> Verify received bundle locally**
 
-Foundation green checkpoint:
+Merged green passes:
 
-- PR #15 merged to `main`
-- workflow run `32312124275`
-- build job `96257080572`
-- Evidaro foundation preflight — SUCCESS
-- Xcode iOS Simulator build — SUCCESS
-- foundation merge commit `3dbeef6e786e9d2ad528d34b28f66c4ab3890856`
+- Pass 1 foundation — PR #15 — merge `3dbeef6e786e9d2ad528d34b28f66c4ab3890856`
+- Pass 2 SwiftData + hashed media — PR #20 — merge `8874d78af3a7d4139743e5b2e9017ecd709cbdd2`
+- Pass 3 camera + process-relaunch persistence — PR #22 — merge `951c2f53ccbdda7ce01af0dac8f0a17c87fbe132`
+- Pass 3 handoff — PR #23 — merge `0be5e5e08bdd045bbb0994c1da508d9a86ab6951`
+- Pass 4 local derived Apple Vision OCR — PR #24 — merge `ad3876dbac044759223d0bdf7a1c095e461bc16b`
+- Pass 5 integrity-checked multi-page PDF evidence pack — PR #27 — merge `22f8b560c2529fb064feaa591b901acecf8da573`
+- Pass 6 optional device-owner-auth privacy lock — PR #28 — final head `a55f55ebe72280e411670f4757624914d0c1d6ed`, merge `f6e68210c38b1a1715de2908dd70e1da6c6a476d`
 
-Foundation includes:
+Pass 7 — GREEN / MERGED:
 
-- native SwiftUI iPhone prototype / iOS 17+
-- case dashboard + case creation
-- evidence timeline
-- note/source evidence capture
-- SHA-256 content hash per evidence item
-- repeatable snapshot seals
-- shareable text manifest
-- dedicated Xcode project/shared scheme
-- dedicated `macos-26` GitHub Actions build gate
+- PR #29 `Add Evidaro DE/EN localization and accessibility hardening` — MERGED
+- final PR head `84ef850678551e7cb0f22004c05e070adabece9d`
+- exact workflow run `32383741929` / run #82 — **SUCCESS**
+- build job `96473002571` — **SUCCESS**
+- merge commit `bf3ecf74887c08d52bbadf11a13174c83133b093`
 
-Pass 2 green checkpoint:
+Pass-7 implementation includes:
 
-- PR #20 `Add Evidaro SwiftData persistence and hashed media intake` — MERGED
-- final PR head `cef51f701627661b58822656641b8ce1c9f2b3a0`
-- workflow run `32329202541`
-- build job `96306455813`
-- persistence/media preflight — SUCCESS
-- Xcode iOS Simulator build — SUCCESS
-- merge commit `8874d78af3a7d4139743e5b2e9017ecd709cbdd2`
+- explicit English and German resources for app UI and camera/Face ID usage descriptions
+- hash-stable persisted enum raw values with separate localized presentation names
+- localized Home, case creation, evidence intake, case detail, OCR controls, privacy lock and device-auth prompts
+- Dynamic Type adaptive home/action layouts
+- VoiceOver headings, combined case-card semantics and full-hash accessibility labels/values
+- full DE/EN localization of the generated evidence-pack PDF: metadata, cover, fields, OCR labels, image/PDF preview pages, seal history, continuation text, footer and export errors
+- English and German PDF process-relaunch gates
+- localization/presentation changes do not alter original media bytes, evidence-record hashes, manifests or seals
 
-Pass 2 includes:
+Pass-7 completion:
+- final head `84ef850678551e7cb0f22004c05e070adabece9d` passed preflight, Xcode Simulator, persistence, OCR, English PDF, German PDF, privacy lock and German runtime localization before merge
 
-- SwiftData-backed case/evidence/seal models
-- persistent ModelContainer / ModelContext
-- private local media storage under Application Support
-- PhotosPicker image intake
-- Files/PDF intake
-- original imported byte stream hashed separately with SHA-256
-- evidence-record hash includes original-media hash
-- original filename/hash displayed in timeline and manifest
-- imported original can be shared back out
-- `AddEvidenceView` decomposed into smaller SwiftUI components after Xcode 26.6 type-checker failures; only the fully green revision was merged
+Pass 8 — GREEN / MERGED:
 
-Pass 3 green checkpoint:
+- PR #32 — MERGED
+- final exact head `d3af5d59abea850dd7724beb92e223a691172ba3`
+- full simulator run `32408185123` / run #98 — SUCCESS
+- merge `e5c57335888a80e120fefea686b29f6ed8715b2f`
+- `.evpack` valid/tamper/derived-OCR/process-relaunch checks green
 
-- PR #22 `Add Evidaro camera capture and relaunch persistence gate` — MERGED
-- final PR head `1e9ff37129fc386ec278f0b3d2f5e58fa391ccfb`
-- workflow run `32330580003`
-- build job `96310288293`
-- camera/persistence preflight — SUCCESS
-- Xcode iOS Simulator build — SUCCESS
-- process-relaunch persistence smoke — SUCCESS
-- merge commit `951c2f53ccbdda7ce01af0dac8f0a17c87fbe132`
-- post-merge handoff PR #23 — MERGED
-- handoff merge commit `0be5e5e08bdd045bbb0994c1da508d9a86ab6951`
+Release pass — Kamilunavo Trace — GREEN / MERGED / BUILD 1 UPLOADED:
 
-Pass 3 includes:
+- PR #33 — GREEN / MERGED
+- final tested release head `090b1471…`
+- static release run `32412043585` — SUCCESS
+- unsigned iPhone Release/TestFlight validation run `32412043598` — SUCCESS
+- full simulator integrity/relaunch run `32412043953` — SUCCESS
+- release merge `69b8a1d99082ff804f2a532c636af3008d79546a`
+- public name `Kamilunavo Trace`; bundle `de.kamilunavo.trace`
+- public `.evpack` v1 format id `de.kamilunavo.trace.evpack`
+- Lifetime Pro non-consumable `de.kamilunavo.trace.pro.lifetime`
+- Free: up to 3 cases; received-bundle verification remains free
+- Pro: unlimited cases + PDF export + `.evpack` export
+- App Store Connect app record — EXISTS
+- signed TestFlight Build 1 `0.1.0 (1)` upload — SUCCESS via protected One More Floor bridge
+- bridge run `32445560808`; upload job `96665754912`; Apple export result `Upload succeeded.` / `EXPORT SUCCEEDED`
+- Apple processing / TestFlight visibility — PENDING external confirmation
 
-- direct camera photo intake on camera-capable iPhones
-- camera privacy usage description in Debug and Release
-- captured photos routed through the existing private media storage + SHA-256 path
-- app-root ownership of the persistent `EvidenceStore`
-- automated two-process simulator persistence proof for case, evidence item, stored media bytes, media hash, evidence-record hash and snapshot seal
-- exact smoke media SHA-256 survives restart: `5e647718ecb46672d74a0cfa0416a8af0d7bca687ed0349fd146e1191f197728`
-- exact smoke seal SHA-256 survives restart: `f9799ea52f49197a71782d15f488545a5bd32cab7bd305e78e6aacc2b12450ff`
+External next:
 
-Pass-3 boundary:
-
-- automated simulator persistence is proven
-- camera integration compiles and is wired to the same media/hash path
-- physical iPhone camera hardware and permission-prompt UX are not yet device-verified and remain a pre-release spot check
-
-Pass 4 current checkpoint:
-
-- PR #24 `Add local derived OCR with integrity gate` — OPEN / draft until final exact-head gate
-- first green source head `848e365961f6e764948f1920ebf8ef4714af3588`
-- workflow run `32335007814`
-- build job `96322753291`
-- OCR/camera/persistence preflight — SUCCESS
-- Xcode iOS Simulator build — SUCCESS
-- existing process-relaunch persistence smoke — SUCCESS
-- real Apple Vision OCR smoke in iPhone Simulator — SUCCESS
-- OCR persistence after app-process restart — SUCCESS
-
-Pass 4 includes:
-
-- local Apple Vision OCR for stored images and PDFs
-- OCR stored separately as derived text + recognition time + engine + page count
-- recognition validates original stored bytes against the saved original-media SHA-256 before OCR
-- OCR never rewrites original media bytes, media SHA-256, evidence-record SHA-256 or prior snapshot seals
-- OCR output is intentionally excluded from the canonical integrity manifest/seal and can be refreshed independently
-- user-visible `Recognize` / `Refresh` flow with explicit derived-data trust messaging
-- deterministic runtime fixture recognizes `EVIDARO 4827`, then verifies the result and integrity state again after process restart
-- exact OCR smoke media SHA-256 before/after: `d94f8834fd845ea011f36f753c9ddb91d7dd1dbb24ac2e5b04d7b508d9724355`
-- exact OCR smoke evidence-record SHA-256 before/after: `dee235dd17e24fdb04b6a215d4077e03acaea41872c681da55edd996bebaea42`
-- exact pre-OCR seal SHA-256 unchanged after OCR/restart: `86fc0200ebf3c861c686c693cc42437c7ab8716d98f7b42ff158140f71aa4ed8`
-
-Pass-4 boundary:
-
-- Vision OCR is runtime-proven in an iPhone Simulator, not yet on a physical iPhone
-- OCR remains derived/reviewable data, not authoritative evidence
-- physical iPhone camera hardware/permission UX is still open
-- because spec/state documentation advances PR #24 beyond the first green source head, the exact final documentation-aligned head must pass the same complete gate before merge
-
-Do not regress Evidaro to Foundation-only, Pass-2-pending, camera/persistence-pending, or “OCR not implemented.”
-
-Next Evidaro gates:
-
-1. rerun preflight + Xcode + persistence + Vision OCR + OCR relaunch verification on the exact final PR #24 documentation head
-2. merge PR #24 only after that exact-head gate is green
-3. PDF evidence-pack export after OCR/media stability
-4. physical-device camera/permission + OCR spot check before release hardening
-5. optional location/context metadata
-6. Face ID/privacy lock
-7. DE/EN + accessibility hardening
-8. final identity/name due diligence
-9. StoreKit Pro/Lifetime decision
-10. signed TestFlight
-
-Trust boundary:
-
-- no legal-admissibility claim
-- no claim that a timestamp independently proves when the real-world event occurred
-- hashes are integrity aids, not legal certification
-- OCR is derived metadata only
-- v1 stays local-first; no evidence upload to Kamilunavo servers
+- create/configure Lifetime Pro IAP `de.kamilunavo.trace.pro.lifetime` and final price if not already done
+- wait for/confirm Apple TestFlight processing visibility
+- physical iPhone camera/OCR/biometric/VoiceOver/Dynamic Type QA
+- real TestFlight Lifetime purchase, relaunch entitlement recovery and Restore
 
 # Portfolio app #011 — Family Life OS
 
@@ -213,21 +153,23 @@ Authoritative app state:
 
 Complete-v1 is the baseline. Do not regress #011 to the old Build-2-only roadmap.
 
-Open hardening stack:
+Promotion state:
 
 - PR #31 `Family Life OS: harden timezone and review trust boundary`
-  - branch `agent/family-life-os-timezone-hardening`
   - validated head `29b942fca118792146acc6079a0fe07697a3bd8d`
-  - CI green
-  - not merged / not deployed live
+  - Prototype / Database / Device-TestFlight validation — SUCCESS
+  - merged to `main` on 2026-08-21
+  - merge commit `0db452c41a4c197cb95d0bb48b9455561435f8d4`
+  - hosted Edge Function changes are still NOT deployed live
 - PR #34 `Family Life OS: durable offline source queue`
   - branch `agent/family-life-os-offline-queue`
-  - stacked on PR #31
-  - latest fully validated app-code head `fd7381e97c349dd282df5b12ffcf68c4bd476538`
+  - retargeted to `main` after PR #31 merge
+  - latest fully validated application-code checkpoint before retarget: `fd7381e97c349dd282df5b12ffcf68c4bd476538`
   - Prototype Build run `32455964319` — SUCCESS
   - Database Tests run `32455964347` — SUCCESS
   - iPhone/iPad device validation run `32455964321` — SUCCESS
-  - not merged / migration not deployed live
+  - final post-retarget CI/merge is the current promotion step
+  - migration is still NOT deployed live
 
 PR #31 closes release-critical trust bugs:
 
@@ -250,6 +192,27 @@ PR #34 adds production-grade source durability:
 - automatic `NWPathMonitor` resume on real offline -> online transition
 - initial/repeated online observations do not duplicate normal startup sync
 
+Complete-v1 already includes:
+
+- hosted auth + invite acceptance
+- household/member management
+- realtime refresh
+- photo/camera/screenshot capture
+- PDF/document capture
+- text capture
+- voice recording + transcription
+- private Supabase Storage
+- image/PDF OCR
+- server-side structured extraction with deterministic fallback
+- review-before-confirmation and original-source provenance
+- source retry/archive lifecycle
+- agenda/week Plan + Plan CRUD + persisted completion
+- optimistic version conflicts + activity history
+- notification preferences/local reminders
+- biometric lock
+- StoreKit 2 Family Pro surface/restore
+- offline snapshot cache and share-extension intake foundations
+
 ## Apple / TestFlight state
 
 Bundle ID:
@@ -269,7 +232,6 @@ Bridge evidence:
 - repo `acciento89-bot/onemorefloor`
 - run `32366765776`
 - bridge head `3f300e3a70f33d86a73a26195eea0b2f3775a9f9`
-- the visible upload step was intentionally `continue-on-error`; the recorded `xcodebuild` result contained Apple's duplicate-build-number rejection
 
 Any next Apple upload must use build number greater than `3`.
 
@@ -285,10 +247,10 @@ Hosted Supabase:
 
 Not live yet:
 
-- PR #31 timezone/AI trust changes
-- PR #34 idempotency/offline migration
+- PR #31 Edge Function timezone/trust changes
+- PR #34 source-ingestion idempotency migration/offline protocol
 
-Do not run the new offline upload protocol against production until those changes are intentionally promoted.
+Merging repository code does not deploy those changes. Do not run the new offline upload protocol against production until the hosted migration/function changes are intentionally promoted.
 
 Real provider evidence remains open: the last hosted audit only proved fixture extraction runs. Do not claim OpenAI extraction or `OPENAI_API_KEY` availability until a live `extraction_runs` record proves the provider/model.
 
@@ -311,14 +273,13 @@ Core loop:
 
 ## #011 next promotion sequence
 
-1. Merge PR #31 only with explicit merge authorization.
-2. Retarget/update PR #34 after #31 reaches `main`, then verify the exact resulting state.
-3. Merge PR #34 only with explicit merge authorization.
-4. Deploy Edge + migration to hosted Supabase only with explicit live-deployment authorization.
-5. Run live canaries for Europe/Berlin timezone, missing-time blocking, offline->online exactly-once ingestion, household isolation and processing-lease recovery.
-6. Inspect live `extraction_runs` provider/model.
-7. Publish the next TestFlight build using build number > 3.
-8. Perform physical-device offline/online QA and StoreKit/App Store release gates separately.
+1. Finish the exact post-#31 `main` validation for PR #34.
+2. Merge PR #34 after the exact resulting head is green.
+3. Deploy Edge + migration to hosted Supabase only with explicit live-deployment authorization.
+4. Run live canaries for Europe/Berlin timezone, missing-time blocking, offline->online exactly-once ingestion, household isolation and processing-lease recovery.
+5. Inspect live `extraction_runs` provider/model.
+6. Publish the next TestFlight build using build number > 3.
+7. Perform physical-device offline/online QA and StoreKit/App Store release gates separately.
 
 ## #011 brand guardrail
 
@@ -355,10 +316,10 @@ Avoid generic house/checkmark, cartoon family, or robot/AI sparkle identity.
 1. Read this file first.
 2. For #002 read `apps/002-evidaro/PROJECT_STATE.md` and continue only from its current green/in-progress gate.
 3. For #011 read `apps/011-family-life-os/PROJECT_STATE.md` first; it is the detailed authoritative checkpoint.
-4. Inspect current `main`, PR #31 and PR #34 plus latest relevant CI before source or promotion changes.
+4. Inspect current `main`, PR #34 and latest relevant CI before source, merge or deployment changes.
 5. Do not regress KeepMeter to pre-TestFlight/pre-StoreKit state; it is submitted to Apple review.
-6. Do not regress Evidaro to `ProofVault`, `QUEUED`, Foundation-only, Pass-2-pending or Pass-3-pending state; Pass 3 is green/merged and Pass 4 OCR is implemented with a first full green runtime gate.
-7. Do not claim physical camera or physical-iPhone OCR validation for Evidaro until explicitly exercised on hardware.
+6. Do not regress #002 to `ProofVault`, `Evidaro` public branding, pre-Pass-8, pre-release or pre-TestFlight state; Pass 7/8 and Release PR #33 are merged and signed Build 1 upload succeeded.
+7. Do not claim physical camera, physical-iPhone OCR, real biometric prompt, VoiceOver, largest-Dynamic-Type or physical `.evpack` verification for Kamilunavo Trace until explicitly exercised on hardware.
 8. Do not regress Family Life OS to Build-2-only, “Realtime/Storage/OCR not implemented”, or “Build 3 missing”.
 9. Do not claim PR #31/#34 behavior is live before explicit hosted deployment + verification.
 10. Preserve every other portfolio entry when updating one workstream.
