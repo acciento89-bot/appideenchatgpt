@@ -10,7 +10,8 @@ struct FamilySettingsView: View {
     @State private var preferences = NotificationPreferences()
     @State private var notificationsGranted = false
     @State private var isLoading = true
-    @State private var showDeleteConfirmation = false
+    @State private var showDeleteHouseholdConfirmation = false
+    @State private var showDeleteAccountConfirmation = false
     @State private var statusMessage: String?
 
     private let familyPrivacyURL = URL(string: "https://www.kamilunavo.com/family/privacy")!
@@ -159,12 +160,15 @@ struct FamilySettingsView: View {
                         Task { try? await SupabaseEnvironment.client.auth.signOut() }
                     }
                     Button("Haushalt löschen", role: .destructive) {
-                        showDeleteConfirmation = true
+                        showDeleteHouseholdConfirmation = true
+                    }
+                    Button("Account und Daten löschen", role: .destructive) {
+                        showDeleteAccountConfirmation = true
                     }
                 } header: {
                     Text("Account")
                 } footer: {
-                    Text("Beim Löschen des Haushalts werden Plan, Inbox-Quellen, private Dateien und Familienzuordnungen entfernt. Diese Aktion kann nicht rückgängig gemacht werden.")
+                    Text("Haushalt löschen entfernt den aktuell verwalteten Haushalt inklusive privater Dateien. Account und Daten löschen entfernt zusätzlich deinen Login. Von dir erstellte Haushalte werden gelöscht; Mitgliedschaften in fremden Haushalten werden anonymisiert und widerrufen.")
                 }
 
                 if let statusMessage {
@@ -188,15 +192,18 @@ struct FamilySettingsView: View {
                 _ = await products
                 isLoading = false
             }
-            .confirmationDialog("Haushalt endgültig löschen?", isPresented: $showDeleteConfirmation, titleVisibility: .visible) {
+            .confirmationDialog("Haushalt endgültig löschen?", isPresented: $showDeleteHouseholdConfirmation, titleVisibility: .visible) {
                 Button("Haushalt löschen", role: .destructive) {
-                    Task {
-                        do {
-                            try await SupabaseFamilyRepository().deleteHousehold()
-                            try? await SupabaseEnvironment.client.auth.signOut()
-                        } catch { statusMessage = error.localizedDescription }
-                    }
+                    Task { await deleteFamilyData(scope: "household") }
                 }
+            }
+            .alert("Account endgültig löschen?", isPresented: $showDeleteAccountConfirmation) {
+                Button("Abbrechen", role: .cancel) {}
+                Button("Account löschen", role: .destructive) {
+                    Task { await deleteFamilyData(scope: "account") }
+                }
+            } message: {
+                Text("Diese Aktion löscht deinen Login dauerhaft. Von dir erstellte Haushalte, Plan-Daten, Inbox-Quellen und private Dateien werden entfernt. In Haushalten anderer Owner wird deine Mitgliedschaft anonymisiert und widerrufen.")
             }
         }
     }
@@ -215,6 +222,39 @@ struct FamilySettingsView: View {
         )
     }
 
+    private func deleteFamilyData(scope: String) async {
+        do {
+            let householdID = scope == "household" ? store.household?.id : nil
+            if scope == "household", householdID == nil {
+                throw FamilyRepositoryError.householdUnavailable
+            }
+
+            let _: FamilyDeletionResult = try await SupabaseEnvironment.client.functions.invoke(
+                "delete-family-data",
+                options: FunctionInvokeOptions(
+                    body: FamilyDeletionRequest(
+                        scope: scope,
+                        householdID: householdID,
+                        confirm: true
+                    )
+                )
+            )
+
+            clearLocalFamilyData()
+            try? await SupabaseEnvironment.client.auth.signOut()
+        } catch {
+            statusMessage = error.localizedDescription
+        }
+    }
+
+    private func clearLocalFamilyData() {
+        if let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first {
+            try? FileManager.default.removeItem(at: support.appendingPathComponent("FamilyLifeOS", isDirectory: true))
+        }
+        UserDefaults.standard.removeObject(forKey: "family.pendingInvite")
+        UserDefaults.standard.removeObject(forKey: "family.appLock.enabled")
+    }
+
     private func icon(for entry: ActivityEntry) -> String {
         switch entry.entityType {
         case "plan_item": "calendar"
@@ -224,4 +264,20 @@ struct FamilySettingsView: View {
         default: "clock.arrow.circlepath"
         }
     }
+}
+
+private struct FamilyDeletionRequest: Encodable, Sendable {
+    let scope: String
+    let householdID: UUID?
+    let confirm: Bool
+
+    enum CodingKeys: String, CodingKey {
+        case scope
+        case householdID = "household_id"
+        case confirm
+    }
+}
+
+private struct FamilyDeletionResult: Decodable, Sendable {
+    let deleted: String
 }
