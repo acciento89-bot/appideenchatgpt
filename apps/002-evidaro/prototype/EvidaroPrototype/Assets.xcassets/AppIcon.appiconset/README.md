@@ -9,5 +9,8 @@ Release requirements enforced by CI:
 - no alpha channel
 - no transparent pixels
 - wired as the Xcode `AppIcon` asset
+- exact approved production asset SHA-256 is pinned by `ci/icon_no_alpha.py`
 
-The icon visual is a dark graphite field with a traced evidence path, integrity points and a confirmed endpoint. No product-name text is embedded in the icon.
+Build 5 device QA exposed a visual release bug: the previous dark-graphite icon passed all technical PNG checks but appeared effectively black on the physical iPhone Homescreen.
+
+The corrected Build 6 visual uses a clearly visible blue/teal field, a white traced evidence path, integrity points, a document outline and a confirmed endpoint. No product-name text is embedded in the icon.
