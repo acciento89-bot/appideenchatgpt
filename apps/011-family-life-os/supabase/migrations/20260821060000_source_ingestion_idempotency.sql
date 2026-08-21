@@ -54,31 +54,49 @@ begin
         raise exception 'Insufficient household permission';
     end if;
 
-    insert into public.source_items(
-        household_id,
-        created_by_member_id,
-        source_type,
-        display_title,
-        original_text,
-        processing_status,
-        processing_attempts,
-        last_processing_started_at,
-        client_request_id
-    ) values (
-        v_household_id,
-        v_member_id,
-        p_source_type,
-        trim(p_title),
-        p_original_text,
-        case when p_source_type = 'text' then 'processing' else 'uploading' end,
-        case when p_source_type = 'text' then 1 else 0 end,
-        case when p_source_type = 'text' then now() else null end,
-        p_client_request_id
-    )
-    on conflict (household_id, client_request_id)
-        where client_request_id is not null
-    do update set client_request_id = excluded.client_request_id
-    returning id into v_source_id;
+    if p_client_request_id is not null then
+        select s.id into v_source_id
+          from public.source_items s
+         where s.household_id = v_household_id
+           and s.client_request_id = p_client_request_id
+         limit 1;
+    end if;
+
+    if v_source_id is null then
+        begin
+            insert into public.source_items(
+                household_id,
+                created_by_member_id,
+                source_type,
+                display_title,
+                original_text,
+                processing_status,
+                processing_attempts,
+                last_processing_started_at,
+                client_request_id
+            ) values (
+                v_household_id,
+                v_member_id,
+                p_source_type,
+                trim(p_title),
+                p_original_text,
+                case when p_source_type = 'text' then 'processing' else 'uploading' end,
+                case when p_source_type = 'text' then 1 else 0 end,
+                case when p_source_type = 'text' then now() else null end,
+                p_client_request_id
+            )
+            returning public.source_items.id into v_source_id;
+        exception
+            when unique_violation then
+                if p_client_request_id is null then raise; end if;
+                select s.id into v_source_id
+                  from public.source_items s
+                 where s.household_id = v_household_id
+                   and s.client_request_id = p_client_request_id
+                 limit 1;
+                if v_source_id is null then raise; end if;
+        end;
+    end if;
 
     source_item_id := v_source_id;
     household_id := v_household_id;
