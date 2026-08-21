@@ -154,9 +154,22 @@ Core chain:
 - Local derived OCR — PR #24 — merge `ad3876dbac044759223d0bdf7a1c095e461bc16b`
 - Integrity-checked PDF foundation — PR #27 — merge `22f8b560c2529fb064feaa591b901acecf8da573`
 - Device-auth Privacy Lock — PR #28 — merge `f6e68210c38b1a1715de2908dd70e1da6c6a476d`
-- DE/EN + accessibility + localized PDF — PR #29 — merge `bf3ecf74887c08d52bbadf11a13174c83133b093`
-- Offline-verifiable `.evpack` — PR #32 — merge `e5c57335888a80e120fefea686b29f6ed8715b2f`
-- Public Kamilunavo Trace release pass — PR #33 — merge `69b8a1d99082ff804f2a532c636af3008d79546a`
+
+## Pass 7 — DE/EN + accessibility + localized PDF — GREEN / MERGED
+
+- PR #29
+- merge `bf3ecf74887c08d52bbadf11a13174c83133b093`
+
+## Pass 8 — offline-verifiable `.evpack` — GREEN / MERGED
+
+- PR #32
+- full simulator gate `32408185123` — SUCCESS
+- merge `e5c57335888a80e120fefea686b29f6ed8715b2f`
+
+## Public release pass — Kamilunavo Trace — GREEN / MERGED
+
+- PR #33
+- merge `69b8a1d99082ff804f2a532c636af3008d79546a`
 
 ## Current next action
 
