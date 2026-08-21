@@ -6,6 +6,7 @@ import {
   previousLocalEveningISO,
   resolveZonedDateTime
 } from "./timezone.mjs";
+import { extractClockTime } from "./clock-time.mjs";
 
 type Candidate = {
   kind: "event" | "task" | "deadline" | "payment" | "preparation";
@@ -110,7 +111,7 @@ Deno.serve(async (req) => {
     const provider = apiKey ? "openai" : "rules";
     const { data: run, error: runError } = await admin
       .from("extraction_runs")
-      .insert({ source_item_id: sourceID, provider, model: apiKey ? model : "family-rules-v2", schema_version: 3, status: "processing" })
+      .insert({ source_item_id: sourceID, provider, model: apiKey ? model : "family-rules-v3", schema_version: 3, status: "processing" })
       .select("id")
       .single();
     if (runError || !run) throw new Error("extraction_run_create_failed");
@@ -197,11 +198,11 @@ Deno.serve(async (req) => {
     await admin.from("extraction_runs").update({
       status: "succeeded",
       completed_at: finished,
-      normalized_output: { schema_version: 3, proposal_count: count, provider, model: apiKey ? model : "family-rules-v2", used_file_input: usedFileInput, timezone }
+      normalized_output: { schema_version: 3, proposal_count: count, provider, model: apiKey ? model : "family-rules-v3", used_file_input: usedFileInput, timezone }
     }).eq("id", runID);
     await admin.from("source_items").update({ processing_status: count ? "review" : "done", processing_error_code: null, processed_at: finished }).eq("id", sourceID);
 
-    return json({ source_item_id: sourceID, proposal_count: count, provider, model: apiKey ? model : "family-rules-v2" });
+    return json({ source_item_id: sourceID, proposal_count: count, provider, model: apiKey ? model : "family-rules-v3" });
   } catch (error) {
     const code = safe(error);
     if (admin && runID) await admin.from("extraction_runs").update({ status: "failed", error_code: code, completed_at: new Date().toISOString() }).eq("id", runID);
@@ -261,13 +262,13 @@ function rulesExtract(text: string, locale: string, timezone: string): Candidate
   const clean = text.replace(/\r/g, " ").replace(/\s+/g, " ").trim();
   if (!clean) return [];
   const dates = extractDates(clean, timezone);
-  const time = clean.match(/\b([01]?\d|2[0-3])[:.]([0-5]\d)\s*(?:Uhr)?\b/i);
+  const time = extractClockTime(clean);
   const amount = clean.match(/\b(\d{1,6})(?:[,.](\d{2}))?\s*(?:€|EUR)\b/i);
   const result: Candidate[] = [];
 
   if (/klassenfahrt|ausflug|zahnarzt|arzt|training|elternabend|termin|aufführung|treffen/i.test(clean) && dates[0]) {
     const wall = time
-      ? resolveZonedDateTime(dates[0], +time[1], +time[2], timezone)
+      ? resolveZonedDateTime(dates[0], time[0], time[1], timezone)
       : resolveZonedDateTime(dates[0], 0, 0, timezone);
     const unresolved = !wall.iso ? ["starts_at"] : (!time || wall.ambiguous ? ["time"] : []);
     const reminder = wall.iso && unresolved.length === 0 ? offset(wall.iso, -60) : null;
