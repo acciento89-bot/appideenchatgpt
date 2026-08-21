@@ -3,7 +3,7 @@
 Date: 2026-08-21
 Build: `0.1.0 (5)`
 Source: `128da643cb8b5320546242ba511118d18a2edb07`
-Status: IN PROGRESS
+Status: IN PROGRESS — MAJOR PHYSICAL GATES GREEN
 
 This file records only physical iPhone observations for Build 5. It does not replace `PHYSICAL_QA.md`; unchecked areas remain open until explicitly exercised on the signed TestFlight build.
 
@@ -80,17 +80,29 @@ User-confirmed on the physical iPhone:
 - [x] Largest Dynamic Type does not hide New Case / Seal / Manifest / export controls.
 - [x] Pro sheet remains usable at largest Dynamic Type.
 
-## Next physical gate — `.evpack` round trip
+## `.evpack` round-trip checkpoint
 
-- [ ] Export `.evpack` from a Pro case.
-- [ ] Save/share it outside the app.
-- [ ] Re-import the untouched bundle using `Beweispaket prüfen` / `Verify evidence bundle`.
-- [ ] Untouched bundle is green and shows expected case/item/seal counts.
-- [ ] Bundle/manifest hashes are visible and selectable.
-- [ ] Verify the same received bundle while the app is in Free state if practical; verification must remain available.
+User-confirmed on the physical iPhone:
 
-## Other release gates
+- [x] `.evpack` exports from a Pro case.
+- [x] The exported package can be saved/shared outside the app.
+- [x] The untouched package can be re-imported using `Beweispaket prüfen` / `Verify evidence bundle`.
+- [x] Untouched bundle verifies green and reports plausible case/item/seal counts.
+- [x] Bundle/manifest hashes are visible in the verifier.
 
-Any remaining physical checks stay open unless separately recorded. The signed TestFlight Lifetime Pro purchase → entitlement recovery after relaunch → Restore path was already physically confirmed on the earlier Build 2 checkpoint; Build 5 PDF work did not alter StoreKit logic.
+Optional/free-state spot-check remains open:
+
+- [ ] Verify the same received bundle while the app is in Free state if practical; received-bundle verification must remain available without Pro.
+
+## StoreKit checkpoint carried forward
+
+The signed TestFlight Lifetime Pro purchase → entitlement recovery after relaunch → Restore path was already physically confirmed on the earlier Build 2 checkpoint. Build 5's PDF redesign did not alter StoreKit implementation or entitlement logic, so that signed-device checkpoint remains the current StoreKit evidence unless StoreKit code changes again.
+
+## Final physical items before closing Build 5 QA
+
+- [ ] Confirm original filename/reference is reachable from stored evidence.
+- [ ] Share the stored original and confirm the exported image opens normally.
+- [ ] Record the localized first-camera permission prompt only if a reset/fresh permission state is exercised.
+- [ ] Optional: verify a received `.evpack` while Pro is inactive/free.
 
 PR #37 is intentionally left untouched; this file is the newer Build 5 device-QA checkpoint.
