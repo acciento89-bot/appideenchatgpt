@@ -1,0 +1,145 @@
+name: Family Life OS ASC Audit
+
+on:
+  push:
+    branches:
+      - agent/family-pro-release-hardening
+    paths:
+      - '.github/workflows/family-life-os-asc-audit.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  BUNDLE_ID: de.kamilunavo.familyprototype
+  MONTHLY_ID: de.kamilunavo.family.familypro.monthly
+  ANNUAL_ID: de.kamilunavo.family.familypro.annual
+
+jobs:
+  audit:
+    runs-on: macos-26
+    timeout-minutes: 10
+    steps:
+      - name: Verify App Store Connect secrets
+        shell: bash
+        env:
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_PRIVATE_KEY_B64: ${{ secrets.ASC_PRIVATE_KEY_B64 }}
+        run: |
+          set -euo pipefail
+          test -n "$ASC_ISSUER_ID"
+          test -n "$ASC_KEY_ID"
+          test -n "$ASC_PRIVATE_KEY_B64"
+
+      - name: Prepare API token
+        shell: bash
+        env:
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_PRIVATE_KEY_B64: ${{ secrets.ASC_PRIVATE_KEY_B64 }}
+        run: |
+          set -euo pipefail
+          KEY_PATH="$RUNNER_TEMP/AuthKey_${ASC_KEY_ID}.p8"
+          printf '%s' "$ASC_PRIVATE_KEY_B64" | base64 --decode > "$KEY_PATH"
+          python3 -m pip install --quiet pyjwt cryptography
+          TOKEN=$(ASC_ISSUER_ID="$ASC_ISSUER_ID" ASC_KEY_ID="$ASC_KEY_ID" KEY_PATH="$KEY_PATH" python3 - <<'PY'
+          import os, time, jwt
+          with open(os.environ['KEY_PATH'], 'r', encoding='utf-8') as f:
+              key = f.read()
+          now = int(time.time())
+          print(jwt.encode(
+              {'iss': os.environ['ASC_ISSUER_ID'], 'iat': now, 'exp': now + 900, 'aud': 'appstoreconnect-v1'},
+              key,
+              algorithm='ES256',
+              headers={'kid': os.environ['ASC_KEY_ID'], 'typ': 'JWT'}
+          ))
+          PY
+          )
+          echo "ASC_TOKEN=$TOKEN" >> "$GITHUB_ENV"
+
+      - name: Audit Family Pro subscriptions
+        shell: bash
+        run: |
+          set -euo pipefail
+          api() {
+            curl -fsSL \
+              -H "Authorization: Bearer $ASC_TOKEN" \
+              -H 'Accept: application/json' \
+              "https://api.appstoreconnect.apple.com$1"
+          }
+
+          APP_JSON=$(api "/v1/apps?filter%5BbundleId%5D=${BUNDLE_ID}")
+          APP_ID=$(jq -r '.data[0].id // empty' <<<"$APP_JSON")
+          test -n "$APP_ID"
+
+          GROUPS_JSON=$(api "/v1/apps/${APP_ID}/subscriptionGroups?include=subscriptions&limit%5Bsubscriptions%5D=50&fields%5Bsubscriptions%5D=name,productId,state,subscriptionPeriod,reviewNote,appStoreReviewScreenshot")
+          printf '%s\n' "$GROUPS_JSON" > "$RUNNER_TEMP/family-pro-groups.json"
+
+          {
+            echo '## Family Pro App Store Connect audit'
+            echo
+            echo "App resource: \`$APP_ID\`"
+            echo
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          found=0
+          for PRODUCT_ID in "$MONTHLY_ID" "$ANNUAL_ID"; do
+            SUB=$(jq -c --arg p "$PRODUCT_ID" '.included[]? | select(.type == "subscriptions" and .attributes.productId == $p)' <<<"$GROUPS_JSON" | head -1)
+            if [[ -z "$SUB" ]]; then
+              echo "- ❌ $PRODUCT_ID: subscription resource not found" >> "$GITHUB_STEP_SUMMARY"
+              continue
+            fi
+            found=$((found+1))
+            SID=$(jq -r '.id' <<<"$SUB")
+            STATE=$(jq -r '.attributes.state // "UNKNOWN"' <<<"$SUB")
+            NAME=$(jq -r '.attributes.name // ""' <<<"$SUB")
+            PERIOD=$(jq -r '.attributes.subscriptionPeriod // ""' <<<"$SUB")
+            NOTE=$(jq -r '.attributes.reviewNote // ""' <<<"$SUB")
+
+            LOC=$(api "/v1/subscriptions/${SID}/subscriptionLocalizations?limit=50" || true)
+            SCREEN=$(api "/v1/subscriptions/${SID}/appStoreReviewScreenshot" || true)
+            PRICES=$(api "/v1/subscriptions/${SID}/prices?limit=5" || true)
+
+            LOC_COUNT=$(jq -r '.data | length' <<<"${LOC:-{\"data\":[]}}" 2>/dev/null || echo 0)
+            SCREEN_ID=$(jq -r '.data.id // empty' <<<"${SCREEN:-{}}" 2>/dev/null || true)
+            SCREEN_STATE=$(jq -r '.data.attributes.assetDeliveryState.state // .data.attributes.assetDeliveryState // empty' <<<"${SCREEN:-{}}" 2>/dev/null || true)
+            PRICE_COUNT=$(jq -r '.data | length' <<<"${PRICES:-{\"data\":[]}}" 2>/dev/null || echo 0)
+
+            {
+              echo "### $PRODUCT_ID"
+              echo "- Resource ID: \`$SID\`"
+              echo "- Reference name: $NAME"
+              echo "- State: **$STATE**"
+              echo "- Period: $PERIOD"
+              echo "- Review note present: $([[ -n "$NOTE" ]] && echo yes || echo no)"
+              echo "- Localizations: $LOC_COUNT"
+              echo "- Review screenshot: $([[ -n "$SCREEN_ID" ]] && echo "present (id $SCREEN_ID, state ${SCREEN_STATE:-unknown})" || echo 'MISSING')"
+              echo "- Price records returned: $PRICE_COUNT"
+              echo
+            } >> "$GITHUB_STEP_SUMMARY"
+
+            printf '%s\n' "$LOC" > "$RUNNER_TEMP/${PRODUCT_ID}.localizations.json"
+            printf '%s\n' "$SCREEN" > "$RUNNER_TEMP/${PRODUCT_ID}.screenshot.json"
+            printf '%s\n' "$PRICES" > "$RUNNER_TEMP/${PRODUCT_ID}.prices.json"
+          done
+
+          test "$found" -eq 2
+
+      - name: Upload sanitized audit payloads
+        uses: actions/upload-artifact@v4
+        with:
+          name: family-pro-asc-audit
+          path: |
+            ${{ runner.temp }}/family-pro-groups.json
+            ${{ runner.temp }}/*.localizations.json
+            ${{ runner.temp }}/*.screenshot.json
+            ${{ runner.temp }}/*.prices.json
+          if-no-files-found: error
+          retention-days: 3
+
+      - name: Remove API key
+        if: always()
+        shell: bash
+        run: rm -f "$RUNNER_TEMP"/AuthKey_*.p8
