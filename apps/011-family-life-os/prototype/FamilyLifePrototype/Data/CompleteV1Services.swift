@@ -263,7 +263,7 @@ final class FamilyProStore {
     var errorMessage: String?
     var statusMessage: String?
 
-    private var transactionUpdatesTask: Task<Void, Never>?
+    private nonisolated(unsafe) var transactionUpdatesTask: Task<Void, Never>?
 
     init() {
         transactionUpdatesTask = Task { [weak self] in
