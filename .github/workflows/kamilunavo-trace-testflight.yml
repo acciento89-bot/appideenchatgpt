@@ -1,0 +1,281 @@
+name: Kamilunavo Trace TestFlight
+
+on:
+  workflow_dispatch:
+    inputs:
+      build:
+        description: 'App Store Connect build number'
+        required: false
+        default: ''
+  pull_request:
+    paths:
+      - '.github/workflows/kamilunavo-trace-testflight.yml'
+      - 'apps/002-evidaro/prototype/**'
+      - 'apps/002-evidaro/ci/**'
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/kamilunavo-trace-testflight.yml'
+      - 'apps/002-evidaro/prototype/**'
+      - 'apps/002-evidaro/ci/**'
+
+permissions:
+  contents: read
+  statuses: write
+
+concurrency:
+  group: kamilunavo-trace-testflight-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  TEAM_ID: 'TKG684N5GL'
+  BUNDLE_ID: 'de.kamilunavo.trace'
+  PROJECT_DIR: 'apps/002-evidaro/prototype'
+  XCODE_PROJECT: 'EvidaroPrototype.xcodeproj'
+  SCHEME: 'EvidaroPrototype'
+
+jobs:
+  device-and-testflight:
+    runs-on: macos-26
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Run release preflight
+        run: python3 apps/002-evidaro/ci/preflight.py
+
+      - name: Select effective build number
+        shell: bash
+        env:
+          REQUESTED_BUILD: ${{ inputs.build }}
+        run: |
+          set -euo pipefail
+          PROJECT_FILE="$PROJECT_DIR/$XCODE_PROJECT/project.pbxproj"
+          PROJECT_BUILD=$(awk -F'= ' '/CURRENT_PROJECT_VERSION = [0-9]+;/{gsub(/;/,"",$2); print $2; exit}' "$PROJECT_FILE")
+          BUILD="${REQUESTED_BUILD:-$PROJECT_BUILD}"
+          [[ "$BUILD" =~ ^[0-9]+$ ]]
+          echo "EFFECTIVE_BUILD=$BUILD" >> "$GITHUB_ENV"
+          echo "Kamilunavo Trace build: 0.1.0 ($BUILD)"
+
+      - name: Xcode version
+        run: |
+          xcodebuild -version
+          xcode-select -p
+
+      - name: Build unsigned iPhone device app
+        working-directory: ${{ env.PROJECT_DIR }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf "$RUNNER_TEMP/TraceDerivedData"
+          xcodebuild \
+            -project "$XCODE_PROJECT" \
+            -scheme "$SCHEME" \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath "$RUNNER_TEMP/TraceDerivedData" \
+            PRODUCT_BUNDLE_IDENTIFIER="$BUNDLE_ID" \
+            CURRENT_PROJECT_VERSION="$EFFECTIVE_BUILD" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            build
+          APP=$(find "$RUNNER_TEMP/TraceDerivedData/Build/Products/Release-iphoneos" -maxdepth 1 -name '*.app' -type d -print -quit)
+          test -n "$APP" -a -d "$APP"
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP/Info.plist" | grep -qx "$BUNDLE_ID"
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleDisplayName' "$APP/Info.plist" | grep -qx 'Kamilunavo Trace'
+          echo "DEVICE_APP=$APP" >> "$GITHUB_ENV"
+
+      - name: Package unsigned device app
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build/kamilunavo-trace
+          ditto -c -k --sequesterRsrc --keepParent "$DEVICE_APP" build/kamilunavo-trace/KamilunavoTrace-Unsigned-iOS.app.zip
+          test -s build/kamilunavo-trace/KamilunavoTrace-Unsigned-iOS.app.zip
+
+      - name: Upload unsigned device artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: kamilunavo-trace-device-build
+          path: build/kamilunavo-trace/KamilunavoTrace-Unsigned-iOS.app.zip
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Detect App Store Connect signing secrets
+        id: asc
+        shell: bash
+        env:
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_PRIVATE_KEY_B64: ${{ secrets.ASC_PRIVATE_KEY_B64 }}
+        run: |
+          set -euo pipefail
+          if [[ -n "$ASC_ISSUER_ID" && -n "$ASC_KEY_ID" && -n "$ASC_PRIVATE_KEY_B64" ]]; then
+            echo 'available=true' >> "$GITHUB_OUTPUT"
+            echo 'ASC signing secrets: present' >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo 'available=false' >> "$GITHUB_OUTPUT"
+            echo 'ASC signing secrets: missing in this repository' >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Explain PR validation mode
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: |
+          echo 'PR validation only: release device build completed; TestFlight upload is disabled until main.' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Prepare App Store Connect API key
+        if: github.event_name != 'pull_request' && steps.asc.outputs.available == 'true'
+        shell: bash
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_PRIVATE_KEY_B64: ${{ secrets.ASC_PRIVATE_KEY_B64 }}
+        run: |
+          set -euo pipefail
+          KEY_PATH="$RUNNER_TEMP/AuthKey_${ASC_KEY_ID}.p8"
+          printf '%s' "$ASC_PRIVATE_KEY_B64" | base64 --decode > "$KEY_PATH"
+          chmod 600 "$KEY_PATH"
+          grep -q 'BEGIN PRIVATE KEY' "$KEY_PATH"
+          echo "ASC_KEY_PATH=$KEY_PATH" >> "$GITHUB_ENV"
+
+      - name: Create unsigned release archive
+        if: github.event_name != 'pull_request' && steps.asc.outputs.available == 'true'
+        working-directory: ${{ env.PROJECT_DIR }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf "$RUNNER_TEMP/EvidaroPrototype.xcarchive"
+          xcodebuild \
+            -project "$XCODE_PROJECT" \
+            -scheme "$SCHEME" \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$RUNNER_TEMP/EvidaroPrototype.xcarchive" \
+            DEVELOPMENT_TEAM="$TEAM_ID" \
+            PRODUCT_BUNDLE_IDENTIFIER="$BUNDLE_ID" \
+            CURRENT_PROJECT_VERSION="$EFFECTIVE_BUILD" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            archive
+          test -f "$RUNNER_TEMP/EvidaroPrototype.xcarchive/Info.plist"
+          test -d "$RUNNER_TEMP/EvidaroPrototype.xcarchive/Products/Applications/EvidaroPrototype.app"
+
+      - name: Create TestFlight export options
+        if: github.event_name != 'pull_request' && steps.asc.outputs.available == 'true'
+        shell: bash
+        run: |
+          cat > "$RUNNER_TEMP/ExportOptions.plist" <<PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key><string>app-store-connect</string>
+            <key>destination</key><string>upload</string>
+            <key>signingStyle</key><string>automatic</string>
+            <key>teamID</key><string>$TEAM_ID</string>
+            <key>uploadSymbols</key><true/>
+            <key>manageAppVersionAndBuildNumber</key><false/>
+          </dict>
+          </plist>
+          PLIST
+
+      - name: Upload to TestFlight with Apple cloud distribution signing
+        id: testflight
+        if: github.event_name != 'pull_request' && steps.asc.outputs.available == 'true'
+        continue-on-error: true
+        shell: bash
+        env:
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+        run: |
+          set -uo pipefail
+          set +e
+          xcodebuild \
+            -exportArchive \
+            -archivePath "$RUNNER_TEMP/EvidaroPrototype.xcarchive" \
+            -exportPath "$RUNNER_TEMP/KamilunavoTraceTestFlightExport" \
+            -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$ASC_KEY_PATH" \
+            -authenticationKeyID "$ASC_KEY_ID" \
+            -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
+            2>&1 | tee "$RUNNER_TEMP/kamilunavo-trace-testflight-export.log"
+          STATUS=${PIPESTATUS[0]}
+          set -e
+          mkdir -p build/kamilunavo-trace
+          cp "$RUNNER_TEMP/kamilunavo-trace-testflight-export.log" build/kamilunavo-trace/TestFlight-export.log
+          DIST_LOG=$(find /var/folders "$RUNNER_TEMP" -name '*.xcdistributionlogs' -type d -print 2>/dev/null | tail -1 || true)
+          if [[ -n "$DIST_LOG" && -d "$DIST_LOG" ]]; then
+            ditto -c -k --sequesterRsrc --keepParent "$DIST_LOG" build/kamilunavo-trace/KamilunavoTrace-xcdistributionlogs.zip
+          fi
+          echo "status=$STATUS" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Upload TestFlight diagnostics
+        if: always() && github.event_name != 'pull_request' && steps.asc.outputs.available == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: kamilunavo-trace-testflight-diagnostics
+          path: |
+            build/kamilunavo-trace/TestFlight-export.log
+            build/kamilunavo-trace/KamilunavoTrace-xcdistributionlogs.zip
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Explain skipped TestFlight upload
+        if: github.event_name != 'pull_request' && steps.asc.outputs.available != 'true'
+        shell: bash
+        run: |
+          echo 'TestFlight upload skipped: ASC_ISSUER_ID, ASC_KEY_ID and ASC_PRIVATE_KEY_B64 are not configured in acciento89-bot/appideenchatgpt.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'The Release iphoneos build remains a required and successful validation gate.' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Publish TestFlight result status
+        if: always() && github.event_name != 'pull_request'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ASC_AVAILABLE: ${{ steps.asc.outputs.available }}
+          TESTFLIGHT_STATUS: ${{ steps.testflight.outputs.status }}
+        run: |
+          set -euo pipefail
+          if [[ "$ASC_AVAILABLE" != 'true' ]]; then
+            STATE='error'
+            DESCRIPTION='TestFlight skipped: ASC signing secrets missing'
+          elif [[ "$TESTFLIGHT_STATUS" == '0' ]]; then
+            STATE='success'
+            DESCRIPTION="Kamilunavo Trace build $EFFECTIVE_BUILD uploaded to TestFlight"
+          else
+            STATE='failure'
+            DESCRIPTION="Kamilunavo Trace build $EFFECTIVE_BUILD TestFlight upload failed"
+          fi
+          TARGET_URL="https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          PAYLOAD=$(jq -n \
+            --arg state "$STATE" \
+            --arg target_url "$TARGET_URL" \
+            --arg description "$DESCRIPTION" \
+            --arg context 'kamilunavo-trace/testflight-upload' \
+            '{state:$state,target_url:$target_url,description:$description,context:$context}')
+          curl -fsSL \
+            -X POST \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H 'Accept: application/vnd.github+json' \
+            -H 'X-GitHub-Api-Version: 2022-11-28' \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" \
+            -d "$PAYLOAD" >/dev/null
+
+      - name: Fail if TestFlight upload failed
+        if: github.event_name != 'pull_request' && steps.asc.outputs.available == 'true' && steps.testflight.outputs.status != '0'
+        shell: bash
+        run: |
+          echo "TestFlight upload failed with exit code ${{ steps.testflight.outputs.status }}."
+          exit 1
+
+      - name: Remove App Store Connect key
+        if: always()
+        shell: bash
+        run: rm -f "$RUNNER_TEMP"/AuthKey_*.p8

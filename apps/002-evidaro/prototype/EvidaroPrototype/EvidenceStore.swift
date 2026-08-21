@@ -199,7 +199,7 @@ final class EvidenceStore: ObservableObject {
         guard let evidenceCase = caseForID(caseID) else { return "" }
 
         var lines: [String] = [
-            "EVIDARO EVIDENCE MANIFEST",
+            "KAMILUNAVO TRACE EVIDENCE MANIFEST",
             "Case: \(evidenceCase.title)",
             "Type: \(evidenceCase.kind.rawValue)",
             "Case ID: \(evidenceCase.id.uuidString)",
@@ -240,7 +240,7 @@ final class EvidenceStore: ObservableObject {
 
         lines.append("")
         lines.append("Recognized text is intentionally excluded from this integrity manifest because OCR is derived data and may be refreshed without changing the original evidence bytes.")
-        lines.append("Integrity aid only. Evidaro does not provide legal advice or guarantee admissibility.")
+        lines.append("Integrity aid only. Kamilunavo Trace does not provide legal advice or guarantee admissibility.")
         return lines.joined(separator: "\n")
     }
 

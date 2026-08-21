@@ -1,243 +1,256 @@
-# Evidaro — Project State
+# Kamilunavo Trace — Project State
 
-Last updated: 2026-08-20
-Status: ACTIVE — PASS 6 PRIVACY LOCK SOURCE GATE GREEN / FINAL DOC-ALIGNED GATE REQUIRED
-Portfolio slot: #002 (original working title: ProofVault)
+Last updated: 2026-08-21
+Status: TESTFLIGHT BUILD 1 UPLOADED — APPLE PROCESSING / LIFETIME PRO IAP + PHYSICAL QA PENDING
+Portfolio slot: #002
 Repository: `acciento89-bot/appideenchatgpt`
-Implementation path: `apps/002-evidaro/prototype/`
+Implementation path: `apps/002-evidaro/`
+Canonical branch: `main`
 
 ## Handoff rule
 
-This file is the authoritative state for portfolio app #002.
+This file is the authoritative app-specific handoff for portfolio app #002.
 
 For future work:
 1. Read `docs/APP_FACTORY_STATE.md` first.
 2. Read this file second.
-3. Inspect current `main`, open PRs and CI before code changes.
-4. Update this file after every major product/release pass.
-5. Do not call a workflow green if a relevant job failed.
-6. Do not merge a major pass until the exact final documentation-aligned head has completed the full relevant gate successfully.
+3. Inspect current `main`, PR #29, PR #32, the Kamilunavo Trace release PR/branch, and their exact-head workflow conclusions.
+4. Never call a queued workflow green and never merge a pass by bypassing a required integrity gate.
+5. After any major release change, keep this file and `docs/APP_FACTORY_STATE.md` synchronized.
 
-## Naming
+## Latest release checkpoint — 2026-08-21
 
-`ProofVault` is retired as a public-name candidate because current market research found an iPhone/iPad app named `ProofVault: Document Vault` with a substantially overlapping document-vault feature set.
+- release PR #33 `Release Kamilunavo Trace with Lifetime Pro and TestFlight hardening` — GREEN / MERGED
+- final tested release head `090b1471…`; static release run `32412043585`, unsigned iPhone Release/TestFlight validation run `32412043598`, and full simulator run `32412043953` — SUCCESS
+- release merge on `main`: `69b8a1d99082ff804f2a532c636af3008d79546a`
+- App Store Connect app record for `de.kamilunavo.trace` — EXISTS
+- signed TestFlight Build 1 `0.1.0 (1)` upload — SUCCESS via protected One More Floor bridge
+- bridge run `32445560808`; upload job `96665754912`; exact Apple result includes `Progress 100%: Upload succeeded.` and `** EXPORT SUCCEEDED **`
+- Apple package processing / TestFlight visibility — PENDING external confirmation
+- public identity: `Kamilunavo Trace`, bundle `de.kamilunavo.trace`
+- Lifetime Pro: non-consumable `de.kamilunavo.trace.pro.lifetime`, local launch-price fixture `14.99`
+- production App Icon: 1024×1024 RGB PNG, no alpha; enforced by release preflight
+- App Store DE/EN metadata package + structured ASC JSON + release runbook are committed
+- Kamilunavo website has `/trace`, `/trace/privacy` and Trace support coverage; website release-check PR #24 exercises TypeScript + production Next.js build
+- `PrivacyInfo.xcprivacy` is bundled in the iOS target; tracking is disabled, tracking domains/data collection are empty, and app-owned `UserDefaults` use declares required-reason category `NSPrivacyAccessedAPICategoryUserDefaults` with Apple-approved reason `CA92.1`
+- Pass 7 PR #29, Pass 8 PR #32 and Release PR #33 are all GREEN / MERGED
+- App Store Connect app record exists and signed Build 1 has been uploaded successfully
+- Lifetime Pro IAP creation/price readiness, Apple processing visibility and physical iPhone QA remain external release steps
 
-Current working public-name candidate: **Evidaro**.
+## Final public identity
 
-`Evidaro` remains provisional until final App Store, web, trademark and domain due diligence is complete. Current web/trademark search found no relevant software/app conflict, but that is not treated as legal clearance.
+Final release name selected for this product pass: **Kamilunavo Trace**.
+
+Release identity:
+- display name: `Kamilunavo Trace`
+- bundle id: `de.kamilunavo.trace`
+- category direction: Productivity
+- iPhone / iOS 17+
+- 1024×1024 production App Icon wired through `Assets.xcassets/AppIcon.appiconset`
+- icon source committed as RGB PNG with no alpha channel
+
+`ProofVault` is retired as a public-name candidate because an overlapping document-vault app already uses that name.
+
+`Evidaro` is retired as the public release name because current public research found a thematically close housing-conditions / housing-disrepair Evidaro project. Historical internal paths, smoke flags, fixture strings and compatibility keys may retain `Evidaro` where renaming them would add migration/integrity risk without user benefit.
+
+No web/App Store search in this repository is legal trademark clearance.
 
 ## Product thesis
 
-> Capture facts while they are fresh. Seal evidence you can verify later.
+> Capture facts while they are fresh. Preserve originals. Verify the chain later.
 
-Evidaro is a local-first evidence-case app for real-world situations where a user may later need a trustworthy timeline and a clean proof pack.
+Kamilunavo Trace is a local-first evidence-case app for situations such as rental handovers, property defects, damaged deliveries, vehicle condition, contractor/service disputes, insurance incidents and other factual timelines.
 
-Primary examples:
-- rental handovers and property damage
-- damaged deliveries
-- vehicle condition / accident documentation
-- contractor or service disputes
-- insurance incidents
-- warranty/claim evidence that is not primarily a purchase tracker
-- workplace or administrative event records
+Core chain:
 
-## Core loop
-
-**Create case -> Capture evidence -> Hash each item -> Review timeline -> Seal snapshot -> Build/share evidence pack**
-
-A seal never rewrites previous evidence. Future additions create a newer snapshot while older seal hashes remain visible.
+**original bytes → original SHA-256 → evidence-record SHA-256 → snapshot seals → derived OCR → localized PDF + offline-verifiable `.evpack`**
 
 ## Trust boundary
 
-- no legal-admissibility claim
-- no claim that a timestamp proves when the real-world event occurred
-- no hidden edits to sealed manifest history
-- hashes are integrity aids, not legal certification
-- v1 stays local-first; no evidence upload to Kamilunavo servers
-- OCR is derived metadata only; stored original bytes/hash remain the source of truth
-- generated PDF previews are derived renderings, not replacements for originals
-- privacy lock protects app access but does not change evidence hashes, seals or source bytes
+- no legal-admissibility guarantee
+- no notarization claim
+- no claim that an app timestamp independently proves when a real-world event happened
+- hashes/seals are integrity aids, not legal certification
+- OCR is derived metadata and is excluded from original/evidence-record/seal identity
+- PDF is a derived presentation and does not replace originals
+- `.evpack` v1 verifies internal consistency of embedded originals, record hashes and recorded seals; it is not an external signature or independent timestamp authority
+- v1 remains local-first; evidence is not uploaded to Kamilunavo servers
+- received `.evpack` verification stays free and read-only
 
-## Pass 1 — FOUNDATION — GREEN / MERGED
+## Merged foundation checkpoints
 
-PR #15 `Build portfolio app #002 Evidaro foundation` is merged to `main`.
+### Pass 1 — foundation — GREEN / MERGED
+- PR #15
+- workflow `32312124275`
+- merge `3dbeef6e786e9d2ad528d34b28f66c4ab3890856`
+- SwiftUI/iOS 17 foundation, cases, evidence timeline, item SHA-256, snapshot sealing, manifest, CI
 
-Verified gate:
-- workflow run `32312124275`
-- build job `96257080572`
-- foundation preflight — SUCCESS
-- Xcode iOS Simulator build — SUCCESS
-- merge commit `3dbeef6e786e9d2ad528d34b28f66c4ab3890856`
+### Pass 2 — SwiftData + hashed media — GREEN / MERGED
+- PR #20
+- final source head `cef51f701627661b58822656641b8ce1c9f2b3a0`
+- workflow `32329202541`
+- merge `8874d78af3a7d4139743e5b2e9017ecd709cbdd2`
+- SwiftData persistence, private media storage, Photos/Files/PDF intake, original SHA-256
 
-Implemented:
-- native SwiftUI / iOS 17+ / iPhone first
-- provisional bundle id `de.kamilunavo.evidaro.prototype`
-- case dashboard + case creation
-- evidence timeline
-- note/source evidence capture
-- SHA-256 content hash per evidence item
-- repeatable snapshot sealing
-- shareable text manifest
-- dedicated Xcode project/shared scheme
-- dedicated GitHub Actions simulator build gate
+### Pass 3 — camera + process relaunch — GREEN / MERGED
+- PR #22
+- final source head `1e9ff37129fc386ec278f0b3d2f5e58fa391ccfb`
+- workflow `32330580003`
+- merge `951c2f53ccbdda7ce01af0dac8f0a17c87fbe132`
+- physical camera code path plus deterministic process-relaunch persistence gate
+- persisted fixture media SHA-256 `5e647718ecb46672d74a0cfa0416a8af0d7bca687ed0349fd146e1191f197728`
+- persisted fixture seal `f9799ea52f49197a71782d15f488545a5bd32cab7bd305e78e6aacc2b12450ff`
 
-## Pass 2 — SWIFTDATA + HASHED MEDIA — GREEN / MERGED
+### Pass 4 — local derived OCR — GREEN / MERGED
+- PR #24
+- final source head `12d2f3b66f442648dd60c9dca842adb00c677f8e`
+- workflow `32335559431`
+- merge `ad3876dbac044759223d0bdf7a1c095e461bc16b`
+- Apple Vision OCR for images/PDFs, local only, integrity guards, OCR excluded from evidence identity
+- deterministic OCR fixture remains `EVIDARO 4827` intentionally as historical test data
 
-PR #20 `Add Evidaro SwiftData persistence and hashed media intake` is merged to `main`.
+### Pass 5 — integrity-checked PDF — GREEN / MERGED
+- PR #27
+- final source head `501b136cb5453b0f9037038cd227dfbaad672884`
+- workflow `32338976678`
+- merge `22f8b560c2529fb064feaa591b901acecf8da573`
+- multi-page evidence PDF, original/evidence/seal revalidation, previews, OCR labeling, process-relaunch PDF SHA gate
 
-Verified final gate:
-- final PR head `cef51f701627661b58822656641b8ce1c9f2b3a0`
-- workflow run `32329202541`
-- build job `96306455813`
-- persistence/media preflight — SUCCESS
-- Xcode iOS Simulator build — SUCCESS
-- merge commit `8874d78af3a7d4139743e5b2e9017ecd709cbdd2`
+### Pass 6 — optional device-auth privacy lock — GREEN / MERGED
+- PR #28
+- final PR head `a55f55ebe72280e411670f4757624914d0c1d6ed`
+- merge `f6e68210c38b1a1715de2908dd70e1da6c6a476d`
+- LocalAuthentication privacy lock, background relock, explicit enable authentication, deterministic lifecycle smoke
 
-Implemented:
-- SwiftData-backed EvidenceCase / EvidenceItem / EvidenceSeal models
-- persistent ModelContainer / ModelContext
-- local private media directory in Application Support
-- PhotosPicker image intake
-- Files/PDF intake
-- imported original bytes copied into app-private storage
-- SHA-256 over original imported media bytes
-- evidence-record hash includes original-media hash
-- original filename/hash visible in timeline
-- original stored file can be shared back out
+## Pass 7 — DE/EN + accessibility + localized PDF — GREEN / MERGED
 
-Historical red attempts were not merged; the SwiftUI type-check bottleneck was resolved before the final green head.
+- PR #29 — MERGED
+- final head `84ef850678551e7cb0f22004c05e070adabece9d`
+- workflow `32383741929` / run #82 — SUCCESS
+- merge `bf3ecf74887c08d52bbadf11a13174c83133b093`
 
-## Pass 3 — CAMERA + PROCESS-RELAUNCH PERSISTENCE — GREEN / MERGED
+## Pass 8 — offline-verifiable `.evpack` — GREEN / MERGED
 
-PR #22 `Add Evidaro camera capture and relaunch persistence gate` is merged to `main`.
+- PR #32 — MERGED
+- final exact head `d3af5d59abea850dd7724beb92e223a691172ba3`
+- full simulator gate `32408185123` / run #98 — SUCCESS
+- merge `e5c57335888a80e120fefea686b29f6ed8715b2f`
+- valid/tamper/derived-OCR/process-relaunch checks all green
 
-Verified final documentation-aligned gate:
-- final PR head `1e9ff37129fc386ec278f0b3d2f5e58fa391ccfb`
-- workflow run `32330580003`
-- build job `96310288293`
-- camera/persistence preflight — SUCCESS
-- generic Xcode iOS Simulator build — SUCCESS
-- process-relaunch persistence smoke — SUCCESS
-- merge commit `951c2f53ccbdda7ce01af0dac8f0a17c87fbe132`
+## Release pass — Kamilunavo Trace
 
-Post-merge handoff:
-- PR #23 `Record Evidaro pass 3 merged checkpoint` — MERGED
-- workflow run `32331162562`
-- build job `96311916968`
-- merge commit `0be5e5e08bdd045bbb0994c1da508d9a86ab6951`
+Release PR #33 is GREEN / MERGED. Final release code is on `main` at merge `69b8a1d99082ff804f2a532c636af3008d79546a`. Its static, full simulator and unsigned iPhone Release gates all passed before merge.
 
-Exact persisted integrity evidence across process restart:
-- case ID: `11111111-1111-4111-8111-111111111111`
-- media SHA-256: `5e647718ecb46672d74a0cfa0416a8af0d7bca687ed0349fd146e1191f197728`
-- seal SHA-256: `f9799ea52f49197a71782d15f488545a5bd32cab7bd305e78e6aacc2b12450ff`
+### Branding / identity — IMPLEMENTED
+- public name `Kamilunavo Trace`
+- bundle id `de.kamilunavo.trace`
+- visible navigation/privacy/PDF/permission copy migrated to Kamilunavo Trace
+- historical deterministic `EVIDARO 4827` OCR fixture intentionally preserved
+- 1024×1024 no-alpha production icon committed and wired as `AppIcon`
 
-Physical iPhone camera hardware / permission-prompt UX remains a release spot-check; simulator CI does not prove physical camera behavior.
+### Lifetime Pro / StoreKit 2 — IMPLEMENTED
+Product id: `de.kamilunavo.trace.pro.lifetime`
+Local StoreKit launch price fixture: `14.99`
+Type: non-consumable
+DE/EN StoreKit localization included.
 
-## Pass 4 — LOCAL DERIVED OCR — GREEN / MERGED
+Entitlement rules:
+- only verified StoreKit 2 transactions unlock Pro
+- `Transaction.currentEntitlements` is the source of truth on launch/recreation
+- `Transaction.updates` handles live transactions
+- `Transaction.unfinished` recovers interrupted purchase finishing
+- `AppStore.sync()` is used only from explicit Restore
+- revoked/refunded entitlement does not remain Pro
 
-PR #24 `Add local derived OCR with integrity gate` is merged to `main`.
+Free tier:
+- up to 3 cases
+- evidence capture, originals, SHA-256, snapshot seals, OCR, privacy lock and text manifest remain usable
+- received `.evpack` verification remains free
 
-Final PR checkpoint:
-- final head `12d2f3b66f442648dd60c9dca842adb00c677f8e`
-- workflow run `32335559431` — SUCCESS
-- merge commit `ad3876dbac044759223d0bdf7a1c095e461bc16b`
+Lifetime Pro:
+- unlimited cases
+- PDF evidence-pack export
+- `.evpack` export
 
-Implemented:
-- Apple Vision `VNRecognizeTextRequest` for stored images and PDFs
-- derived SwiftData fields for recognized text, recognition time, engine and page count
-- original-media SHA-256 re-validation before OCR
-- evidence-record/hash integrity guard before OCR result commit
-- OCR excluded from original-media SHA-256, evidence-record SHA-256 and snapshot seals
-- local-only OCR; no cloud OCR/upload
-- timeline `Recognize` / `Refresh` UX with explicit derived-data labeling
-- real simulator Vision fixture containing `EVIDARO 4827`
-- OCR process-relaunch persistence verification
+### Release UI — IMPLEMENTED
+- one consistent Lifetime Pro sheet
+- purchase + restore actions
+- Free/Pro status in Settings
+- case-limit upsell at the fourth case
+- PDF and `.evpack` export gates route to the same paywall
+- verifier itself is not paywalled
 
-Exact OCR integrity evidence:
-- recognized text before/after restart: `EVIDARO 4827`
-- media SHA-256: `d94f8834fd845ea011f36f753c9ddb91d7dd1dbb24ac2e5b04d7b508d9724355`
-- evidence-record SHA-256: `dee235dd17e24fdb04b6a215d4077e03acaea41872c681da55edd996bebaea42`
-- pre-OCR seal unchanged after OCR/restart: `86fc0200ebf3c861c686c693cc42437c7ab8716d98f7b42ff158140f71aa4ed8`
+### TestFlight pipeline — IMPLEMENTED
+Workflow: `.github/workflows/kamilunavo-trace-testflight.yml`
 
-Physical-device OCR remains a release spot-check. OCR text is never treated as authoritative evidence.
+It validates an unsigned Release iPhone build on PRs and, after promotion to `main`, is prepared to use repository App Store Connect credentials:
+- `ASC_ISSUER_ID`
+- `ASC_KEY_ID`
+- `ASC_PRIVATE_KEY_B64`
 
-## Pass 5 — INTEGRITY-CHECKED PDF EVIDENCE PACK — GREEN / MERGED
+Release upload path uses App Store Connect export, Apple cloud distribution signing and hard-fails when an attempted upload fails. PR validation never uploads to TestFlight.
 
-PR #27 `Add integrity-checked PDF evidence packs` is merged to `main`.
+### Fast release preflight — IMPLEMENTED
+Workflow: `.github/workflows/kamilunavo-trace-static-release.yml`
+Script: `apps/002-evidaro/ci/release_preflight.py`
+Runner: `ubuntu-latest`
 
-Final PR checkpoint:
-- final head `501b136cb5453b0f9037038cd227dfbaad672884`
-- workflow run `32338976678` — SUCCESS
-- merge commit `22f8b560c2529fb064feaa591b901acecf8da573`
+This gate exists specifically so release identity can be checked while macOS-26 runners are queued. It validates:
+- bundle id / display name
+- AppIcon project wiring
+- icon manifest and actual PNG dimensions
+- icon has no alpha channel
+- StoreKit product id/type/14.99 local fixture/DE+EN localizations
+- Pro source/project wiring
+- TestFlight workflow boundaries
+- ASC and physical-QA handoffs
 
-Implemented:
-- local multi-page A4 PDF evidence pack
-- case identity, timeline metadata, full media/evidence-record SHA-256 values and seal history
-- current manifest status
-- labeled image previews and every page of imported PDFs
-- OCR included only as clearly labeled derived metadata
-- original-media hash verification before and after rendering
-- evidence-record verification before export
-- seal consistency guard
-- export discarded if case/hash/seal anchors change during generation
-- one-tap `Build & share PDF` UX
-- process-relaunch PDF gate that requires parsed case/hash/seal/OCR/legal text and identical PDF SHA-256 across restart
+### App Store Connect / TestFlight — BUILD 1 UPLOADED
+Runbooks/metadata:
+- `apps/002-evidaro/APP_STORE_CONNECT_RELEASE.md`
+- `apps/002-evidaro/APP_STORE_METADATA.md`
+- `apps/002-evidaro/metadata/AppStoreConnectSetup.json`
 
-Pass-5 runtime evidence subsequently exercised in the Pass-6 combined gate:
-- generated pages: `4`
-- PDF SHA-256 before/after restart: `2f901b49ce4eb6a8aca2cd5d94e6c7c9319a4f314ab746597ca51dac2f0846b2`
+Current Apple checkpoint:
+- app record for bundle id `de.kamilunavo.trace` exists
+- signed Build 1 `0.1.0 (1)` upload succeeded and Apple accepted the package for processing
+- TestFlight visibility/processing is not yet externally confirmed
 
-## Pass 6 — OPTIONAL DEVICE-AUTH PRIVACY LOCK — SOURCE GATE GREEN / OPEN PR
+Still requires work in Apple's systems:
+- create/configure non-consumable `de.kamilunavo.trace.pro.lifetime` if it does not yet exist
+- set final territory price around the planned €14.99 launch point
+- complete tax/banking/agreements if Apple requires them
+- attach IAP to the first submitted version as required
 
-PR #28 `Add optional device-auth privacy lock` is open on branch `agent/002-evidaro-app-lock`.
+### Physical iPhone QA — PREPARED, NOT YET PERFORMED
+Checklist: `apps/002-evidaro/PHYSICAL_QA.md`
 
-Implemented:
-- optional app-level lock using `LocalAuthentication`
-- device-owner authentication allows Face ID, Touch ID or device passcode according to device configuration
-- lock disabled by default
-- successful device-owner authentication required before enabling
-- app relocks when moving to background
-- evidence-case UI hidden behind a dedicated locked-content gate while enabled
-- Settings UI for enable/disable and local-data explanation
-- `NSFaceIDUsageDescription` wired for Debug and Release generated Info.plist
-- privacy-lock state is separate from evidence bytes, hashes, OCR, seals and PDF export
-- deterministic DEBUG authenticator for automated lifecycle/persistence smoke only
+One consolidated physical-device pass covers:
+- app icon/name
+- camera permission + real capture
+- image/PDF import
+- Apple Vision OCR on device
+- hash/seal stability through relaunch
+- Face ID/Touch ID/passcode privacy lock
+- DE/EN
+- VoiceOver + largest Dynamic Type
+- 3-case Free boundary
+- real Lifetime purchase
+- Pro recovery after relaunch
+- Restore
+- PDF export
+- `.evpack` export/import verification and tamper rejection
 
-First verified full source gate:
-- source head `565c30561aa60084acc89f7811bb545e3a340265`
-- workflow run `32349658489`
-- build job `96365827349`
-- Xcode 26.6 / build 17F113
-- preflight — SUCCESS
-- generic Xcode iOS Simulator build — SUCCESS
-- combined persistence + OCR + PDF + privacy-lock process-relaunch gate — SUCCESS
+## Repository / automation checkpoint
 
-Exact privacy-lock smoke evidence:
-- process 1: `lock-prepared enabled=true locked=true preference=true`
-- process 2: `lock-verified persisted=true unlocked=true disabled=true`
+Repository release work for Build 1 is complete: Pass 7, Pass 8 and Release PR #33 are merged, all required release gates are green, and the signed Build 1 upload succeeded through the protected bridge. Do not create another Build 1 upload unless Apple reports a processing/rejection problem that requires a new binary.
 
-The automated privacy-lock smoke proves app state/lifecycle/persistence behavior using a deterministic DEBUG authenticator. It does **not** claim real Face ID/Touch ID hardware prompt validation. Physical device-owner-auth prompt UX remains a release spot-check.
+## External / user-device blockers
 
-Because this documentation commit advances PR #28 beyond the first green source head, the exact final documentation-aligned head must complete the same full preflight + Xcode + persistence + OCR + PDF + privacy-lock gate before merge.
+The following cannot honestly be marked complete from repository automation alone:
+- App Store Connect Lifetime Pro IAP creation/price readiness
+- Apple TestFlight processing/visibility after the successful signed upload
+- physical iPhone camera/OCR/biometric/accessibility QA
+- real sandbox/TestFlight purchase + restore/relaunch verification
 
-## Open physical/release checks
-
-1. physical iPhone camera capture + permission UX
-2. physical-device OCR spot check
-3. physical Face ID/Touch ID/device-passcode lock UX
-4. DE/EN localization review on device
-5. VoiceOver / Dynamic Type / accessibility review
-6. App Store icon / identity and final naming due diligence
-7. final monetization / StoreKit Pro entitlement
-8. signed TestFlight / App Store record
-
-## Monetization direction
-
-Portfolio plan remains Freemium + Pro. Do not force a subscription. Current likely direction is a genuinely useful free tier plus one-time Lifetime Pro while the product remains local-first, unless recurring hosted costs later justify a subscription.
-
-## Next gate
-
-1. Run the complete Evidaro workflow on the exact documentation-aligned PR #28 head.
-2. Merge PR #28 only if preflight + compile + persistence + Vision OCR + PDF evidence pack + privacy-lock process-relaunch checks are all green on that exact head.
-3. Record the final merge checkpoint.
-4. Start Pass 7: DE/EN localization plus VoiceOver / Dynamic Type / accessibility hardening while preserving all prior integrity gates.
+These are release gates, not optional polish.

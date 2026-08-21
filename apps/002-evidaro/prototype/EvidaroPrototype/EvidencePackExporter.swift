@@ -26,25 +26,25 @@ enum EvidencePackExportError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .missingCase:
-            "The evidence case is no longer available."
+            L10n.string("pdf.error_missing_case")
         case .emptyCase:
-            "Add at least one evidence item before creating an evidence pack."
+            L10n.string("pdf.error_empty_case")
         case .recordIntegrityMismatch(let item):
-            "Evidence record integrity check failed for \(item). The PDF was not created."
+            L10n.format("pdf.error_record_integrity", item)
         case .missingOriginal(let item):
-            "The stored original for \(item) is missing. The PDF was not created."
+            L10n.format("pdf.error_missing_original", item)
         case .originalIntegrityMismatch(let item):
-            "The stored original for \(item) no longer matches its SHA-256 hash. The PDF was not created."
+            L10n.format("pdf.error_original_integrity", item)
         case .currentSealMismatch:
-            "A seal with the current item count does not match the current manifest. The PDF was not created."
+            L10n.string("pdf.error_seal_mismatch")
         case .evidenceChangedDuringExport:
-            "The evidence case changed while the PDF was being created. The derived PDF was discarded."
+            L10n.string("pdf.error_changed")
         case .unableToCreatePDF:
-            "The PDF evidence pack could not be created."
+            L10n.string("pdf.error_create")
         case .unableToRenderImage(let item):
-            "The original image preview for \(item) could not be rendered."
+            L10n.format("pdf.error_render_image", item)
         case .unableToRenderPDF(let item):
-            "The original PDF preview for \(item) could not be rendered."
+            L10n.format("pdf.error_render_pdf", item)
         }
     }
 }
@@ -114,14 +114,15 @@ extension EvidenceStore {
                 recordedAt: item.recordedAt,
                 mediaHash: item.mediaHash
             )
+            let displayName = item.mediaOriginalName ?? item.kind.localizedName
             guard item.contentHash == expectedRecordHash else {
-                throw EvidencePackExportError.recordIntegrityMismatch(item.mediaOriginalName ?? item.kind.rawValue)
+                throw EvidencePackExportError.recordIntegrityMismatch(displayName)
             }
 
             var storedURL: URL?
             if item.hasMedia {
                 guard let url = mediaURL(for: item) else {
-                    throw EvidencePackExportError.missingOriginal(item.mediaOriginalName ?? item.kind.rawValue)
+                    throw EvidencePackExportError.missingOriginal(displayName)
                 }
                 storedURL = url
             }
@@ -129,7 +130,7 @@ extension EvidenceStore {
             itemSnapshots.append(
                 EvidencePackItemSnapshot(
                     id: item.id,
-                    kind: item.kind.rawValue,
+                    kind: item.kind.localizedName,
                     recordedAt: item.recordedAt,
                     source: item.source,
                     note: item.note,
@@ -160,7 +161,7 @@ extension EvidenceStore {
         let snapshot = EvidencePackSnapshot(
             caseID: evidenceCase.id,
             title: evidenceCase.title,
-            kind: evidenceCase.kind.rawValue,
+            kind: evidenceCase.kind.localizedName,
             createdAt: evidenceCase.createdAt,
             generatedAt: Date(),
             currentManifestHash: currentManifestHash,
@@ -218,7 +219,7 @@ private enum EvidencePackExporter {
         ).first ?? FileManager.default.temporaryDirectory
         return appSupport
             .appendingPathComponent("EvidaroExports", isDirectory: true)
-            .appendingPathComponent("Evidaro-\(caseID.uuidString.lowercased())-Evidence-Pack.pdf")
+            .appendingPathComponent("Kamilunavo-Trace-\(caseID.uuidString.lowercased())-Evidence-Pack.pdf")
     }
 
     static func render(snapshot: EvidencePackSnapshot, outputURL: URL) throws -> EvidencePackExportResult {
@@ -227,9 +228,9 @@ private enum EvidencePackExporter {
         let pageBounds = CGRect(x: 0, y: 0, width: 595.28, height: 841.89)
         let format = UIGraphicsPDFRendererFormat()
         format.documentInfo = [
-            kCGPDFContextTitle as String: "Evidaro Evidence Pack — \(snapshot.title)",
-            kCGPDFContextCreator as String: "Evidaro",
-            kCGPDFContextSubject as String: "Local evidence case export"
+            kCGPDFContextTitle as String: L10n.format("pdf.meta.title", snapshot.title),
+            kCGPDFContextCreator as String: "Kamilunavo Trace",
+            kCGPDFContextSubject as String: L10n.string("pdf.meta.subject")
         ]
 
         var writer: EvidencePackPDFWriter?
@@ -290,9 +291,8 @@ private final class EvidencePackPDFWriter {
     private let snapshot: EvidencePackSnapshot
     private let margin: CGFloat = 44
     private let footerHeight: CGFloat = 32
-    private let paragraphSpacing: CGFloat = 8
     private var cursorY: CGFloat = 0
-    private var sectionTitle = "Evidence pack"
+    private var sectionTitle: String
 
     private(set) var pageCount = 0
 
@@ -303,6 +303,7 @@ private final class EvidencePackPDFWriter {
         self.context = context
         self.bounds = bounds
         self.snapshot = snapshot
+        self.sectionTitle = L10n.string("pdf.section.evidence_pack")
     }
 
     func render() throws {
@@ -316,92 +317,102 @@ private final class EvidencePackPDFWriter {
     }
 
     private func drawCover() {
-        beginPage(section: "Evidence pack")
+        beginPage(section: L10n.string("pdf.section.evidence_pack"))
         drawText("EVIDARO", font: .systemFont(ofSize: 14, weight: .bold), color: .darkGray, spacingAfter: 7)
-        drawText("EVIDENCE PACK", font: .systemFont(ofSize: 29, weight: .bold), spacingAfter: 12)
+        drawText(L10n.string("pdf.heading.evidence_pack"), font: .systemFont(ofSize: 29, weight: .bold), spacingAfter: 12)
         drawText(snapshot.title, font: .systemFont(ofSize: 22, weight: .semibold), spacingAfter: 4)
         drawText(snapshot.kind, font: .systemFont(ofSize: 13, weight: .medium), color: .darkGray, spacingAfter: 20)
 
         drawRule()
-        drawField("Case ID", snapshot.caseID.uuidString, monospaced: true)
-        drawField("Case created", format(snapshot.createdAt))
-        drawField("Pack generated", format(snapshot.generatedAt))
-        drawField("Evidence items", "\(snapshot.items.count)")
-        drawField("Snapshot status", snapshot.currentSnapshotIsSealed ? "Current timeline matches a recorded snapshot seal" : "Current timeline is not represented by a matching seal")
-        drawField("Current manifest SHA-256", snapshot.currentManifestHash, monospaced: true)
+        drawField(L10n.string("pdf.field.case_id"), snapshot.caseID.uuidString, monospaced: true)
+        drawField(L10n.string("pdf.field.case_created"), format(snapshot.createdAt))
+        drawField(L10n.string("pdf.field.pack_generated"), format(snapshot.generatedAt))
+        drawField(L10n.string("pdf.field.evidence_items"), "\(snapshot.items.count)")
+        drawField(
+            L10n.string("pdf.field.snapshot_status"),
+            snapshot.currentSnapshotIsSealed
+                ? L10n.string("pdf.snapshot.matches")
+                : L10n.string("pdf.snapshot.not_sealed")
+        )
+        drawField(L10n.string("pdf.field.manifest_sha"), snapshot.currentManifestHash, monospaced: true)
 
         ensureSpace(150)
         drawRule()
-        drawText("Integrity model", font: .systemFont(ofSize: 15, weight: .bold), spacingAfter: 7)
+        drawText(L10n.string("pdf.integrity_model"), font: .systemFont(ofSize: 15, weight: .bold), spacingAfter: 7)
         drawText(
-            "Original media bytes remain the source of truth. Before this PDF is created, Evidaro re-checks each stored original against its recorded SHA-256 and re-checks each evidence-record hash. The PDF is a derived presentation and does not replace the originals.",
+            L10n.string("pdf.integrity.originals"),
             font: .systemFont(ofSize: 10.5),
             color: .darkGray,
             spacingAfter: 8
         )
         drawText(
-            "Image and PDF pages shown inside this pack are previews rendered from the verified originals. Original files remain separately exportable from the case timeline.",
+            L10n.string("pdf.integrity.previews"),
             font: .systemFont(ofSize: 10.5),
             color: .darkGray,
             spacingAfter: 8
         )
         drawText(
-            "Recognized text is derived locally with Apple Vision. OCR is clearly labeled, can be refreshed, and is excluded from original-media hashes, evidence-record hashes and snapshot seals.",
+            L10n.string("pdf.integrity.ocr"),
             font: .systemFont(ofSize: 10.5),
             color: .darkGray,
             spacingAfter: 8
         )
         drawText(
-            "Integrity aid only. Evidaro does not provide legal advice, notarization, independent timestamp certification or a guarantee of admissibility.",
+            L10n.string("pdf.integrity.legal"),
             font: .systemFont(ofSize: 10.5, weight: .semibold),
             spacingAfter: 0
         )
     }
 
     private func drawEvidenceItem(_ item: EvidencePackItemSnapshot, number: Int) throws {
-        beginPage(section: "Evidence #\(number)")
-        drawText("EVIDENCE #\(number)", font: .systemFont(ofSize: 12, weight: .bold), color: .darkGray, spacingAfter: 6)
+        beginPage(section: L10n.format("pdf.section.evidence_number", number))
+        drawText(
+            L10n.format("pdf.heading.evidence_number", number),
+            font: .systemFont(ofSize: 12, weight: .bold),
+            color: .darkGray,
+            spacingAfter: 6
+        )
         drawText(item.kind, font: .systemFont(ofSize: 22, weight: .bold), spacingAfter: 14)
 
-        drawField("Recorded", format(item.recordedAt))
+        drawField(L10n.string("pdf.field.recorded"), format(item.recordedAt))
         if !item.source.isEmpty {
-            drawField("Source / context", item.source)
+            drawField(L10n.string("pdf.field.source"), item.source)
         }
         if !item.note.isEmpty {
-            drawField("User note", item.note)
+            drawField(L10n.string("pdf.field.user_note"), item.note)
         }
         if let originalName = item.mediaOriginalName {
-            drawField("Original file", originalName)
+            drawField(L10n.string("pdf.field.original_file"), originalName)
         }
         if let mediaType = item.mediaUTType {
-            drawField("Original media type", mediaType)
+            drawField(L10n.string("pdf.field.original_type"), mediaType)
         }
         if let mediaHash = item.mediaHash {
-            drawField("Original media SHA-256", mediaHash, monospaced: true)
+            drawField(L10n.string("pdf.field.original_sha"), mediaHash, monospaced: true)
         }
-        drawField("Evidence record SHA-256", item.recordHash, monospaced: true)
+        drawField(L10n.string("pdf.field.record_sha"), item.recordHash, monospaced: true)
 
         if item.recognizedTextAt != nil {
             ensureSpace(90)
             drawRule()
-            drawText("DERIVED OCR — NOT ORIGINAL EVIDENCE", font: .systemFont(ofSize: 12, weight: .bold), spacingAfter: 6)
+            drawText(L10n.string("pdf.ocr.heading"), font: .systemFont(ofSize: 12, weight: .bold), spacingAfter: 6)
             if let engine = item.recognizedTextEngine {
-                drawField("OCR engine", engine)
+                drawField(L10n.string("pdf.ocr.engine"), engine)
             }
             if let recognizedAt = item.recognizedTextAt {
-                drawField("Recognized", format(recognizedAt))
+                drawField(L10n.string("pdf.ocr.recognized"), format(recognizedAt))
             }
             if let pageCount = item.recognizedTextPageCount {
-                drawField("OCR source pages/images", "\(pageCount)")
+                drawField(L10n.string("pdf.ocr.pages"), "\(pageCount)")
             }
             let text = item.recognizedText?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
             if text.isEmpty {
-                drawText("No text detected.", font: .systemFont(ofSize: 10.5), color: .darkGray, spacingAfter: 8)
+                drawText(L10n.string("pdf.ocr.no_text"), font: .systemFont(ofSize: 10.5), color: .darkGray, spacingAfter: 8)
             } else {
                 drawText(text, font: .systemFont(ofSize: 10.5), spacingAfter: 8)
             }
             drawText(
-                "OCR is derived metadata and is not included in the original media SHA-256, evidence-record SHA-256 or snapshot seals.",
+                L10n.string("pdf.ocr.trust"),
                 font: .systemFont(ofSize: 9.5),
                 color: .darkGray,
                 spacingAfter: 0
@@ -439,16 +450,35 @@ private final class EvidencePackPDFWriter {
     }
 
     private func drawImagePreview(_ image: UIImage, item: EvidencePackItemSnapshot, number: Int) {
-        beginPage(section: "Evidence #\(number) • original preview")
-        drawText("ORIGINAL MEDIA PREVIEW", font: .systemFont(ofSize: 12, weight: .bold), color: .darkGray, spacingAfter: 5)
-        drawText(item.mediaOriginalName ?? "Image original", font: .systemFont(ofSize: 16, weight: .semibold), spacingAfter: 10)
+        beginPage(section: L10n.format("pdf.preview.section_image", number))
+        drawText(
+            L10n.string("pdf.preview.heading_image"),
+            font: .systemFont(ofSize: 12, weight: .bold),
+            color: .darkGray,
+            spacingAfter: 5
+        )
+        drawText(
+            item.mediaOriginalName ?? L10n.string("pdf.preview.image_fallback"),
+            font: .systemFont(ofSize: 16, weight: .semibold),
+            spacingAfter: 10
+        )
 
         let imageBottom = contentBottom - 58
         let available = CGRect(x: margin, y: cursorY, width: contentWidth, height: max(imageBottom - cursorY, 80))
         image.draw(in: aspectFitRect(imageSize: image.size, inside: available))
         cursorY = imageBottom + 8
-        drawText("Preview rendered from the verified original. Original SHA-256:", font: .systemFont(ofSize: 8.5), color: .darkGray, spacingAfter: 3)
-        drawText(item.mediaHash ?? "", font: .monospacedSystemFont(ofSize: 7.5, weight: .regular), color: .darkGray, spacingAfter: 0)
+        drawText(
+            L10n.string("pdf.preview.image_hash_note"),
+            font: .systemFont(ofSize: 8.5),
+            color: .darkGray,
+            spacingAfter: 3
+        )
+        drawText(
+            item.mediaHash ?? "",
+            font: .monospacedSystemFont(ofSize: 7.5, weight: .regular),
+            color: .darkGray,
+            spacingAfter: 0
+        )
     }
 
     private func drawPDFPagePreview(
@@ -458,9 +488,18 @@ private final class EvidencePackPDFWriter {
         pageIndex: Int,
         pageCount: Int
     ) {
-        beginPage(section: "Evidence #\(number) • original PDF preview")
-        drawText("ORIGINAL PDF PREVIEW • PAGE \(pageIndex + 1) OF \(pageCount)", font: .systemFont(ofSize: 11.5, weight: .bold), color: .darkGray, spacingAfter: 5)
-        drawText(item.mediaOriginalName ?? "PDF original", font: .systemFont(ofSize: 15, weight: .semibold), spacingAfter: 10)
+        beginPage(section: L10n.format("pdf.preview.section_pdf", number))
+        drawText(
+            L10n.format("pdf.preview.heading_pdf", pageIndex + 1, pageCount),
+            font: .systemFont(ofSize: 11.5, weight: .bold),
+            color: .darkGray,
+            spacingAfter: 5
+        )
+        drawText(
+            item.mediaOriginalName ?? L10n.string("pdf.preview.pdf_fallback"),
+            font: .systemFont(ofSize: 15, weight: .semibold),
+            spacingAfter: 10
+        )
 
         let previewBottom = contentBottom - 58
         let available = CGRect(x: margin, y: cursorY, width: contentWidth, height: max(previewBottom - cursorY, 80))
@@ -470,50 +509,61 @@ private final class EvidencePackPDFWriter {
         )
         thumbnail.draw(in: aspectFitRect(imageSize: thumbnail.size, inside: available))
         cursorY = previewBottom + 8
-        drawText("Preview rendered from the verified original PDF. Original SHA-256:", font: .systemFont(ofSize: 8.5), color: .darkGray, spacingAfter: 3)
-        drawText(item.mediaHash ?? "", font: .monospacedSystemFont(ofSize: 7.5, weight: .regular), color: .darkGray, spacingAfter: 0)
+        drawText(
+            L10n.string("pdf.preview.pdf_hash_note"),
+            font: .systemFont(ofSize: 8.5),
+            color: .darkGray,
+            spacingAfter: 3
+        )
+        drawText(
+            item.mediaHash ?? "",
+            font: .monospacedSystemFont(ofSize: 7.5, weight: .regular),
+            color: .darkGray,
+            spacingAfter: 0
+        )
     }
 
     private func drawSealHistory() {
-        beginPage(section: "Snapshot seals")
-        drawText("SNAPSHOT SEALS", font: .systemFont(ofSize: 22, weight: .bold), spacingAfter: 8)
+        beginPage(section: L10n.string("pdf.seals.section"))
+        drawText(L10n.string("pdf.seals.heading"), font: .systemFont(ofSize: 22, weight: .bold), spacingAfter: 8)
         drawText(
-            "A seal records a manifest hash for a snapshot at that moment. Later evidence can create a newer snapshot without rewriting older recorded seal values.",
+            L10n.string("pdf.seals.explanation"),
             font: .systemFont(ofSize: 10.5),
             color: .darkGray,
             spacingAfter: 14
         )
 
         if snapshot.seals.isEmpty {
-            drawText("No snapshot seal has been recorded for this case.", font: .systemFont(ofSize: 11), spacingAfter: 10)
+            drawText(L10n.string("pdf.seals.none"), font: .systemFont(ofSize: 11), spacingAfter: 10)
         } else {
             for (index, seal) in snapshot.seals.sorted(by: { $0.createdAt > $1.createdAt }).enumerated() {
                 ensureSpace(94)
                 let isCurrent = seal.itemCount == snapshot.items.count && seal.manifestHash == snapshot.currentManifestHash
+                let state = isCurrent ? L10n.string("pdf.seals.current") : L10n.string("pdf.seals.historical")
                 drawText(
-                    "Seal \(snapshot.seals.count - index)\(isCurrent ? " • CURRENT SNAPSHOT" : " • HISTORICAL")",
+                    "\(L10n.format("pdf.seals.label", snapshot.seals.count - index)) • \(state)",
                     font: .systemFont(ofSize: 11.5, weight: .bold),
                     spacingAfter: 4
                 )
-                drawField("Recorded", format(seal.createdAt), compact: true)
-                drawField("Item count", "\(seal.itemCount)", compact: true)
-                drawField("Manifest SHA-256", seal.manifestHash, monospaced: true, compact: true)
+                drawField(L10n.string("pdf.field.recorded"), format(seal.createdAt), compact: true)
+                drawField(L10n.string("pdf.field.item_count"), "\(seal.itemCount)", compact: true)
+                drawField(L10n.string("pdf.field.seal_manifest_sha"), seal.manifestHash, monospaced: true, compact: true)
                 cursorY += 8
             }
         }
 
         ensureSpace(88)
         drawRule()
-        drawField("Current manifest SHA-256", snapshot.currentManifestHash, monospaced: true)
+        drawField(L10n.string("pdf.field.manifest_sha"), snapshot.currentManifestHash, monospaced: true)
         drawText(
             snapshot.currentSnapshotIsSealed
-                ? "The current exported timeline matches at least one recorded snapshot seal."
-                : "The current exported timeline is not represented by a matching recorded snapshot seal.",
+                ? L10n.string("pdf.seals.current_matches")
+                : L10n.string("pdf.seals.current_not_sealed"),
             font: .systemFont(ofSize: 10.5, weight: .semibold),
             spacingAfter: 8
         )
         drawText(
-            "Integrity aid only. Seal values do not independently prove when a real-world event occurred and do not guarantee acceptance by a court, insurer, employer or authority.",
+            L10n.string("pdf.seals.legal"),
             font: .systemFont(ofSize: 9.5),
             color: .darkGray,
             spacingAfter: 0
@@ -537,7 +587,7 @@ private final class EvidencePackPDFWriter {
             withAttributes: headerAttributes
         )
 
-        let footer = "Evidaro • \(snapshot.caseID.uuidString.prefix(8)) • Page \(pageCount)"
+        let footer = "Evidaro • \(snapshot.caseID.uuidString.prefix(8)) • \(L10n.format("pdf.page", pageCount))"
         let footerAttributes: [NSAttributedString.Key: Any] = [
             .font: UIFont.systemFont(ofSize: 8),
             .foregroundColor: UIColor.darkGray
@@ -550,7 +600,7 @@ private final class EvidencePackPDFWriter {
 
     private func ensureSpace(_ height: CGFloat) {
         if cursorY + height > contentBottom {
-            beginPage(section: sectionTitle + " • continued")
+            beginPage(section: L10n.format("pdf.continued", sectionTitle))
         }
     }
 
@@ -572,7 +622,12 @@ private final class EvidencePackPDFWriter {
         compact: Bool = false
     ) {
         ensureSpace(compact ? 42 : 50)
-        drawText(label.uppercased(), font: .systemFont(ofSize: compact ? 8.5 : 9, weight: .bold), color: .darkGray, spacingAfter: 2)
+        drawText(
+            label.uppercased(),
+            font: .systemFont(ofSize: compact ? 8.5 : 9, weight: .bold),
+            color: .darkGray,
+            spacingAfter: 2
+        )
         drawText(
             value,
             font: monospaced
@@ -588,17 +643,16 @@ private final class EvidencePackPDFWriter {
         color: UIColor = .black,
         spacingAfter: CGFloat = 8
     ) {
-        let availableWidth = contentWidth
         let attributes: [NSAttributedString.Key: Any] = [
             .font: font,
             .foregroundColor: color
         ]
-        let lines = wrappedLines(text, font: font, width: availableWidth)
+        let lines = wrappedLines(text, font: font, width: contentWidth)
 
         for line in lines {
             let display = line.isEmpty ? " " : line
             let measured = NSString(string: display).boundingRect(
-                with: CGSize(width: availableWidth, height: .greatestFiniteMagnitude),
+                with: CGSize(width: contentWidth, height: .greatestFiniteMagnitude),
                 options: [.usesLineFragmentOrigin, .usesFontLeading],
                 attributes: attributes,
                 context: nil
@@ -606,7 +660,7 @@ private final class EvidencePackPDFWriter {
             let lineHeight = max(ceil(measured.height), font.lineHeight)
             ensureSpace(lineHeight + 1)
             NSString(string: display).draw(
-                in: CGRect(x: margin, y: cursorY, width: availableWidth, height: lineHeight + 2),
+                in: CGRect(x: margin, y: cursorY, width: contentWidth, height: lineHeight + 2),
                 withAttributes: attributes
             )
             cursorY += lineHeight + 1
@@ -742,20 +796,22 @@ private extension EvidenceStore {
             throw EvidencePackSmokeError.invalidPDF
         }
         let extractedText = document.string ?? ""
+        let legalText = L10n.string("pdf.integrity.legal")
+        let legalMarker = legalText.components(separatedBy: ".").first ?? legalText
         let requiredTokens = [
             "EVIDARO",
-            "EVIDENCE PACK",
+            L10n.string("pdf.heading.evidence_pack"),
             "CI OCR Smoke",
             Self.evidencePackSmokeCaseID.uuidString,
-            "Original media SHA-256",
+            L10n.string("pdf.field.original_sha"),
             expectedMediaHash,
-            "Evidence record SHA-256",
+            L10n.string("pdf.field.record_sha"),
             expectedRecordHash,
-            "DERIVED OCR",
+            L10n.string("pdf.ocr.heading"),
             "EVIDARO 4827",
-            "SNAPSHOT SEALS",
+            L10n.string("pdf.seals.heading"),
             expectedSealHash,
-            "Integrity aid only"
+            legalMarker
         ]
         for token in requiredTokens where extractedText.range(of: token, options: .caseInsensitive) == nil {
             throw EvidencePackSmokeError.missingPDFToken(token)

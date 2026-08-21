@@ -8,11 +8,14 @@ struct EvidaroPrototypeApp: App {
 
     init() {
 #if DEBUG
-        let smokeRequested = CommandLine.arguments.contains("--evidaro-persistence-smoke")
+        let arguments = CommandLine.arguments
+        let smokeRequested = arguments.contains("--evidaro-persistence-smoke")
+            || arguments.contains("--evidaro-verification-bundle-smoke")
+        let seedDemoData = !smokeRequested
 #else
-        let smokeRequested = false
+        let seedDemoData = false
 #endif
-        _store = StateObject(wrappedValue: EvidenceStore(seedDemoData: !smokeRequested))
+        _store = StateObject(wrappedValue: EvidenceStore(seedDemoData: seedDemoData))
     }
 
     var body: some Scene {
@@ -22,6 +25,7 @@ struct EvidaroPrototypeApp: App {
                 .task {
                     await PersistenceSmokeRunner.runIfRequested(using: store)
                     await AppLockSmokeRunner.runIfRequested()
+                    await EvidenceBundleSmokeRunner.runIfRequested(using: store)
                 }
 #endif
         }
@@ -69,20 +73,20 @@ private struct EvidaroLockedView: View {
                 .accessibilityHidden(true)
 
             VStack(spacing: 7) {
-                Text("Evidaro is locked")
+                Text("locked.title")
                     .font(.title2.bold())
-                Text("Authenticate with your device to view locally stored evidence cases.")
+                Text("locked.subtitle")
                     .multilineTextAlignment(.center)
                     .foregroundStyle(.secondary)
             }
 
             if appLock.isAuthenticating {
-                ProgressView("Authenticating…")
+                ProgressView("locked.authenticating")
             } else {
                 Button {
                     Task { await appLock.unlockIfNeeded() }
                 } label: {
-                    Label("Unlock Evidaro", systemImage: "lock.open")
+                    Label("locked.unlock", systemImage: "lock.open")
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
@@ -208,20 +212,22 @@ private enum PersistenceSmokeRunner {
             throw SmokeRunnerError.invalidEvidencePack
         }
         let text = document.string ?? ""
+        let legalText = L10n.string("pdf.integrity.legal")
+        let legalMarker = legalText.components(separatedBy: ".").first ?? legalText
         let requiredTokens = [
-            "EVIDARO",
-            "EVIDENCE PACK",
+            "Kamilunavo Trace",
+            L10n.string("pdf.heading.evidence_pack"),
             "CI OCR Smoke",
             evidencePackSmokeCaseID.uuidString,
-            "Original media SHA-256",
+            L10n.string("pdf.field.original_sha"),
             mediaHash,
-            "Evidence record SHA-256",
+            L10n.string("pdf.field.record_sha"),
             recordHash,
-            "DERIVED OCR",
+            L10n.string("pdf.ocr.heading"),
             "EVIDARO 4827",
-            "SNAPSHOT SEALS",
+            L10n.string("pdf.seals.heading"),
             sealHash,
-            "Integrity aid only"
+            legalMarker
         ]
         for token in requiredTokens where text.range(of: token, options: .caseInsensitive) == nil {
             throw SmokeRunnerError.missingEvidencePackToken(token)
@@ -236,7 +242,7 @@ private enum PersistenceSmokeRunner {
         ).first ?? FileManager.default.temporaryDirectory
         return appSupport
             .appendingPathComponent("EvidaroExports", isDirectory: true)
-            .appendingPathComponent("Evidaro-\(evidencePackSmokeCaseID.uuidString.lowercased())-Evidence-Pack.pdf")
+            .appendingPathComponent("Kamilunavo-Trace-\(evidencePackSmokeCaseID.uuidString.lowercased())-Evidence-Pack.pdf")
     }
 
     private static func writeResult(_ result: String, fileName: String) throws {
