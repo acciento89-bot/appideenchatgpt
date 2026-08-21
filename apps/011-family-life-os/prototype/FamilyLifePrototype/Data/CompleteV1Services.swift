@@ -257,50 +257,111 @@ actor FamilyNotificationService {
 @MainActor
 @Observable
 final class FamilyProStore {
-    static let monthlyID = "de.kamilunavo.family.familypro.monthly"
-    static let annualID = "de.kamilunavo.family.familypro.annual"
-
     var products: [Product] = []
     var isPro = false
     var isBusy = false
     var errorMessage: String?
+    var statusMessage: String?
+
+    private var transactionUpdatesTask: Task<Void, Never>?
+
+    init() {
+        transactionUpdatesTask = Task { [weak self] in
+            for await verification in Transaction.updates {
+                guard !Task.isCancelled else { return }
+                await self?.consume(transaction: verification, finish: true)
+            }
+        }
+    }
+
+    deinit {
+        transactionUpdatesTask?.cancel()
+    }
 
     func refresh() async {
         isBusy = true
+        errorMessage = nil
         defer { isBusy = false }
+
         do {
-            products = try await Product.products(for: [Self.monthlyID, Self.annualID])
-            isPro = false
-            for await result in Transaction.currentEntitlements {
-                if case .verified(let transaction) = result,
-                   [Self.monthlyID, Self.annualID].contains(transaction.productID),
-                   transaction.revocationDate == nil {
-                    isPro = true
-                }
-            }
-        } catch { errorMessage = error.localizedDescription }
+            products = try await Product.products(for: FamilyProPolicy.productIDs)
+                .sorted { FamilyProPolicy.productRank($0.id) < FamilyProPolicy.productRank($1.id) }
+            isPro = await hasCurrentEntitlement()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
     }
 
     func purchase(_ product: Product) async {
+        guard FamilyProPolicy.productIDs.contains(product.id) else {
+            errorMessage = "Dieses Produkt gehört nicht zu Family Pro."
+            return
+        }
+
         isBusy = true
+        errorMessage = nil
+        statusMessage = nil
         defer { isBusy = false }
+
         do {
-            let result = try await product.purchase()
-            if case .success(let verification) = result,
-               case .verified(let transaction) = verification {
-                await transaction.finish()
-                await refresh()
+            switch try await product.purchase() {
+            case .success(let verification):
+                await consume(transaction: verification, finish: true)
+                if isPro { statusMessage = "Family Pro ist aktiv." }
+            case .pending:
+                statusMessage = "Der Kauf wartet auf Freigabe durch Apple."
+            case .userCancelled:
+                break
+            @unknown default:
+                statusMessage = "Der Kaufstatus konnte noch nicht abgeschlossen werden."
             }
-        } catch { errorMessage = error.localizedDescription }
+        } catch {
+            errorMessage = error.localizedDescription
+        }
     }
 
     func restore() async {
         isBusy = true
+        errorMessage = nil
+        statusMessage = nil
         defer { isBusy = false }
+
         do {
             try await AppStore.sync()
-            await refresh()
-        } catch { errorMessage = error.localizedDescription }
+            isPro = await hasCurrentEntitlement()
+            statusMessage = isPro
+                ? "Family Pro wurde wiederhergestellt."
+                : "Für diesen Apple-Account wurde kein aktives Family-Pro-Abo gefunden."
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    private func consume(transaction verification: VerificationResult<Transaction>, finish: Bool) async {
+        switch verification {
+        case .verified(let transaction):
+            guard FamilyProPolicy.productIDs.contains(transaction.productID) else { return }
+            if finish { await transaction.finish() }
+            isPro = await hasCurrentEntitlement()
+        case .unverified:
+            errorMessage = "Die StoreKit-Transaktion konnte nicht verifiziert werden."
+            isPro = await hasCurrentEntitlement()
+        }
+    }
+
+    private func hasCurrentEntitlement(now: Date = .now) async -> Bool {
+        for await verification in Transaction.currentEntitlements {
+            guard case .verified(let transaction) = verification else { continue }
+            if FamilyProPolicy.isEntitled(
+                productID: transaction.productID,
+                revocationDate: transaction.revocationDate,
+                expirationDate: transaction.expirationDate,
+                now: now
+            ) {
+                return true
+            }
+        }
+        return false
     }
 }
 
@@ -355,8 +416,7 @@ final class VoiceCaptureModel: NSObject, AVAudioRecorderDelegate {
 
             let granted = await withCheckedContinuation { continuation in
                 AVAudioApplication.requestRecordPermission { allowed in
-                    continuation.resume(returning: allowed)
-                }
+                    continuation.resume(returning: allowed) }
             }
             guard granted else { throw VoiceError.permission }
 
