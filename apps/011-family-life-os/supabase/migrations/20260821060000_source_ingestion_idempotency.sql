@@ -1,6 +1,7 @@
 -- Family Life OS / candidate #011
 -- Durable offline ingestion: make client retries idempotent across source creation,
--- storage upload/finalization and later Edge processing.
+-- storage upload/finalization and later Edge processing. New queued requests are
+-- also bound to the household they were captured for.
 
 begin;
 
@@ -11,16 +12,17 @@ create unique index if not exists source_items_household_client_request_uidx
     on public.source_items(household_id, client_request_id)
     where client_request_id is not null;
 
--- Replace the three-argument function with a backward-compatible four-argument
--- signature. p_client_request_id defaults to null, so older clients can still
--- call create_source_item(source_type, title, original_text).
+-- Replace the three-argument function with a backward-compatible five-argument
+-- signature. New parameters default to null, so existing clients can keep calling
+-- create_source_item(source_type, title, original_text).
 drop function if exists public.create_source_item(text, text, text);
 
 create function public.create_source_item(
     p_source_type text,
     p_title text,
     p_original_text text default null,
-    p_client_request_id uuid default null
+    p_client_request_id uuid default null,
+    p_household_id uuid default null
 )
 returns table(source_item_id uuid, household_id uuid, member_id uuid)
 language plpgsql
@@ -41,6 +43,7 @@ begin
      where hm.user_id = (select auth.uid())
        and hm.invite_status = 'active'
        and hm.role in ('owner', 'adult')
+       and (p_household_id is null or hm.household_id = p_household_id)
      order by case hm.role when 'owner' then 0 else 1 end, hm.created_at
      limit 1;
 
@@ -84,7 +87,7 @@ begin
 end;
 $$;
 
-revoke execute on function public.create_source_item(text, text, text, uuid) from public, anon;
-grant execute on function public.create_source_item(text, text, text, uuid) to authenticated;
+revoke execute on function public.create_source_item(text, text, text, uuid, uuid) from public, anon;
+grant execute on function public.create_source_item(text, text, text, uuid, uuid) to authenticated;
 
 commit;
