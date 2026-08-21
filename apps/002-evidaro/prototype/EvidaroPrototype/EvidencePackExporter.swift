@@ -318,10 +318,25 @@ private final class EvidencePackPDFWriter {
 
     private func drawCover() {
         beginPage(section: L10n.string("pdf.section.evidence_pack"))
-        drawText("EVIDARO", font: .systemFont(ofSize: 14, weight: .bold), color: .darkGray, spacingAfter: 7)
-        drawText(L10n.string("pdf.heading.evidence_pack"), font: .systemFont(ofSize: 29, weight: .bold), spacingAfter: 12)
-        drawText(snapshot.title, font: .systemFont(ofSize: 22, weight: .semibold), spacingAfter: 4)
-        drawText(snapshot.kind, font: .systemFont(ofSize: 13, weight: .medium), color: .darkGray, spacingAfter: 20)
+        let heroTop = cursorY
+        let heroHeight: CGFloat = 170
+        let heroRect = CGRect(x: margin, y: heroTop, width: contentWidth, height: heroHeight)
+        UIColor(white: 0.965, alpha: 1).setFill()
+        UIBezierPath(roundedRect: heroRect, cornerRadius: 18).fill()
+
+        let accent = UIColor(red: 0.18, green: 0.47, blue: 0.96, alpha: 1)
+        accent.setFill()
+        UIBezierPath(
+            roundedRect: CGRect(x: heroRect.minX, y: heroRect.minY, width: 6, height: heroRect.height),
+            cornerRadius: 3
+        ).fill()
+
+        cursorY = heroTop + 22
+        drawText("KAMILUNAVO TRACE", font: .systemFont(ofSize: 10.5, weight: .bold), color: accent, spacingAfter: 8)
+        drawText(L10n.string("pdf.heading.evidence_pack"), font: .systemFont(ofSize: 30, weight: .bold), spacingAfter: 10)
+        drawText(snapshot.title, font: .systemFont(ofSize: 21, weight: .semibold), spacingAfter: 4)
+        drawText(snapshot.kind, font: .systemFont(ofSize: 12.5, weight: .medium), color: .darkGray, spacingAfter: 0)
+        cursorY = heroRect.maxY + 24
 
         drawRule()
         drawField(L10n.string("pdf.field.case_id"), snapshot.caseID.uuidString, monospaced: true)
@@ -576,25 +591,54 @@ private final class EvidencePackPDFWriter {
         pageCount += 1
         UIColor.white.setFill()
         context.cgContext.fill(bounds)
-        cursorY = margin
 
-        let headerAttributes: [NSAttributedString.Key: Any] = [
-            .font: UIFont.systemFont(ofSize: 8.5, weight: .semibold),
-            .foregroundColor: UIColor.darkGray
+        let accent = UIColor(red: 0.18, green: 0.47, blue: 0.96, alpha: 1)
+        let headerBrandAttributes: [NSAttributedString.Key: Any] = [
+            .font: UIFont.systemFont(ofSize: 8.5, weight: .bold),
+            .foregroundColor: accent
         ]
-        NSString(string: "EVIDARO • \(section.uppercased())").draw(
-            in: CGRect(x: margin, y: 20, width: contentWidth, height: 16),
-            withAttributes: headerAttributes
+        NSString(string: "KAMILUNAVO TRACE").draw(
+            in: CGRect(x: margin, y: 19, width: contentWidth * 0.48, height: 16),
+            withAttributes: headerBrandAttributes
         )
 
-        let footer = "Evidaro • \(snapshot.caseID.uuidString.prefix(8)) • \(L10n.format("pdf.page", pageCount))"
+        let sectionParagraph = NSMutableParagraphStyle()
+        sectionParagraph.alignment = .right
+        let headerSectionAttributes: [NSAttributedString.Key: Any] = [
+            .font: UIFont.systemFont(ofSize: 8.5, weight: .semibold),
+            .foregroundColor: UIColor.darkGray,
+            .paragraphStyle: sectionParagraph
+        ]
+        NSString(string: section.uppercased()).draw(
+            in: CGRect(x: margin + contentWidth * 0.48, y: 19, width: contentWidth * 0.52, height: 16),
+            withAttributes: headerSectionAttributes
+        )
+
+        context.cgContext.setStrokeColor(accent.withAlphaComponent(0.35).cgColor)
+        context.cgContext.setLineWidth(0.8)
+        context.cgContext.move(to: CGPoint(x: margin, y: 39))
+        context.cgContext.addLine(to: CGPoint(x: bounds.width - margin, y: 39))
+        context.cgContext.strokePath()
+        cursorY = margin + 10
+
         let footerAttributes: [NSAttributedString.Key: Any] = [
             .font: UIFont.systemFont(ofSize: 8),
             .foregroundColor: UIColor.darkGray
         ]
-        NSString(string: footer).draw(
-            in: CGRect(x: margin, y: bounds.height - 31, width: contentWidth, height: 14),
+        NSString(string: "Kamilunavo Trace • \(snapshot.caseID.uuidString.prefix(8))").draw(
+            in: CGRect(x: margin, y: bounds.height - 31, width: contentWidth * 0.68, height: 14),
             withAttributes: footerAttributes
+        )
+        let footerParagraph = NSMutableParagraphStyle()
+        footerParagraph.alignment = .right
+        let pageAttributes: [NSAttributedString.Key: Any] = [
+            .font: UIFont.systemFont(ofSize: 8, weight: .medium),
+            .foregroundColor: UIColor.darkGray,
+            .paragraphStyle: footerParagraph
+        ]
+        NSString(string: L10n.format("pdf.page", pageCount)).draw(
+            in: CGRect(x: margin + contentWidth * 0.68, y: bounds.height - 31, width: contentWidth * 0.32, height: 14),
+            withAttributes: pageAttributes
         )
     }
 
@@ -799,7 +843,7 @@ private extension EvidenceStore {
         let legalText = L10n.string("pdf.integrity.legal")
         let legalMarker = legalText.components(separatedBy: ".").first ?? legalText
         let requiredTokens = [
-            "EVIDARO",
+            "KAMILUNAVO TRACE",
             L10n.string("pdf.heading.evidence_pack"),
             "CI OCR Smoke",
             Self.evidencePackSmokeCaseID.uuidString,
