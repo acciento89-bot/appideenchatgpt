@@ -1,247 +1,62 @@
-import AVFoundation
+import AVFAudio
 import Foundation
-import LocalAuthentication
 import Observation
-import PDFKit
-import Speech
 import StoreKit
 import Supabase
 import UIKit
 import UserNotifications
-@preconcurrency import Vision
 
-@MainActor
-extension DemoStore {
-    func applyExternalSnapshot(_ snapshot: FamilySnapshot) {
-        household = snapshot.household
-        members = snapshot.members
-        planItems = snapshot.planItems
-        inboxItems = snapshot.inboxItems
-        reminders = snapshot.reminders
-        activity = snapshot.activity
-        entitlement = snapshot.entitlement
-        notificationPreferences = snapshot.notificationPreferences
-        if let selectedSourceID {
-            proposals = snapshot.proposals.filter { $0.sourceID == selectedSourceID }
-        } else {
-            proposals = snapshot.proposals
-        }
-    }
-
-    func refreshHosted() async {
-        do {
-            applyExternalSnapshot(try await SupabaseFamilyRepository().completeSnapshot())
-            repositoryErrorMessage = nil
-        } catch {
-            repositoryErrorMessage = error.localizedDescription
-        }
-    }
-
-    func openReviewV1(sourceID: UUID) {
-        isRepositoryBusy = true
-        repositoryErrorMessage = nil
-        Task {
-            do {
-                let snapshot = try await SupabaseFamilyRepository().completeSnapshot()
-                applyExternalSnapshot(snapshot)
-                selectedSourceID = sourceID
-                proposals = snapshot.proposals.filter { $0.sourceID == sourceID }
-                isImportReviewPresented = true
-            } catch {
-                repositoryErrorMessage = error.localizedDescription
-            }
-            isRepositoryBusy = false
-        }
-    }
-
-    func ingestSourceV1(_ request: SourceIngestionRequest) {
-        isRepositoryBusy = true
-        repositoryErrorMessage = nil
-        let existing = Set(inboxItems.map(\.id))
-        Task {
-            do {
-                let snapshot = try await SupabaseFamilyRepository().ingestSource(request)
-                applyExternalSnapshot(snapshot)
-                if let source = snapshot.inboxItems
-                    .filter({ !existing.contains($0.id) })
-                    .sorted(by: { $0.createdAt > $1.createdAt })
-                    .first,
-                   source.status == .review || source.status == .partial {
-                    selectedSourceID = source.id
-                    proposals = snapshot.proposals.filter { $0.sourceID == source.id }
-                    isImportReviewPresented = true
-                }
-            } catch {
-                repositoryErrorMessage = error.localizedDescription
-            }
-            isRepositoryBusy = false
-        }
-    }
-
-    func createPlanItemV1(_ draft: PlanItemDraft) {
-        isRepositoryBusy = true
-        Task {
-            do { applyExternalSnapshot(try await SupabaseFamilyRepository().createPlanItem(draft)) }
-            catch { repositoryErrorMessage = error.localizedDescription }
-            isRepositoryBusy = false
-        }
-    }
-
-    func updatePlanItemV1(_ item: PlanItem, draft: PlanItemDraft) {
-        isRepositoryBusy = true
-        Task {
-            do { applyExternalSnapshot(try await SupabaseFamilyRepository().updatePlanItem(item.id, expectedVersion: item.version, draft: draft)) }
-            catch { repositoryErrorMessage = error.localizedDescription }
-            isRepositoryBusy = false
-        }
-    }
-
-    func deletePlanItemV1(_ itemID: UUID) {
-        isRepositoryBusy = true
-        Task {
-            do { applyExternalSnapshot(try await SupabaseFamilyRepository().deletePlanItem(itemID)) }
-            catch { repositoryErrorMessage = error.localizedDescription }
-            isRepositoryBusy = false
-        }
-    }
-
-    func updateMemberV1(_ member: FamilyMember) {
-        isRepositoryBusy = true
-        Task {
-            do { applyExternalSnapshot(try await SupabaseFamilyRepository().updateMember(member)) }
-            catch { repositoryErrorMessage = error.localizedDescription }
-            isRepositoryBusy = false
-        }
-    }
-
-    func createInviteV1(role: MemberRole) async throws -> HouseholdInvite {
-        try await SupabaseFamilyRepository().createInvite(role: role)
-    }
-
-    func archiveSourceV1(_ sourceID: UUID, archived: Bool) {
-        isRepositoryBusy = true
-        Task {
-            do { applyExternalSnapshot(try await SupabaseFamilyRepository().archiveSource(sourceID, archived: archived)) }
-            catch { repositoryErrorMessage = error.localizedDescription }
-            isRepositoryBusy = false
-        }
-    }
-
-    func retrySourceV1(_ sourceID: UUID, extractedText: String? = nil) {
-        isRepositoryBusy = true
-        Task {
-            do { applyExternalSnapshot(try await SupabaseFamilyRepository().retrySource(sourceID, extractedText: extractedText)) }
-            catch { repositoryErrorMessage = error.localizedDescription }
-            isRepositoryBusy = false
-        }
-    }
-}
-
-actor FamilySnapshotCache {
-    private let url: URL
-
-    init() {
-        let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
-            .appendingPathComponent("FamilyLifeOS", isDirectory: true)
-        try? FileManager.default.createDirectory(at: base, withIntermediateDirectories: true)
-        url = base.appendingPathComponent("snapshot-v1.json")
-    }
-
-    func load() -> FamilySnapshot? {
-        guard let data = try? Data(contentsOf: url) else { return nil }
-        return try? JSONDecoder.family.decode(FamilySnapshot.self, from: data)
-    }
-
-    func save(_ snapshot: FamilySnapshot) {
-        guard let data = try? JSONEncoder.family.encode(snapshot) else { return }
-        try? data.write(to: url, options: .atomic)
-    }
-
-    func clear() { try? FileManager.default.removeItem(at: url) }
-}
-
-extension JSONEncoder {
-    fileprivate static var family: JSONEncoder {
-        let encoder = JSONEncoder()
-        encoder.dateEncodingStrategy = .iso8601
-        return encoder
-    }
-}
-
-extension JSONDecoder {
-    fileprivate static var family: JSONDecoder {
-        let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .iso8601
-        return decoder
-    }
-}
-
-enum FamilyOCRService {
-    static func extractText(from data: Data, contentType: String) async throws -> String {
-        if contentType == "application/pdf" {
-            guard let document = PDFDocument(data: data) else { throw FamilyRepositoryError.invalidSource }
-            var text = ""
-            for index in 0..<document.pageCount {
-                guard let page = document.page(at: index) else { continue }
-                if let pageText = page.string, !pageText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    text += pageText + "\n"
-                } else if let image = page.thumbnail(of: CGSize(width: 1800, height: 2400), for: .mediaBox).cgImage {
-                    text += (try await recognize(image)) + "\n"
-                }
-            }
-            return text.trimmingCharacters(in: .whitespacesAndNewlines)
-        }
-
-        guard let image = UIImage(data: data)?.cgImage else { throw FamilyRepositoryError.invalidSource }
-        return try await recognize(image)
-    }
-
-    private static func recognize(_ image: CGImage) async throws -> String {
-        try await withCheckedThrowingContinuation { continuation in
-            let request = VNRecognizeTextRequest { request, error in
-                if let error { continuation.resume(throwing: error); return }
-                let lines = (request.results as? [VNRecognizedTextObservation])?
-                    .compactMap { $0.topCandidates(1).first?.string } ?? []
-                continuation.resume(returning: lines.joined(separator: "\n"))
-            }
-            request.recognitionLevel = .accurate
-            request.usesLanguageCorrection = true
-            request.recognitionLanguages = ["de-DE", "en-US", "pl-PL"]
-            DispatchQueue.global(qos: .userInitiated).async {
-                do { try VNImageRequestHandler(cgImage: image).perform([request]) }
-                catch { continuation.resume(throwing: error) }
-            }
-        }
-    }
+struct SupabaseEnvironment {
+    static let client = SupabaseClient(
+        supabaseURL: URL(string: "https://qmvejpuzejdvtmzpjsme.supabase.co")!,
+        supabaseKey: "sb_publishable_jFDlBIFbVRhhpwfWIPhnzA_G36NlJWg"
+    )
 }
 
 actor FamilyNotificationService {
     static let shared = FamilyNotificationService()
 
-    func requestAuthorization() async throws -> Bool {
-        try await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound])
+    func requestAuthorization() async -> Bool {
+        do {
+            return try await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound])
+        } catch {
+            return false
+        }
     }
 
-    func reschedule(snapshot: FamilySnapshot, preferences: NotificationPreferences) async {
+    func schedule(planItems: [PlanItem], preferences: NotificationPreferences) async {
         let center = UNUserNotificationCenter.current()
-        let identifiers = snapshot.reminders.map { "family-reminder-\($0.id.uuidString)" }
-        center.removePendingNotificationRequests(withIdentifiers: identifiers)
+        center.removeAllPendingNotificationRequests()
 
-        let memberByID = Dictionary(uniqueKeysWithValues: snapshot.members.map { ($0.id, $0.name) })
-        let itemByID = Dictionary(uniqueKeysWithValues: snapshot.planItems.map { ($0.id, $0) })
+        for item in planItems where shouldSchedule(item, preferences: preferences) {
+            guard let start = item.startsAt else { continue }
 
-        for reminder in snapshot.reminders where reminder.deliveryState == "pending" && reminder.triggerAt > .now {
-            guard let item = itemByID[reminder.planItemID], shouldSchedule(item, preferences: preferences) else { continue }
-            let content = UNMutableNotificationContent()
-            content.title = item.kind.displayName
-            content.body = memberByID[reminder.targetMemberID].map { "\(item.title) · \($0)" } ?? item.title
-            content.sound = .default
-            let trigger = UNCalendarNotificationTrigger(
-                dateMatching: Calendar.current.dateComponents([.year, .month, .day, .hour, .minute], from: reminder.triggerAt),
-                repeats: false
-            )
-            let request = UNNotificationRequest(identifier: "family-reminder-\(reminder.id.uuidString)", content: content, trigger: trigger)
-            try? await center.add(request)
+            var dates: [Date] = []
+            if preferences.eventReminders || preferences.taskReminders {
+                dates.append(start.addingTimeInterval(-3600))
+            }
+            if preferences.preparationReminders,
+               item.kind == .event || item.kind == .preparation {
+                dates.append(start.addingTimeInterval(-86400))
+            }
+
+            for (index, date) in dates.enumerated() where date > .now {
+                let content = UNMutableNotificationContent()
+                content.title = item.title
+                content.body = item.kind == .preparation ? "Vorbereitung steht an." : "Ein Familientermin oder eine Aufgabe steht an."
+                content.sound = .default
+
+                let trigger = UNCalendarNotificationTrigger(
+                    dateMatching: Calendar.current.dateComponents([.year, .month, .day, .hour, .minute], from: date),
+                    repeats: false
+                )
+                let request = UNNotificationRequest(
+                    identifier: "family-\(item.id.uuidString)-\(index)",
+                    content: content,
+                    trigger: trigger
+                )
+                try? await center.add(request)
+            }
         }
     }
 
@@ -263,7 +78,11 @@ final class FamilyProStore {
     var errorMessage: String?
     var statusMessage: String?
 
-    private var transactionUpdatesTask: Task<Void, Never>?
+    // Swift 6 treats deinit as nonisolated. This handle is only assigned during
+    // initialization and read during teardown, so keeping the handle itself
+    // nonisolated avoids crossing MainActor isolation while still cancelling
+    // the long-lived StoreKit updates task when the store is released.
+    private nonisolated(unsafe) var transactionUpdatesTask: Task<Void, Never>?
 
     init() {
         transactionUpdatesTask = Task { [weak self] in
@@ -367,108 +186,75 @@ final class FamilyProStore {
 
 @MainActor
 @Observable
-final class FamilyAppLock {
-    var isEnabled: Bool {
-        didSet { UserDefaults.standard.set(isEnabled, forKey: "family.appLock.enabled") }
-    }
-    var isUnlocked = true
-    var errorMessage: String?
-
-    init() { isEnabled = UserDefaults.standard.bool(forKey: "family.appLock.enabled") }
-
-    func lock() {
-        if isEnabled { isUnlocked = false }
-    }
-
-    func unlock() async {
-        guard isEnabled else { isUnlocked = true; return }
-        let context = LAContext()
-        var error: NSError?
-        guard context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error) else {
-            errorMessage = error?.localizedDescription ?? "Biometrische Entsperrung ist nicht verfügbar."
-            return
-        }
-        do {
-            let success = try await context.evaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, localizedReason: "Familieninformationen entsperren")
-            isUnlocked = success
-        } catch { errorMessage = error.localizedDescription }
-    }
-}
-
-@MainActor
-@Observable
 final class VoiceCaptureModel: NSObject, AVAudioRecorderDelegate {
     var isRecording = false
-    var transcript = ""
+    var level: Float = 0
     var errorMessage: String?
 
     private var recorder: AVAudioRecorder?
-    private var audioURL: URL?
+    private var timer: Timer?
+    private var continuation: CheckedContinuation<URL, Error>?
 
-    func start() async {
-        do {
-            let speech: SFSpeechRecognizerAuthorizationStatus = await withCheckedContinuation { continuation in
-                SFSpeechRecognizer.requestAuthorization { status in
-                    continuation.resume(returning: status)
-                }
-            }
-            guard speech == .authorized else { throw VoiceError.permission }
-
+    func record() async throws -> URL {
+        if AVAudioApplication.shared.recordPermission != .granted {
             let granted = await withCheckedContinuation { continuation in
                 AVAudioApplication.requestRecordPermission { allowed in
                     continuation.resume(returning: allowed) }
             }
             guard granted else { throw VoiceError.permission }
+        }
 
-            let url = FileManager.default.temporaryDirectory.appendingPathComponent("family-voice-\(UUID().uuidString).m4a")
-            let settings: [String: Any] = [
-                AVFormatIDKey: Int(kAudioFormatMPEG4AAC),
-                AVSampleRateKey: 44_100,
-                AVNumberOfChannelsKey: 1,
-                AVEncoderAudioQualityKey: AVAudioQuality.high.rawValue
-            ]
-            let session = AVAudioSession.sharedInstance()
-            try session.setCategory(.record, mode: .spokenAudio)
-            try session.setActive(true)
-            recorder = try AVAudioRecorder(url: url, settings: settings)
-            recorder?.record()
-            audioURL = url
-            isRecording = true
-        } catch { errorMessage = error.localizedDescription }
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("family-voice-\(UUID().uuidString).m4a")
+        let settings: [String: Any] = [
+            AVFormatIDKey: Int(kAudioFormatMPEG4AAC),
+            AVSampleRateKey: 44_100,
+            AVNumberOfChannelsKey: 1,
+            AVEncoderAudioQualityKey: AVAudioQuality.high.rawValue
+        ]
+        recorder = try AVAudioRecorder(url: url, settings: settings)
+        recorder?.delegate = self
+        recorder?.isMeteringEnabled = true
+        recorder?.record()
+        isRecording = true
+
+        timer?.invalidate()
+        timer = Timer.scheduledTimer(withTimeInterval: 0.15, repeats: true) { [weak self] _ in
+            guard let self else { return }
+            self.recorder?.updateMeters()
+            self.level = self.recorder?.averagePower(forChannel: 0) ?? -160
+        }
+
+        return try await withCheckedThrowingContinuation { continuation in
+            self.continuation = continuation
+        }
     }
 
-    func stopAndTranscribe() async -> (Data, String)? {
+    func stop() {
         recorder?.stop()
+    }
+
+    func audioRecorderDidFinishRecording(_ recorder: AVAudioRecorder, successfully flag: Bool) {
+        timer?.invalidate()
+        timer = nil
         isRecording = false
-        guard let audioURL, let data = try? Data(contentsOf: audioURL) else { return nil }
-        let recognizer = SFSpeechRecognizer(locale: Locale(identifier: "de-DE"))
-        let request = SFSpeechURLRecognitionRequest(url: audioURL)
-        do {
-            let text: String = try await withCheckedThrowingContinuation { continuation in
-                var task: SFSpeechRecognitionTask?
-                task = recognizer?.recognitionTask(with: request) { result, error in
-                    if let error { task?.cancel(); continuation.resume(throwing: error); return }
-                    if let result, result.isFinal {
-                        task?.cancel()
-                        continuation.resume(returning: result.bestTranscription.formattedString)
-                    }
-                }
-                if task == nil { continuation.resume(throwing: VoiceError.recognition) }
-            }
-            transcript = text
-            return (data, text)
-        } catch {
-            errorMessage = error.localizedDescription
-            return (data, "")
+        let result = continuation
+        continuation = nil
+        if flag {
+            result?.resume(returning: recorder.url)
+        } else {
+            result?.resume(throwing: VoiceError.recordingFailed)
         }
     }
 
     enum VoiceError: LocalizedError {
-        case permission, recognition
+        case permission
+        case recordingFailed
+
         var errorDescription: String? {
             switch self {
-            case .permission: "Mikrofon- und Spracherkennungszugriff werden benötigt."
-            case .recognition: "Die Sprachaufnahme konnte nicht transkribiert werden."
+            case .permission: "Mikrofonzugriff wurde nicht erlaubt."
+            case .recordingFailed: "Die Sprachaufnahme konnte nicht gespeichert werden."
             }
         }
     }
