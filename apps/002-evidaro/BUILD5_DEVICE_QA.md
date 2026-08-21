@@ -46,18 +46,40 @@ User-confirmed on the physical iPhone:
 - [x] Existing snapshot seal remains unchanged after OCR refresh.
 - [x] Force-quit/relaunch preserves OCR and all integrity anchors.
 
-## Next physical gate — Privacy Lock / device authentication
+## Privacy Lock / device authentication checkpoint
 
-- [ ] Enabling Privacy Lock requests real device-owner authentication.
-- [ ] Face ID / Touch ID / device passcode behavior matches the device configuration.
-- [ ] Background the app; returning requires unlock.
-- [ ] Cancel authentication; evidence UI remains hidden.
-- [ ] Authenticate successfully; evidence UI becomes visible.
-- [ ] Force quit/relaunch; enabled lock preference survives.
-- [ ] Disable lock after authentication; disabled state survives relaunch.
+User-confirmed on the physical iPhone:
+
+- [x] Enabling Privacy Lock requests real device-owner authentication.
+- [x] Face ID behavior matches the device configuration.
+- [x] Backgrounding the app and returning requires unlock.
+- [x] Cancelling authentication keeps the evidence UI hidden.
+- [x] Successful authentication reveals the evidence UI.
+- [x] Force-quit/relaunch preserves the enabled lock preference.
+- [x] Disabling Privacy Lock after authentication survives relaunch.
+
+## Next physical gate — DE / EN / accessibility
+
+### German
+
+- [ ] Home, case creation, evidence intake, OCR, Privacy Lock, Pro and verifier are German.
+- [ ] Generated PDF uses German headings/fields.
+
+### English
+
+- [ ] Home, case creation, evidence intake, OCR, Privacy Lock, Pro and verifier are English.
+- [ ] Generated PDF uses English headings/fields.
+
+### Accessibility
+
+- [ ] VoiceOver can navigate Home without fragmented hash noise.
+- [ ] Case cards announce useful combined summaries.
+- [ ] Full hashes have explicit accessibility labels/values.
+- [ ] Largest Dynamic Type does not hide New Case / Seal / Manifest / export controls.
+- [ ] Pro sheet remains usable at largest Dynamic Type.
 
 ## Other release gates
 
-DE/EN, accessibility, `.evpack` round-trip and any remaining physical checks stay open unless separately recorded. The signed TestFlight Lifetime Pro purchase → entitlement recovery after relaunch → Restore path was already physically confirmed on the earlier Build 2 checkpoint; Build 5 PDF work did not alter StoreKit logic.
+`.evpack` round-trip and any remaining physical checks stay open unless separately recorded. The signed TestFlight Lifetime Pro purchase → entitlement recovery after relaunch → Restore path was already physically confirmed on the earlier Build 2 checkpoint; Build 5 PDF work did not alter StoreKit logic.
 
 PR #37 is intentionally left untouched; this file is the newer Build 5 device-QA checkpoint.
