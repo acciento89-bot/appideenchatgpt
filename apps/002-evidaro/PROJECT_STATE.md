@@ -104,7 +104,7 @@ Final public release name: **Kamilunavo Trace**.
 - iPhone / iOS 17+
 - public PDF metadata/filename/cover/header/footer use Kamilunavo Trace
 
-`ProofVault` and `Evidaro` are retired as public-name candidates. Historical internal paths, deterministic smoke fixtures such as `EVIDARO 4827`, and compatibility keys may retain old internal identifiers where changing them would add migration/integrity risk without user benefit.
+`ProofVault` is retired as a public-name candidate. `Evidaro` is also retired as the public release name. Historical internal paths, deterministic smoke fixtures such as `EVIDARO 4827`, and compatibility keys may retain old internal identifiers where changing them would add migration/integrity risk without user benefit.
 
 No repository/web/App Store search is legal trademark clearance.
 
