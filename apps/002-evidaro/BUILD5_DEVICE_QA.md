@@ -33,21 +33,31 @@ Still open from the full camera checklist:
 - [ ] Confirm original filename/reference is reachable.
 - [ ] Share the stored original and confirm the exported image opens normally.
 
-## Next physical gate — OCR
+## OCR / derived-data integrity checkpoint
 
-Use one camera image containing clear readable text and one imported PDF:
+User-confirmed on the physical iPhone:
 
-- [ ] Image OCR returns plausible text.
-- [ ] PDF OCR returns plausible text and page count.
-- [ ] OCR is visibly identified as derived/recognized text rather than original evidence.
-- [ ] Refresh OCR works.
-- [ ] Original SHA-256 remains unchanged after OCR refresh.
-- [ ] Evidence-record SHA-256 remains unchanged after OCR refresh.
-- [ ] Existing snapshot seal remains unchanged after OCR refresh.
-- [ ] Force-quit/relaunch preserves OCR and all integrity anchors.
+- [x] Image OCR returns plausible text.
+- [x] PDF OCR returns plausible text and page count.
+- [x] OCR is visibly identified as derived/recognized text rather than original evidence.
+- [x] Refresh OCR works.
+- [x] Original SHA-256 remains unchanged after OCR refresh.
+- [x] Evidence-record SHA-256 remains unchanged after OCR refresh.
+- [x] Existing snapshot seal remains unchanged after OCR refresh.
+- [x] Force-quit/relaunch preserves OCR and all integrity anchors.
+
+## Next physical gate — Privacy Lock / device authentication
+
+- [ ] Enabling Privacy Lock requests real device-owner authentication.
+- [ ] Face ID / Touch ID / device passcode behavior matches the device configuration.
+- [ ] Background the app; returning requires unlock.
+- [ ] Cancel authentication; evidence UI remains hidden.
+- [ ] Authenticate successfully; evidence UI becomes visible.
+- [ ] Force quit/relaunch; enabled lock preference survives.
+- [ ] Disable lock after authentication; disabled state survives relaunch.
 
 ## Other release gates
 
-Privacy Lock, DE/EN, accessibility, `.evpack` round-trip and any remaining physical checks stay open unless separately recorded. The signed TestFlight Lifetime Pro purchase → entitlement recovery after relaunch → Restore path was already physically confirmed on the earlier Build 2 checkpoint; Build 5 PDF work did not alter StoreKit logic.
+DE/EN, accessibility, `.evpack` round-trip and any remaining physical checks stay open unless separately recorded. The signed TestFlight Lifetime Pro purchase → entitlement recovery after relaunch → Restore path was already physically confirmed on the earlier Build 2 checkpoint; Build 5 PDF work did not alter StoreKit logic.
 
 PR #37 is intentionally left untouched; this file is the newer Build 5 device-QA checkpoint.
