@@ -103,6 +103,8 @@ protocol TextExtractionService: Sendable {
 struct OfflineSourceRecord: Identifiable, Codable, Sendable {
     let id: UUID
     let createdAt: Date
+    let ownerUserID: UUID
+    let householdID: UUID
     var kind: SourceKind
     var title: String
     var text: String?
@@ -157,12 +159,19 @@ actor FamilyOfflineSourceQueue {
         try? mutableRoot.setResourceValues(values)
     }
 
-    func enqueue(_ request: SourceIngestionRequest) throws -> OfflineSourceRecord {
+    func enqueue(
+        _ request: SourceIngestionRequest,
+        ownerUserID: UUID,
+        householdID: UUID
+    ) throws -> OfflineSourceRecord {
         let id = request.clientRequestID ?? UUID()
         let directory = directoryURL(for: id)
         let metadata = metadataURL(for: id)
 
         if let existing = loadRecord(at: metadata) {
+            guard existing.ownerUserID == ownerUserID, existing.householdID == householdID else {
+                throw FamilyRepositoryError.invalidSource
+            }
             return existing
         }
 
@@ -181,6 +190,8 @@ actor FamilyOfflineSourceQueue {
             let record = OfflineSourceRecord(
                 id: id,
                 createdAt: .now,
+                ownerUserID: ownerUserID,
+                householdID: householdID,
                 kind: request.kind,
                 title: request.title,
                 text: request.text,
@@ -200,7 +211,7 @@ actor FamilyOfflineSourceQueue {
         }
     }
 
-    func records() -> [OfflineSourceRecord] {
+    func records(ownerUserID: UUID, householdID: UUID) -> [OfflineSourceRecord] {
         let urls = (try? FileManager.default.contentsOfDirectory(
             at: rootURL,
             includingPropertiesForKeys: nil,
@@ -208,6 +219,7 @@ actor FamilyOfflineSourceQueue {
         )) ?? []
         return urls
             .compactMap { loadRecord(at: $0.appendingPathComponent("metadata.json")) }
+            .filter { $0.ownerUserID == ownerUserID && $0.householdID == householdID }
             .sorted { $0.createdAt < $1.createdAt }
     }
 
@@ -227,7 +239,8 @@ actor FamilyOfflineSourceQueue {
             fileName: record.fileName,
             contentType: record.contentType,
             extractedText: record.extractedText,
-            clientRequestID: record.id
+            clientRequestID: record.id,
+            targetHouseholdID: record.householdID
         )
     }
 
@@ -288,7 +301,8 @@ struct QueuedSourceIngestionResult: Sendable {
 
 extension SupabaseFamilyRepository {
     func ingestQueuedSource(_ request: SourceIngestionRequest) async throws -> QueuedSourceIngestionResult {
-        guard let clientRequestID = request.clientRequestID else {
+        guard let clientRequestID = request.clientRequestID,
+              let targetHouseholdID = request.targetHouseholdID else {
             let snapshot = try await ingestSource(request)
             guard let source = snapshot.inboxItems.first else { throw FamilyRepositoryError.invalidResponse }
             return QueuedSourceIngestionResult(snapshot: snapshot, sourceID: source.id)
@@ -302,13 +316,17 @@ extension SupabaseFamilyRepository {
                     sourceType: request.kind.rawValue,
                     title: request.title,
                     originalText: request.text,
-                    clientRequestID: clientRequestID
+                    clientRequestID: clientRequestID,
+                    householdID: targetHouseholdID
                 )
             )
             .execute()
             .value
 
-        guard let source = rows.first else { throw FamilyRepositoryError.invalidResponse }
+        guard let source = rows.first,
+              source.householdID == targetHouseholdID else {
+            throw FamilyRepositoryError.invalidResponse
+        }
 
         let states: [OfflineSourceStateRow] = try await client
             .from("source_items")
@@ -379,7 +397,15 @@ extension DemoStore {
 
         Task {
             do {
-                let record = try await FamilyOfflineSourceQueue.shared.enqueue(request)
+                guard let householdID = household?.id else {
+                    throw FamilyRepositoryError.householdUnavailable
+                }
+                let ownerUserID = try await SupabaseEnvironment.client.auth.session.user.id
+                let record = try await FamilyOfflineSourceQueue.shared.enqueue(
+                    request,
+                    ownerUserID: ownerUserID,
+                    householdID: householdID
+                )
                 await overlayOfflineSourcesV1()
                 await syncOfflineSourcesV1(openReviewFor: record.id)
             } catch {
@@ -410,16 +436,30 @@ extension DemoStore {
     }
 
     func overlayOfflineSourcesV1() async {
-        let records = await FamilyOfflineSourceQueue.shared.records()
         inboxItems.removeAll { $0.isLocalOnly }
+        guard let householdID = household?.id,
+              let ownerUserID = try? await SupabaseEnvironment.client.auth.session.user.id else {
+            return
+        }
+        let records = await FamilyOfflineSourceQueue.shared.records(
+            ownerUserID: ownerUserID,
+            householdID: householdID
+        )
         inboxItems.append(contentsOf: records.map(\.inboxSource))
         inboxItems.sort { $0.createdAt > $1.createdAt }
     }
 
     func syncOfflineSourcesV1(openReviewFor localRequestID: UUID? = nil) async {
+        guard let householdID = household?.id,
+              let ownerUserID = try? await SupabaseEnvironment.client.auth.session.user.id else {
+            return
+        }
         guard await FamilyOfflineSourceQueue.shared.beginSync() else { return }
 
-        let records = await FamilyOfflineSourceQueue.shared.records()
+        let records = await FamilyOfflineSourceQueue.shared.records(
+            ownerUserID: ownerUserID,
+            householdID: householdID
+        )
         let repository = SupabaseFamilyRepository()
 
         for record in records {
@@ -453,12 +493,14 @@ private struct OfflineCreateSourceParams: Encodable, Sendable {
     let title: String
     let originalText: String?
     let clientRequestID: UUID
+    let householdID: UUID
 
     enum CodingKeys: String, CodingKey {
         case sourceType = "p_source_type"
         case title = "p_title"
         case originalText = "p_original_text"
         case clientRequestID = "p_client_request_id"
+        case householdID = "p_household_id"
     }
 }
 
