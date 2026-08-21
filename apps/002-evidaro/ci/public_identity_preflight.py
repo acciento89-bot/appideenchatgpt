@@ -25,7 +25,7 @@ checks = {
 "Free case wording DE": 'Free enthält bis zu 3 Fälle.' in DE and '3 aktive Fälle' not in DE,
 "Pass 7/8 merged app state": '## Pass 7 — DE/EN + accessibility + localized PDF — GREEN / MERGED' in STATE and '## Pass 8 — offline-verifiable `.evpack` — GREEN / MERGED' in STATE,
 "Pass 8 final gate recorded": '32408185123' in STATE,
-"portfolio release identity": '# Portfolio app #002 — Kamilunavo Trace' in FACTORY and 'Release pass — Kamilunavo Trace' in FACTORY and '- PR #33 — GREEN / MERGED' in FACTORY,
+"portfolio release identity": '# Portfolio app #002 — Kamilunavo Trace' in FACTORY and 'Release pass — GREEN / MERGED / BUILD 1 UPLOADED:' in FACTORY and '- PR #33 — merged' in FACTORY,
 }
 failed=[k for k,v in checks.items() if not v]
 for k,v in checks.items(): print(("✓" if v else "✗"), k)
