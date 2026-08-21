@@ -2,7 +2,7 @@
 
 Last updated: 2026-08-21
 Status: ACTIVE
-Current user-selected workstream: #002 Kamilunavo Trace — TestFlight Build 1 uploaded / Apple processing + IAP/device QA next
+Current user-selected workstream: #002 Kamilunavo Trace — TestFlight Build 2 VALID / real Lifetime purchase+relaunch+restore GREEN / remaining physical + ASC review prep next
 Repository purpose: persistent handoff/state repository for the full App Factory so work can continue across chat limits and new conversations without losing decisions or progress.
 
 > This file is the portfolio-level single source of truth. Read it first, then the selected app-specific state. Detailed historical checkpoints remain in Git history.
@@ -22,7 +22,7 @@ Repository purpose: persistent handoff/state repository for the full App Factory
 | # | Working title | Core idea | Planned monetization | Status |
 |---|---|---|---|---|
 | 001 | KeepMeter | Return-window + actual-usage decision tool | Freemium + Lifetime Pro | APP STORE REVIEW SUBMITTED — APPLE DECISION PENDING |
-| 002 | Kamilunavo Trace (internal path `002-evidaro`) | Local-first evidence cases + original hashes + snapshot seals + localized PDF + offline `.evpack` verifier | Freemium + Lifetime Pro | TESTFLIGHT BUILD 1 UPLOADED — APPLE PROCESSING / IAP + DEVICE QA PENDING |
+| 002 | Kamilunavo Trace (internal path `002-evidaro`) | Local-first evidence cases + original hashes + snapshot seals + localized PDF + offline `.evpack` verifier | Freemium + Lifetime Pro | TESTFLIGHT BUILD 2 VALID — LIFETIME PURCHASE/RELAUNCH/RESTORE GREEN — REMAINING PHYSICAL + ASC REVIEW PREP |
 | 003 | ParcelPilot | Orders, deliveries, returns and refund tracking | Freemium | QUEUED |
 | 004 | SubZero | Detect/track subscriptions and recurring costs | Pro / Lifetime | QUEUED |
 | 005 | GiftBrain | Gift ideas per person/occasion via share sheet | Lifetime | QUEUED |
@@ -116,30 +116,45 @@ Pass 8 — GREEN / MERGED:
 - merge `e5c57335888a80e120fefea686b29f6ed8715b2f`
 - `.evpack` valid/tamper/derived-OCR/process-relaunch checks green
 
-Release pass — Kamilunavo Trace — GREEN / MERGED / BUILD 1 UPLOADED:
+Release pass — Kamilunavo Trace — GREEN / MERGED / BUILD 2 VALID:
 
-- PR #33 — GREEN / MERGED
-- final tested release head `090b1471…`
-- static release run `32412043585` — SUCCESS
-- unsigned iPhone Release/TestFlight validation run `32412043598` — SUCCESS
-- full simulator integrity/relaunch run `32412043953` — SUCCESS
-- release merge `69b8a1d99082ff804f2a532c636af3008d79546a`
+- Release PR #33 — GREEN / MERGED
+- Build-2 hardening PR #36 `Fix Trace fresh-install demo evidence` — GREEN / MERGED
+- PR #36 exact tested head `5d940abe3ac0dfa816ee39c4a3df789c07aa9be5`
+- full simulator/integrity run `32456257928` / job `96694028306` — SUCCESS
+- static release and unsigned iPhone Release gates for Build 2 — SUCCESS
+- Build-2 source merge `62a79d823a6f719fb9b511d329d997aa31dea170`
 - public name `Kamilunavo Trace`; bundle `de.kamilunavo.trace`
 - public `.evpack` v1 format id `de.kamilunavo.trace.evpack`
 - Lifetime Pro non-consumable `de.kamilunavo.trace.pro.lifetime`
 - Free: up to 3 cases; received-bundle verification remains free
 - Pro: unlimited cases + PDF export + `.evpack` export
 - App Store Connect app record — EXISTS
-- signed TestFlight Build 1 `0.1.0 (1)` upload — SUCCESS via protected One More Floor bridge
-- bridge run `32445560808`; upload job `96665754912`; Apple export result `Upload succeeded.` / `EXPORT SUCCEEDED`
-- Apple processing / TestFlight visibility — PENDING external confirmation
+- signed TestFlight Build 2 `0.1.0 (2)` upload — SUCCESS via protected One More Floor bridge
+- upload run `32456992113`; job `96696079890`; Apple export result `Upload succeeded.` / `EXPORT SUCCEEDED`
+- read-only processing run `32457277789`; job `96696886840` — SUCCESS
+- Apple Build 2 processing state — `VALID`
+- Apple uploadedDate — `2026-08-21T00:07:29-07:00`
+- temporary Build-2 bridge PR #115 — CLOSED WITHOUT MERGE
+- production release now starts without seeded demo evidence; DEBUG/CI fixtures remain available
+- real fresh TestFlight Build-2 install with intended empty evidence state — USER-CONFIRMED
+- real Trace Pro StoreKit product/price resolution — USER-CONFIRMED
+- real Lifetime purchase — USER-CONFIRMED
+- Pro entitlement recovery after force-quit/relaunch — USER-CONFIRMED
+- Restore purchases recovery — USER-CONFIRMED
+
+Physical/device checkpoint:
+
+- StoreKit/fresh-install core path is GREEN on a real iPhone for Build 2
+- full physical release gate remains PARTIAL
+- still open: camera/original-byte path, image+PDF OCR, Face ID/Touch ID/passcode lifecycle, DE/EN generated PDF review, physical `.evpack` round trip, VoiceOver, largest Dynamic Type and remaining Free/Pro boundary spot-checks
 
 External next:
 
-- create/configure Lifetime Pro IAP `de.kamilunavo.trace.pro.lifetime` and final price if not already done
-- wait for/confirm Apple TestFlight processing visibility
-- physical iPhone camera/OCR/biometric/VoiceOver/Dynamic Type QA
-- real TestFlight Lifetime purchase, relaunch entitlement recovery and Restore
+- attach/confirm the required Lifetime Pro IAP App Review screenshot/metadata in App Store Connect
+- finish any remaining first-version App Store metadata/review fields
+- complete the remaining physical iPhone camera/OCR/biometric/VoiceOver/Dynamic Type/PDF/`.evpack` QA
+- do not create another Build 2 upload; Build 2 is already Apple-processed and VALID unless a source fix requires Build 3
 
 # Portfolio app #011 — Family Life OS
 
@@ -335,7 +350,7 @@ Avoid generic house/checkmark, cartoon family, or robot/AI sparkle identity.
 3. For #011 read `apps/011-family-life-os/PROJECT_STATE.md` and `BACKEND_CONTRACT.md`.
 4. Inspect current `main` and latest relevant CI gates before code changes.
 5. Do not regress KeepMeter to pre-TestFlight/pre-StoreKit state; it is submitted to Apple review.
-6. Do not regress #002 to `ProofVault`, `Evidaro` public branding, pre-Pass-8, pre-release or pre-TestFlight state; Pass 7/8 and Release PR #33 are merged and signed Build 1 upload succeeded.
+6. Do not regress #002 to `ProofVault`, `Evidaro` public branding, pre-Pass-8, pre-release, pre-Build-2, pre-VALID-processing or pre-real-StoreKit state; Pass 7/8/Release/Build-2 hardening are merged, Build 2 is VALID, and the real purchase/relaunch/restore path is user-confirmed.
 7. Do not claim physical camera, physical-iPhone OCR, real biometric prompt, VoiceOver, largest-Dynamic-Type or physical `.evpack` verification until explicitly exercised on hardware.
 8. Do not regress Family Life OS to “Build 2 not installed”, “PR #13 unverified” or “Hosted E2E untested”.
 9. Preserve every other portfolio entry when updating one workstream.
