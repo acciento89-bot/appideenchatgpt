@@ -2,10 +2,10 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(8);
+select plan(10);
 
 select is(
-    has_function_privilege('anon', 'public.create_source_item(text,text,text,uuid)', 'execute'),
+    has_function_privilege('anon', 'public.create_source_item(text,text,text,uuid,uuid)', 'execute'),
     false,
     'anonymous role cannot execute idempotent source creation RPC'
 );
@@ -24,11 +24,22 @@ select lives_ok(
 select lives_ok(
     $$select * from public.create_source_item(
         'text',
-        'Elternabend',
-        'Elternabend am 21.08.2026 um 18:00 Uhr.',
-        'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'::uuid
+        'Legacy kompatibel',
+        'Bestehende Drei-Parameter-Clients funktionieren weiter.'
     )$$,
-    'first source creation with client request id succeeds'
+    'existing three-argument clients remain compatible'
+);
+
+select throws_ok(
+    $$select * from public.create_source_item(
+        'text',
+        'Falscher Haushalt',
+        'Darf nicht angelegt werden.',
+        'cccccccc-cccc-4ccc-8ccc-cccccccccccc'::uuid,
+        'dddddddd-dddd-4ddd-8ddd-dddddddddddd'::uuid
+    )$$,
+    'Active adult household member not found',
+    'client cannot route an offline source into a household it does not belong to'
 );
 
 select lives_ok(
@@ -36,9 +47,21 @@ select lives_ok(
         'text',
         'Elternabend',
         'Elternabend am 21.08.2026 um 18:00 Uhr.',
-        'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'::uuid
+        'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'::uuid,
+        (select id from public.households limit 1)
     )$$,
-    'retry with the same client request id succeeds'
+    'first household-bound source creation with client request id succeeds'
+);
+
+select lives_ok(
+    $$select * from public.create_source_item(
+        'text',
+        'Elternabend',
+        'Elternabend am 21.08.2026 um 18:00 Uhr.',
+        'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'::uuid,
+        (select id from public.households limit 1)
+    )$$,
+    'retry with the same client request id and household succeeds'
 );
 
 select is(
@@ -55,14 +78,16 @@ select is(
                 'text',
                 'Elternabend',
                 'Elternabend am 21.08.2026 um 18:00 Uhr.',
-                'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'::uuid
+                'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'::uuid,
+                (select id from public.households limit 1)
             )
             union all
             select * from public.create_source_item(
                 'text',
                 'Elternabend',
                 'Elternabend am 21.08.2026 um 18:00 Uhr.',
-                'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'::uuid
+                'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'::uuid,
+                (select id from public.households limit 1)
             )
         ) retried
     ),
@@ -75,7 +100,8 @@ select lives_ok(
         'text',
         'Zweiter Import',
         'Andere Quelle',
-        'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'::uuid
+        'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'::uuid,
+        (select id from public.households limit 1)
     )$$,
     'a different client request id creates another source'
 );
