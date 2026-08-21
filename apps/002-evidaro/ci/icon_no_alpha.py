@@ -18,8 +18,9 @@ if color_type != 2:
 if compression != 0 or filter_method != 0 or interlace != 0:
     raise SystemExit("Trace App Icon must use standard non-interlaced PNG encoding")
 
-# Decode the RGB pixels with stdlib only so Linux release CI can catch a visually
-# near-black icon, not merely validate PNG dimensions/alpha.
+# Decode RGB pixels with stdlib only so Linux release CI catches a visually
+# near-black icon, not merely dimensions/alpha. Normal PNG uses a zlib-wrapped
+# stream; some encoders use raw deflate, so accept either representation.
 pos = 8
 idat = bytearray()
 while pos + 12 <= len(data):
@@ -32,7 +33,11 @@ while pos + 12 <= len(data):
     if kind == b"IEND":
         break
 
-raw = zlib.decompress(bytes(idat))
+try:
+    raw = zlib.decompress(bytes(idat))
+except zlib.error:
+    raw = zlib.decompress(bytes(idat), -15)
+
 bpp = 3
 stride = width * bpp
 expected = height * (stride + 1)
@@ -90,9 +95,8 @@ r0, g0, b0 = corner[0], corner[1], corner[2]
 corner_luma = 0.2126 * r0 + 0.7152 * g0 + 0.0722 * b0
 print(f"Trace App Icon visual guard: averageLuma={average_luma:.1f}, cornerLuma={corner_luma:.1f}, brightRatio={bright_ratio:.3f}")
 
-# Build 5 passed the technical PNG checks but looked effectively black on-device.
-# These thresholds intentionally reject a near-black field while allowing future
-# blue/teal refinements without pinning the file to one exact binary hash.
+# Build 5 passed technical PNG checks but looked effectively black on-device.
+# Reject a near-black field while allowing later blue/teal refinements.
 if average_luma < 70 or corner_luma < 60:
     raise SystemExit("Trace App Icon is too dark for release")
 if bright_ratio < 0.015:
