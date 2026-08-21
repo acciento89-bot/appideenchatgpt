@@ -58,28 +58,39 @@ User-confirmed on the physical iPhone:
 - [x] Force-quit/relaunch preserves the enabled lock preference.
 - [x] Disabling Privacy Lock after authentication survives relaunch.
 
-## Next physical gate — DE / EN / accessibility
+## DE / EN / accessibility checkpoint
+
+User-confirmed on the physical iPhone:
 
 ### German
 
-- [ ] Home, case creation, evidence intake, OCR, Privacy Lock, Pro and verifier are German.
-- [ ] Generated PDF uses German headings/fields.
+- [x] Home, case creation, evidence intake, OCR, Privacy Lock, Pro and verifier are German.
+- [x] Generated PDF uses German headings/fields.
 
 ### English
 
-- [ ] Home, case creation, evidence intake, OCR, Privacy Lock, Pro and verifier are English.
-- [ ] Generated PDF uses English headings/fields.
+- [x] Home, case creation, evidence intake, OCR, Privacy Lock, Pro and verifier are English.
+- [x] Generated PDF uses English headings/fields.
 
 ### Accessibility
 
-- [ ] VoiceOver can navigate Home without fragmented hash noise.
-- [ ] Case cards announce useful combined summaries.
-- [ ] Full hashes have explicit accessibility labels/values.
-- [ ] Largest Dynamic Type does not hide New Case / Seal / Manifest / export controls.
-- [ ] Pro sheet remains usable at largest Dynamic Type.
+- [x] VoiceOver can navigate Home without fragmented hash noise.
+- [x] Case cards announce useful combined summaries.
+- [x] Full hashes have explicit accessibility labels/values.
+- [x] Largest Dynamic Type does not hide New Case / Seal / Manifest / export controls.
+- [x] Pro sheet remains usable at largest Dynamic Type.
+
+## Next physical gate — `.evpack` round trip
+
+- [ ] Export `.evpack` from a Pro case.
+- [ ] Save/share it outside the app.
+- [ ] Re-import the untouched bundle using `Beweispaket prüfen` / `Verify evidence bundle`.
+- [ ] Untouched bundle is green and shows expected case/item/seal counts.
+- [ ] Bundle/manifest hashes are visible and selectable.
+- [ ] Verify the same received bundle while the app is in Free state if practical; verification must remain available.
 
 ## Other release gates
 
-`.evpack` round-trip and any remaining physical checks stay open unless separately recorded. The signed TestFlight Lifetime Pro purchase → entitlement recovery after relaunch → Restore path was already physically confirmed on the earlier Build 2 checkpoint; Build 5 PDF work did not alter StoreKit logic.
+Any remaining physical checks stay open unless separately recorded. The signed TestFlight Lifetime Pro purchase → entitlement recovery after relaunch → Restore path was already physically confirmed on the earlier Build 2 checkpoint; Build 5 PDF work did not alter StoreKit logic.
 
 PR #37 is intentionally left untouched; this file is the newer Build 5 device-QA checkpoint.
