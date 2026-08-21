@@ -3,9 +3,9 @@
 Date: 2026-08-21
 Build: `0.1.0 (5)`
 Source: `128da643cb8b5320546242ba511118d18a2edb07`
-Status: IN PROGRESS — MAJOR PHYSICAL GATES GREEN
+Status: GREEN — PHYSICAL RELEASE QA PASSED
 
-This file records only physical iPhone observations for Build 5. It does not replace `PHYSICAL_QA.md`; unchecked areas remain open until explicitly exercised on the signed TestFlight build.
+This file records physical iPhone observations for signed TestFlight Build 5. The major release-critical device paths below were exercised successfully on the real device.
 
 ## Accepted Build 5 PDF
 
@@ -26,12 +26,12 @@ User-confirmed on the physical iPhone:
 - [x] Original SHA-256 is visible for the captured photo.
 - [x] Force-quit/relaunch preserves the captured photo.
 - [x] Force-quit/relaunch preserves the same original SHA-256.
+- [x] Original filename/reference is reachable from stored evidence.
+- [x] Sharing/exporting the stored original returns an image that opens normally.
 
-Still open from the full camera checklist:
+Situational permission note:
 
-- [ ] Explicitly record first-install localized camera permission prompt if it is encountered on a reset permission state.
-- [ ] Confirm original filename/reference is reachable.
-- [ ] Share the stored original and confirm the exported image opens normally.
+- [ ] The localized first-camera permission prompt was not re-forced from a reset permission state during this Build 5 pass. This remains a situational spot-check rather than a release blocker because the real camera path itself was physically proven.
 
 ## OCR / derived-data integrity checkpoint
 
@@ -90,19 +90,28 @@ User-confirmed on the physical iPhone:
 - [x] Untouched bundle verifies green and reports plausible case/item/seal counts.
 - [x] Bundle/manifest hashes are visible in the verifier.
 
-Optional/free-state spot-check remains open:
+Optional/free-state spot-check:
 
-- [ ] Verify the same received bundle while the app is in Free state if practical; received-bundle verification must remain available without Pro.
+- [ ] Re-verifying the same received bundle while Pro is inactive/free remains optional. Product policy and automated gates continue to require received-bundle verification to remain free.
 
 ## StoreKit checkpoint carried forward
 
-The signed TestFlight Lifetime Pro purchase → entitlement recovery after relaunch → Restore path was already physically confirmed on the earlier Build 2 checkpoint. Build 5's PDF redesign did not alter StoreKit implementation or entitlement logic, so that signed-device checkpoint remains the current StoreKit evidence unless StoreKit code changes again.
+The signed TestFlight Lifetime Pro purchase → entitlement recovery after relaunch → Restore path was physically confirmed on the earlier Build 2 checkpoint. Build 5's PDF redesign did not alter StoreKit implementation or entitlement logic, so that signed-device checkpoint remains the current StoreKit evidence unless StoreKit code changes again.
 
-## Final physical items before closing Build 5 QA
+## Build 5 physical acceptance
 
-- [ ] Confirm original filename/reference is reachable from stored evidence.
-- [ ] Share the stored original and confirm the exported image opens normally.
-- [ ] Record the localized first-camera permission prompt only if a reset/fresh permission state is exercised.
-- [ ] Optional: verify a received `.evpack` while Pro is inactive/free.
+Build 5 is accepted as the physical release candidate for the exercised app paths:
 
-PR #37 is intentionally left untouched; this file is the newer Build 5 device-QA checkpoint.
+- [x] reader-facing PDF presentation
+- [x] real camera capture and original-byte persistence
+- [x] original filename/reference and share/export path
+- [x] image/PDF OCR with integrity-anchor stability
+- [x] Face ID / Privacy Lock behavior and persistence
+- [x] DE/EN localization
+- [x] VoiceOver and largest Dynamic Type
+- [x] `.evpack` export/import verification
+- [x] signed TestFlight Lifetime Pro purchase/relaunch/Restore evidence remains valid because StoreKit code was unchanged
+
+Any future code change touching these areas must reopen the corresponding gate.
+
+PR #37 is intentionally left untouched; this file is the final Build 5 device-QA checkpoint.
