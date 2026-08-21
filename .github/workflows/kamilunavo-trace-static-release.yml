@@ -15,7 +15,7 @@ on:
       - '.github/workflows/kamilunavo-trace-testflight.yml'
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: kamilunavo-trace-static-${{ github.ref }}
@@ -28,6 +28,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+
+      - name: Apply PDF branding and design hardening
+        run: python3 apps/002-evidaro/ci/apply_pdf_release_fix.py
 
       - name: Foundation and integrity source preflight
         run: python3 apps/002-evidaro/ci/preflight.py
@@ -37,3 +42,19 @@ jobs:
 
       - name: Final public identity preflight
         run: python3 apps/002-evidaro/ci/public_identity_preflight.py
+
+      - name: Commit generated PDF release fix
+        if: github.event_name == 'pull_request'
+        run: |
+          set -euo pipefail
+          if git diff --quiet; then
+            echo 'No generated PDF fix changes to commit.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add apps/002-evidaro/prototype/EvidaroPrototype/EvidencePackExporter.swift \
+                  apps/002-evidaro/prototype/EvidaroPrototype.xcodeproj/project.pbxproj \
+                  apps/002-evidaro/ci/public_identity_preflight.py
+          git commit -m 'Fix Trace PDF public branding and presentation'
+          git push origin HEAD:${{ github.event.pull_request.head.ref }}
