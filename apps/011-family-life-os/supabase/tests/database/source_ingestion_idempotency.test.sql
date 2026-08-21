@@ -2,7 +2,13 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(7);
+select plan(8);
+
+select is(
+    has_function_privilege('anon', 'public.create_source_item(text,text,text,uuid)', 'execute'),
+    false,
+    'anonymous role cannot execute idempotent source creation RPC'
+);
 
 insert into auth.users (id, email)
 values ('77777777-7777-4777-8777-777777777777', 'offline-idempotency@example.test');
