@@ -31,7 +31,7 @@ Repository purpose: persistent handoff/state repository for the full App Factory
 | 008 | BeforeAfter | Guided repeat photography/alignment/comparison | Pro / Lifetime | QUEUED |
 | 009 | ScamLens | Analyze screenshots/messages for suspicious indicators | Credits / Pro | QUEUED |
 | 010 | SwipeOrDie | Fast portrait reaction/high-score game | Ads + IAP | QUEUED |
-| 011 | Family Life OS (INTERNAL CODENAME) | Family Inbox: photo/PDF/text/voice -> reviewed events/tasks/deadlines/payments/preparation | Freemium + Family Pro subscription | BUILD 2 DEVICE + HOSTED E2E GREEN / AUTH DOUBLE-SESSION NEXT |
+| 011 | Family Life OS (INTERNAL CODENAME) | Family Inbox: photo/PDF/text/voice -> reviewed events/tasks/deadlines/payments/preparation | Freemium + Family Pro subscription | COMPLETE V1 / PR #31 MERGED / PR #34 FINAL PROMOTION |
 
 # Portfolio app #001 — KeepMeter
 
@@ -149,50 +149,110 @@ Authoritative app state:
 
 `apps/011-family-life-os/PROJECT_STATE.md`
 
-## Current checkpoint — 2026-08-19
+## Current checkpoint — 2026-08-21
 
-Family Life OS `0.1.0 (2)` has completed the updated physical-device validation pass on a real iPhone.
+Complete-v1 is the baseline. Do not regress #011 to the old Build-2-only roadmap.
 
-User-confirmed Build-2 results:
+Promotion state:
 
-- Build 2 processed by Apple, visible in TestFlight, installed and launches
-- PR #13 completion controls work in Plan and Today for deadline/payment/preparation items
-- completed state survives app restart through the hosted persistence path
-- Today uses the real current date/time-derived greeting
-- old Lina/Ben fixture leakage is gone from the hosted device UI
-- **Backend-Diagnose -> Hosted E2E jetzt prüfen** passes on the physical device, including cleanup
+- PR #31 `Family Life OS: harden timezone and review trust boundary`
+  - validated head `29b942fca118792146acc6079a0fe07697a3bd8d`
+  - Prototype / Database / Device-TestFlight validation — SUCCESS
+  - merged to `main` on 2026-08-21
+  - merge commit `0db452c41a4c197cb95d0bb48b9455561435f8d4`
+  - hosted Edge Function changes are still NOT deployed live
+- PR #34 `Family Life OS: durable offline source queue`
+  - branch `agent/family-life-os-offline-queue`
+  - retargeted to `main` after PR #31 merge
+  - latest fully validated application-code checkpoint before retarget: `fd7381e97c349dd282df5b12ffcf68c4bd476538`
+  - Prototype Build run `32455964319` — SUCCESS
+  - Database Tests run `32455964347` — SUCCESS
+  - iPhone/iPad device validation run `32455964321` — SUCCESS
+  - final post-retarget CI/merge is the current promotion step
+  - migration is still NOT deployed live
 
-This means the Build-2 device gate and the one-button hosted E2E gate are GREEN.
+PR #31 closes release-critical trust bugs:
 
-Still intentionally open:
+- household-timezone-aware extraction
+- no fabricated 09:00 for missing source times
+- all backend unresolved fields remain explicit blockers
+- member/time/start/due ambiguities resolve independently
+- offset-less provider timestamps rejected
 
-- fresh physical-device Magic Link callback/session round-trip
-- second real authenticated user/session through the Data API
-- Realtime
-- private Storage and photo/PDF intake
-- OCR
-- real AI extraction/provider
-- VoiceOver/release hardening
-- StoreKit/subscription
+PR #34 adds production-grade source durability:
 
-## Existing green checkpoints
+- text/photo/camera/PDF/voice captured locally before network work
+- atomic protected local queue
+- local Inbox visibility + manual send/discard
+- stable client request UUID + tenant-scoped idempotency
+- deterministic retry-safe Storage path
+- queue bound to authenticated user + household
+- server rejects cross-household routing
+- processing lease prevents duplicate parallel extraction after a lost Edge response
+- automatic `NWPathMonitor` resume on real offline -> online transition
+- initial/repeated online observations do not duplicate normal startup sync
 
-- PR #8 hosted Supabase vertical slice — MERGED / iOS + DB green
-- PR #9 Auth/RLS hardening — MERGED / iOS + DB green / two-household SQL isolation green
-- PR #10 authenticated hosted E2E harness — MERGED / compile green
-- PR #11 physical-device Release/TestFlight pipeline — MERGED
-- PR #12 App Store bundle validation fixes — MERGED
-- PR #13 completion/live-Today pass — MERGED / Simulator + Release/device CI green
-- App Store Connect app record — EXISTS
-- signed Build 2 `0.1.0 (2)` upload — SUCCESS
-- protected bridge run `32285397950`
-- Family Life upload job `96173603213`
-- exact upload result `UPLOAD SUCCEEDED with no errors.` / exit `0`
-- physical Build 2 installation — VERIFIED
-- hosted manual import path — VERIFIED on device
-- PR #13 completion/live-Today behavior — VERIFIED on device
-- hosted completion persistence after app restart — VERIFIED
-- Hosted E2E diagnostics including cleanup — VERIFIED on device
+Complete-v1 already includes:
+
+- hosted auth + invite acceptance
+- household/member management
+- realtime refresh
+- photo/camera/screenshot capture
+- PDF/document capture
+- text capture
+- voice recording + transcription
+- private Supabase Storage
+- image/PDF OCR
+- server-side structured extraction with deterministic fallback
+- review-before-confirmation and original-source provenance
+- source retry/archive lifecycle
+- agenda/week Plan + Plan CRUD + persisted completion
+- optimistic version conflicts + activity history
+- notification preferences/local reminders
+- biometric lock
+- StoreKit 2 Family Pro surface/restore
+- offline snapshot cache and share-extension intake foundations
+
+## Apple / TestFlight state
+
+Bundle ID:
+
+`de.kamilunavo.familyprototype`
+
+Apple team:
+
+`TKG684N5GL`
+
+Build 2 was physically installed and user-verified on iPhone, including persisted completion and hosted E2E diagnostics with cleanup.
+
+Build 3 is not missing. A later protected bridge attempt proved App Store Connect already contained build `3`: Apple rejected the duplicate attempt because the bundle version had to be higher than previously uploaded version `3`.
+
+Bridge evidence:
+
+- repo `acciento89-bot/onemorefloor`
+- run `32366765776`
+- bridge head `3f300e3a70f33d86a73a26195eea0b2f3775a9f9`
+
+Any next Apple upload must use build number greater than `3`.
+
+## Hosted/live boundary
+
+Hosted Supabase:
+
+- project ref `bqctetqraszsvknczjjr`
+- Frankfurt / `eu-central-1`
+- household locale/timezone `de-DE` / `Europe/Berlin`
+- RLS-enabled collaborative data model
+- active JWT-protected `process-family-source` Edge Function
+
+Not live yet:
+
+- PR #31 Edge Function timezone/trust changes
+- PR #34 source-ingestion idempotency migration/offline protocol
+
+Merging repository code does not deploy those changes. Do not run the new offline upload protocol against production until the hosted migration/function changes are intentionally promoted.
+
+Real provider evidence remains open: the last hosted audit only proved fixture extraction runs. Do not claim OpenAI extraction or `OPENAI_API_KEY` availability until a live `extraction_runs` record proves the provider/model.
 
 ## Product thesis / trust boundary
 
@@ -204,99 +264,22 @@ Core loop:
 
 `Import prüfen` remains the signature trust boundary:
 
-- source stays reachable
-- proposals stay editable/includable
-- unresolved required fields block confirmation
-- extraction/AI cannot silently create canonical family data
-- explicit confirmation mandatory
-- confirmed items retain source + proposal provenance
+- original source remains reachable
+- OCR/AI produces editable proposals only
+- unresolved required values block confirmation
+- never invent missing date/time/person data
+- explicit user confirmation creates canonical family data
+- confirmed items retain source/proposal provenance
 
-## Hosted backend / client state
+## #011 next promotion sequence
 
-Implementation path:
-
-`apps/011-family-life-os/prototype/`
-
-Project:
-
-`FamilyLifePrototype.xcodeproj`
-
-Target:
-
-- SwiftUI
-- iOS/iPadOS 18+
-- iPhone + iPad
-- bundle id `de.kamilunavo.familyprototype`
-- current internal build `0.1.0 (2)`
-
-Data boundary:
-
-`SwiftUI View -> DemoStore -> FamilyRepository -> data source`
-
-Implementations:
-
-- `InMemoryFamilyRepository`
-- `SupabaseFamilyRepository`
-
-Hosted Supabase:
-
-- project ref `bqctetqraszsvknczjjr`
-- Frankfurt / `eu-central-1`
-- Supabase Swift `2.54.1` pinned
-- publishable client key only
-- no service-role secret in app
-
-Current proven hosted device path includes household data, manual text import, proposal confirmation, canonical Plan data, provenance, persisted completion and authenticated E2E diagnostics with cleanup.
-
-## Auth redirect state
-
-Callback:
-
-`de.kamilunavo.familyprototype://login-callback`
-
-Hosted Supabase allow-list configuration is USER-CONFIRMED DONE on 2026-08-19.
-
-The remaining auth task is a deliberate fresh real-device Magic Link round-trip, not redirect configuration.
-
-## Apple/TestFlight state
-
-Known Apple team:
-
-- Team ID `TKG684N5GL`
-
-Canonical project workflow:
-
-`.github/workflows/family-life-os-testflight.yml`
-
-Current Apple/device state:
-
-- explicit Bundle ID `de.kamilunavo.familyprototype` — REGISTERED
-- App Store Connect app record — EXISTS
-- Build 2 signed upload — SUCCESS
-- Build 2 TestFlight processing/visibility — VERIFIED by user
-- Build 2 physical installation/launch — VERIFIED by user
-
-Obsolete blockers:
-
-- ASC secrets missing
-- Bundle ID missing
-- App Store Connect app record missing
-- provisioning profile as current blocker
-- signed upload not successful
-- Build 2 not installed
-- PR #13 still needs physical verification
-- Hosted E2E still untested
-
-## #011 next steps
-
-1. Explicitly test a fresh Magic Link round-trip through `de.kamilunavo.familyprototype://login-callback` and verify a valid hosted session returns to the app.
-2. Repeat authenticated Data API coverage with a second real user/session and verify household isolation from the client path.
-3. Add Realtime only after both remaining auth/session gates are green.
-4. Add private Storage + photo/PDF share intake.
-5. Add OCR after Storage/share intake is stable.
-6. Add real AI extraction last while retaining editable proposals + explicit confirmation.
-7. Gate diagnostics before external distribution and perform physical-device + VoiceOver QA.
-8. Add StoreKit/subscription only after the Family Inbox core is stable enough for release hardening.
+1. Finish the exact post-#31 `main` validation for PR #34.
+2. Merge PR #34 after the exact resulting head is green.
+3. Deploy Edge + migration to hosted Supabase only with explicit live-deployment authorization.
+4. Run live canaries for Europe/Berlin timezone, missing-time blocking, offline->online exactly-once ingestion, household isolation and processing-lease recovery.
+5. Inspect live `extraction_runs` provider/model.
+6. Publish the next TestFlight build using build number > 3.
+7. Perform physical-device offline/online QA and StoreKit/App Store release gates separately.
 
 ## #011 brand guardrail
 
@@ -332,10 +315,11 @@ Avoid generic house/checkmark, cartoon family, or robot/AI sparkle identity.
 
 1. Read this file first.
 2. For #002 read `apps/002-evidaro/PROJECT_STATE.md` and continue only from its current green/in-progress gate.
-3. For #011 read `apps/011-family-life-os/PROJECT_STATE.md` and `BACKEND_CONTRACT.md`.
-4. Inspect current `main` and latest relevant CI gates before code changes.
+3. For #011 read `apps/011-family-life-os/PROJECT_STATE.md` first; it is the detailed authoritative checkpoint.
+4. Inspect current `main`, PR #34 and latest relevant CI before source, merge or deployment changes.
 5. Do not regress KeepMeter to pre-TestFlight/pre-StoreKit state; it is submitted to Apple review.
 6. Do not regress #002 to `ProofVault`, `Evidaro` public branding, pre-Pass-8, pre-release or pre-TestFlight state; Pass 7/8 and Release PR #33 are merged and signed Build 1 upload succeeded.
-7. Do not claim physical camera, physical-iPhone OCR, real biometric prompt, VoiceOver, largest-Dynamic-Type or physical `.evpack` verification until explicitly exercised on hardware.
-8. Do not regress Family Life OS to “Build 2 not installed”, “PR #13 unverified” or “Hosted E2E untested”.
-9. Preserve every other portfolio entry when updating one workstream.
+7. Do not claim physical camera, physical-iPhone OCR, real biometric prompt, VoiceOver, largest-Dynamic-Type or physical `.evpack` verification for Kamilunavo Trace until explicitly exercised on hardware.
+8. Do not regress Family Life OS to Build-2-only, “Realtime/Storage/OCR not implemented”, or “Build 3 missing”.
+9. Do not claim PR #31/#34 behavior is live before explicit hosted deployment + verification.
+10. Preserve every other portfolio entry when updating one workstream.

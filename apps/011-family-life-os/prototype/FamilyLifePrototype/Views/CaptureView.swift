@@ -96,7 +96,7 @@ struct CaptureView: View {
             } header: {
                 Text("Quelle")
             } footer: {
-                Text("Fotos, PDFs und Sprache werden zuerst als Quelle gespeichert. Erkannte Aktionen werden immer in „Import prüfen“ bestätigt, bevor sie in den Familienplan gelangen.")
+                Text("Fotos, PDFs und Sprache werden zuerst lokal gesichert und dann synchronisiert. Erkannte Aktionen werden immer in „Import prüfen“ bestätigt, bevor sie in den Familienplan gelangen.")
             }
         }
     }
@@ -114,7 +114,7 @@ struct CaptureView: View {
                 Button("Analysieren") {
                     let clean = text.trimmingCharacters(in: .whitespacesAndNewlines)
                     guard !clean.isEmpty else { return }
-                    store.ingestSourceV1(.init(
+                    store.enqueueSourceV1(.init(
                         kind: .text,
                         title: cleanTitle(fallback: "Textimport"),
                         text: clean,
@@ -171,7 +171,7 @@ struct CaptureView: View {
                 Task {
                     if voice.isRecording {
                         guard let (data, transcript) = await voice.stopAndTranscribe() else { return }
-                        store.ingestSourceV1(.init(
+                        store.enqueueSourceV1(.init(
                             kind: .voice,
                             title: "Spracheingabe",
                             text: transcript.isEmpty ? nil : transcript,
@@ -232,7 +232,7 @@ struct CaptureView: View {
                 throw FamilyRepositoryError.invalidSource
             }
             let extracted = try? await FamilyOCRService.extractText(from: data, contentType: "image/jpeg")
-            store.ingestSourceV1(.init(
+            store.enqueueSourceV1(.init(
                 kind: .image,
                 title: "Foto / Screenshot",
                 text: nil,
@@ -274,7 +274,7 @@ struct CaptureView: View {
                 extracted = try? await FamilyOCRService.extractText(from: data, contentType: contentType)
             }
 
-            store.ingestSourceV1(.init(
+            store.enqueueSourceV1(.init(
                 kind: kind,
                 title: url.deletingPathExtension().lastPathComponent,
                 text: kind == .text ? extracted : nil,
@@ -292,7 +292,7 @@ struct CaptureView: View {
         isPreparing = true
         defer { isPreparing = false }
         let extracted = try? await FamilyOCRService.extractText(from: data, contentType: "image/jpeg")
-        store.ingestSourceV1(.init(
+        store.enqueueSourceV1(.init(
             kind: .image,
             title: "Foto",
             text: nil,

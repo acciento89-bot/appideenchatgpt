@@ -57,30 +57,56 @@ struct InboxView: View {
                         }
                         .buttonStyle(.plain)
                         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                            Button {
-                                store.archiveSourceV1(source.id, archived: true)
-                            } label: {
-                                Label("Archiv", systemImage: "archivebox")
-                            }
-                            .tint(.indigo)
-
-                            if source.status == .failed {
+                            if source.isLocalOnly {
                                 Button {
-                                    store.retrySourceV1(source.id, extractedText: source.sourceText)
+                                    store.retryQueuedSourceV1(source.id)
                                 } label: {
-                                    Label("Erneut", systemImage: "arrow.clockwise")
+                                    Label("Senden", systemImage: "arrow.up.circle")
                                 }
-                                .tint(.orange)
+                                .tint(.indigo)
+
+                                Button(role: .destructive) {
+                                    store.discardQueuedSourceV1(source.id)
+                                } label: {
+                                    Label("Verwerfen", systemImage: "trash")
+                                }
+                            } else {
+                                Button {
+                                    store.archiveSourceV1(source.id, archived: true)
+                                } label: {
+                                    Label("Archiv", systemImage: "archivebox")
+                                }
+                                .tint(.indigo)
+
+                                if source.status == .failed {
+                                    Button {
+                                        store.retrySourceV1(source.id, extractedText: source.sourceText)
+                                    } label: {
+                                        Label("Erneut", systemImage: "arrow.clockwise")
+                                    }
+                                    .tint(.orange)
+                                }
                             }
                         }
                         .contextMenu {
                             Button("Quelle ansehen", systemImage: "doc.viewfinder") { selectedSource = source }
-                            if source.status == .failed {
-                                Button("Analyse erneut versuchen", systemImage: "arrow.clockwise") {
-                                    store.retrySourceV1(source.id, extractedText: source.sourceText)
+                            if source.isLocalOnly {
+                                Button("Jetzt senden", systemImage: "arrow.up.circle") {
+                                    store.retryQueuedSourceV1(source.id)
+                                }
+                                Button("Lokale Quelle verwerfen", systemImage: "trash", role: .destructive) {
+                                    store.discardQueuedSourceV1(source.id)
+                                }
+                            } else {
+                                if source.status == .failed {
+                                    Button("Analyse erneut versuchen", systemImage: "arrow.clockwise") {
+                                        store.retrySourceV1(source.id, extractedText: source.sourceText)
+                                    }
+                                }
+                                Button("Archivieren", systemImage: "archivebox") {
+                                    store.archiveSourceV1(source.id, archived: true)
                                 }
                             }
-                            Button("Archivieren", systemImage: "archivebox") { store.archiveSourceV1(source.id, archived: true) }
                         }
                     }
                 }
@@ -88,7 +114,11 @@ struct InboxView: View {
         }
         .listStyle(.insetGrouped)
         .navigationTitle("Inbox")
-        .refreshable { await store.refreshHosted() }
+        .refreshable {
+            await store.refreshHosted()
+            await store.overlayOfflineSourcesV1()
+            await store.syncOfflineSourcesV1()
+        }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button { isCapturePresented = true } label: {
@@ -140,9 +170,9 @@ private struct InboxRow: View {
                 }
 
                 if let message = source.errorMessage {
-                    Label(message, systemImage: source.status == .failed ? "exclamationmark.triangle.fill" : "wifi.slash")
+                    Label(message, systemImage: source.isLocalOnly ? "externaldrive.badge.wifi" : (source.status == .failed ? "exclamationmark.triangle.fill" : "wifi.slash"))
                         .font(.caption)
-                        .foregroundStyle(source.status == .failed ? Color.red : Color.secondary)
+                        .foregroundStyle(source.status == .failed && !source.isLocalOnly ? Color.red : Color.secondary)
                 }
             }
 
@@ -161,7 +191,9 @@ private struct InboxRow: View {
     @ViewBuilder
     private var statusContent: some View {
         StatusPill(status: source.status)
-        if source.proposalCount > 0 {
+        if source.isLocalOnly {
+            Text("lokal gesichert").font(.caption).foregroundStyle(.secondary)
+        } else if source.proposalCount > 0 {
             Text("\(source.proposalCount) Vorschläge").font(.caption).foregroundStyle(.secondary)
         }
     }

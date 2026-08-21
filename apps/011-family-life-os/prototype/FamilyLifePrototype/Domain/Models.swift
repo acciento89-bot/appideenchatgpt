@@ -153,6 +153,8 @@ struct InboxSource: Identifiable, Hashable, Codable, Sendable {
     var fileName: String? = nil
     var sizeBytes: Int? = nil
     var isArchived: Bool = false
+    var clientRequestID: UUID? = nil
+    var isLocalOnly: Bool = false
 }
 
 enum ProposalReviewStatus: String, CaseIterable, Codable, Sendable {
@@ -306,10 +308,22 @@ struct SourceIngestionRequest: Sendable {
     var fileName: String?
     var contentType: String?
     var extractedText: String?
+    var clientRequestID: UUID? = nil
+    var targetHouseholdID: UUID? = nil
 }
 
 struct SourceDocumentData: Sendable {
     var data: Data
     var fileName: String
     var contentType: String
+}
+
+struct ConnectivityResumePolicy: Sendable {
+    private var previousAvailability: Bool?
+
+    mutating func shouldResumeSync(isNetworkAvailable: Bool) -> Bool {
+        defer { previousAvailability = isNetworkAvailable }
+        guard let previousAvailability else { return false }
+        return !previousAvailability && isNetworkAvailable
+    }
 }
