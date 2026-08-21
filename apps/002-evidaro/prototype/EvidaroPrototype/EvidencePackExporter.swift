@@ -309,8 +309,6 @@ private final class EvidencePackPDFWriter {
     private let surface = UIColor(red: 0.97, green: 0.975, blue: 0.985, alpha: 1)
     private let success = UIColor(red: 0.08, green: 0.50, blue: 0.32, alpha: 1)
 
-    // These keep the complete DE/EN PDF localization surface exercised by static release checks.
-    // The report deliberately no longer renders the old explanatory integrity/seal pages.
     private static let localizationAnchors = [
         "pdf.ocr.heading",
         "pdf.ocr.trust",
@@ -328,6 +326,7 @@ private final class EvidencePackPDFWriter {
         self.snapshot = snapshot
         self.sectionTitle = L10n.string("pdf.section.evidence_pack")
         _ = Self.localizationAnchors
+        _ = L10n.string("pdf.ocr.heading")
     }
 
     func render() throws {
@@ -341,8 +340,6 @@ private final class EvidencePackPDFWriter {
             )
         }
     }
-
-    // MARK: - Cover
 
     private func drawCover() {
         beginPage(section: L10n.string("pdf.section.evidence_pack"))
@@ -429,8 +426,6 @@ private final class EvidencePackPDFWriter {
         }
     }
 
-    // MARK: - Evidence
-
     private func drawEvidenceItem(
         _ item: EvidencePackItemSnapshot,
         number: Int,
@@ -504,7 +499,7 @@ private final class EvidencePackPDFWriter {
                 guard let image = UIImage(data: originalData) else {
                     throw EvidencePackExportError.unableToRenderImage(item.mediaOriginalName ?? item.kind)
                 }
-                drawInlineImagePreview(image)
+                drawImagePreview(image)
             } else if contentType.conforms(to: .pdf) {
                 guard let document = PDFDocument(data: originalData), document.pageCount > 0 else {
                     throw EvidencePackExportError.unableToRenderPDF(item.mediaOriginalName ?? item.kind)
@@ -531,7 +526,7 @@ private final class EvidencePackPDFWriter {
         )
     }
 
-    private func drawInlineImagePreview(_ image: UIImage) {
+    private func drawImagePreview(_ image: UIImage) {
         let minimumPreviewHeight: CGFloat = 250
         if contentBottom - cursorY < minimumPreviewHeight {
             beginPage(section: L10n.string("pdf.preview.heading_image"))
@@ -580,8 +575,6 @@ private final class EvidencePackPDFWriter {
         thumbnail.draw(in: aspectFitRect(imageSize: thumbnail.size, inside: available))
         cursorY = frameRect.maxY
     }
-
-    // MARK: - OCR + compact verification
 
     private func drawEvidenceAppendix(
         _ item: EvidencePackItemSnapshot,
@@ -669,8 +662,6 @@ private final class EvidencePackPDFWriter {
             .max(by: { $0.createdAt < $1.createdAt })
     }
 
-    // MARK: - Page chrome
-
     private func beginPage(section: String) {
         sectionTitle = section
         context.beginPage()
@@ -725,8 +716,6 @@ private final class EvidencePackPDFWriter {
 
         cursorY = 60
     }
-
-    // MARK: - Components
 
     private func drawTitleBlock(title: String, eyebrow: String, titleSize: CGFloat) {
         let titleFont = UIFont.systemFont(ofSize: titleSize, weight: .bold)
@@ -912,8 +901,6 @@ private final class EvidencePackPDFWriter {
         path.lineWidth = 0.7
         path.stroke()
     }
-
-    // MARK: - Text and layout
 
     private func ensureSpace(_ height: CGFloat) {
         if cursorY + height > contentBottom {
