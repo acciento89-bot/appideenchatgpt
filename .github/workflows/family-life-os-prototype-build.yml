@@ -75,6 +75,16 @@ jobs:
           grep -F 'Account und Daten löschen' apps/011-family-life-os/prototype/FamilyLifePrototype/Views/SettingsView.swift
           grep -F 'delete-family-data' apps/011-family-life-os/prototype/FamilyLifePrototype/Views/SettingsView.swift
 
+      - name: Verify AppIcon release asset
+        run: |
+          ICON='apps/011-family-life-os/prototype/FamilyLifePrototype/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png'
+          test -f "$ICON"
+          test "$(stat -f%z "$ICON")" -gt 15000
+          test "$(sips -g pixelWidth "$ICON" 2>/dev/null | awk '/pixelWidth/ {print $2}')" = '1024'
+          test "$(sips -g pixelHeight "$ICON" 2>/dev/null | awk '/pixelHeight/ {print $2}')" = '1024'
+          test "$(sips -g hasAlpha "$ICON" 2>/dev/null | awk '/hasAlpha/ {print $2}')" = 'no'
+          grep -F '"filename" : "AppIcon-1024.png"' apps/011-family-life-os/prototype/FamilyLifePrototype/Assets.xcassets/AppIcon.appiconset/Contents.json
+
       - name: Build Family Life OS prototype for iOS Simulator
         run: |
           set -o pipefail
