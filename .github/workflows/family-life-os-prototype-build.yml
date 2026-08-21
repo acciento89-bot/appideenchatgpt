@@ -36,6 +36,14 @@ jobs:
             -o /tmp/family-proposal-regression
           /tmp/family-proposal-regression
 
+      - name: Test offline queue model semantics
+        run: |
+          swiftc \
+            apps/011-family-life-os/prototype/FamilyLifePrototype/Domain/Models.swift \
+            apps/011-family-life-os/prototype/Tests/OfflineQueueModelRegression.swift \
+            -o /tmp/family-offline-queue-regression
+          /tmp/family-offline-queue-regression
+
       - name: Build Family Life OS prototype for iOS Simulator
         run: |
           set -o pipefail
