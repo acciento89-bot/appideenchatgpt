@@ -1,0 +1,53 @@
+name: Family Life OS Scoped Actor Fix
+
+on:
+  push:
+    branches:
+      - 'agent/family-pro-release-hardening'
+    paths:
+      - '.github/workflows/family-life-os-actor-fix.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout release branch
+        uses: actions/checkout@v5
+        with:
+          ref: agent/family-pro-release-hardening
+          fetch-depth: 0
+
+      - name: Apply exact one-line actor isolation fix
+        shell: bash
+        run: |
+          set -euo pipefail
+          FILE='apps/011-family-life-os/prototype/FamilyLifePrototype/Data/CompleteV1Services.swift'
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('apps/011-family-life-os/prototype/FamilyLifePrototype/Data/CompleteV1Services.swift')
+          text = path.read_text()
+          old = '    private var transactionUpdatesTask: Task<Void, Never>?\n'
+          new = '    private nonisolated(unsafe) var transactionUpdatesTask: Task<Void, Never>?\n'
+          count = text.count(old)
+          if count != 1:
+              raise SystemExit(f'expected exactly one transaction task declaration, found {count}')
+          path.write_text(text.replace(old, new, 1))
+          PY
+          rm -- '.github/workflows/family-life-os-actor-fix.yml'
+          git diff --check
+          git diff -- "$FILE" '.github/workflows/family-life-os-actor-fix.yml'
+
+      - name: Commit scoped fix and remove helper workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          FILE='apps/011-family-life-os/prototype/FamilyLifePrototype/Data/CompleteV1Services.swift'
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- "$FILE" '.github/workflows/family-life-os-actor-fix.yml'
+          git commit -m 'Fix Family Pro transaction task isolation'
+          git push origin HEAD:agent/family-pro-release-hardening
