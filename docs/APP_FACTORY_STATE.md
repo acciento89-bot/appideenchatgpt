@@ -2,7 +2,7 @@
 
 Last updated: 2026-08-21
 Status: ACTIVE
-Current user-selected workstream: #011 Family Life OS — hosted backend promoted / Build 4 uploaded / physical live canary next
+Current user-selected workstream: #011 Family Life OS — Build 4 physically verified / OpenAI live / household isolation + StoreKit next
 Repository purpose: persistent handoff/state repository for the full App Factory so work can continue across chat limits and new conversations without losing decisions or progress.
 
 > This file is the portfolio-level single source of truth. Read it first, then the selected app-specific state. Detailed historical checkpoints remain in Git history.
@@ -31,7 +31,7 @@ Repository purpose: persistent handoff/state repository for the full App Factory
 | 008 | BeforeAfter | Guided repeat photography/alignment/comparison | Pro / Lifetime | QUEUED |
 | 009 | ScamLens | Analyze screenshots/messages for suspicious indicators | Credits / Pro | QUEUED |
 | 010 | SwipeOrDie | Fast portrait reaction/high-score game | Ads + IAP | QUEUED |
-| 011 | Family Life OS (INTERNAL CODENAME) | Family Inbox: photo/PDF/text/voice -> reviewed events/tasks/deadlines/payments/preparation | Freemium + Family Pro subscription | COMPLETE V1 + PR31/34 MERGED + SUPABASE LIVE + BUILD 4 UPLOADED / PHYSICAL CANARY NEXT |
+| 011 | Family Life OS (INTERNAL CODENAME) | Family Inbox: photo/PDF/text/voice -> reviewed events/tasks/deadlines/payments/preparation | Freemium + Family Pro subscription | COMPLETE V1 + PR31/34/40 MERGED + SUPABASE/OPENAI LIVE + BUILD 4 PHYSICAL QA IN PROGRESS |
 
 # Portfolio app #001 — KeepMeter
 
@@ -47,10 +47,10 @@ Current checkpoint:
 - Free tier: 5 active purchases
 - StoreKit 2 Lifetime Pro product `de.kamilunavo.keepmeter.pro.lifetime`
 - Lifetime Pro purchase, entitlement, restore and relaunch were user-verified on TestFlight/device
-- App Store Connect metadata, screenshots, age rating, content rights, DSA and review information were completed by the user
-- KeepMeter `0.1.0 (1)` was submitted to Apple App Review on 2026-08-20
+- App Store Connect metadata, screenshots, age rating, content rights, DSA and review information completed
+- KeepMeter `0.1.0 (1)` submitted to Apple App Review on 2026-08-20
 - repository Gate #27 records `App Store Review submitted / Apple review decision pending`
-- KeepMeter gate/documentation PR #34 merged; merge commit `2d99da17f712bb6de911fd92561a91cd149eaf16`
+- KeepMeter gate/documentation PR #34 merged; merge `2d99da17f712bb6de911fd92561a91cd149eaf16`
 
 Do not regress KeepMeter to “StoreKit/ASC/TestFlight still open.” The next meaningful external event is Apple's review decision or review feedback.
 
@@ -62,11 +62,10 @@ Authoritative app state:
 
 Naming:
 
-- original working title `ProofVault` is retired because a substantially overlapping iPhone/iPad app now uses `ProofVault: Document Vault`
-- `Evidaro` is retired as the public name and retained only where historical internal paths/fixtures make renaming unnecessary
-- updated 2026-08-20 public-web research found an existing `Evidaro` project in the housing-conditions / housing-disrepair space with a surveyor-oriented product direction
-- final public name is locked for this release as `Kamilunavo Trace`
-- no repository research should be treated as legal trademark clearance
+- `ProofVault` retired because a substantially overlapping iPhone/iPad app now uses `ProofVault: Document Vault`
+- `Evidaro` retired as public name; retained only in historical internal paths/fixtures
+- final public name locked for this release as `Kamilunavo Trace`
+- repository research is not legal trademark clearance
 
 Product thesis:
 
@@ -84,60 +83,32 @@ Merged green passes:
 - Pass 3 handoff — PR #23 — merge `0be5e5e08bdd045bbb0994c1da508d9a86ab6951`
 - Pass 4 local derived Apple Vision OCR — PR #24 — merge `ad3876dbac044759223d0bdf7a1c095e461bc16b`
 - Pass 5 integrity-checked multi-page PDF evidence pack — PR #27 — merge `22f8b560c2529fb064feaa591b901acecf8da573`
-- Pass 6 optional device-owner-auth privacy lock — PR #28 — final head `a55f55ebe72280e411670f4757624914d0c1d6ed`, merge `f6e68210c38b1a1715de2908dd70e1da6c6a476d`
+- Pass 6 optional device-owner-auth privacy lock — PR #28 — merge `f6e68210c38b1a1715de2908dd70e1da6c6a476d`
+- Pass 7 DE/EN localization + accessibility — PR #29 — merge `bf3ecf74887c08d52bbadf11a13174c83133b093`
+- Pass 8 `.evpack` verification — PR #32 — merge `e5c57335888a80e120fefea686b29f6ed8715b2f`
 
-Pass 7 — GREEN / MERGED:
+Release pass — GREEN / MERGED / BUILD 1 UPLOADED:
 
-- PR #29 `Add Evidaro DE/EN localization and accessibility hardening` — MERGED
-- final PR head `84ef850678551e7cb0f22004c05e070adabece9d`
-- exact workflow run `32383741929` / run #82 — **SUCCESS**
-- build job `96473002571` — **SUCCESS**
-- merge commit `bf3ecf74887c08d52bbadf11a13174c83133b093`
-
-Pass-7 implementation includes:
-
-- explicit English and German resources for app UI and camera/Face ID usage descriptions
-- hash-stable persisted enum raw values with separate localized presentation names
-- localized Home, case creation, evidence intake, case detail, OCR controls, privacy lock and device-auth prompts
-- Dynamic Type adaptive home/action layouts
-- VoiceOver headings, combined case-card semantics and full-hash accessibility labels/values
-- full DE/EN localization of the generated evidence-pack PDF: metadata, cover, fields, OCR labels, image/PDF preview pages, seal history, continuation text, footer and export errors
-- English and German PDF process-relaunch gates
-- localization/presentation changes do not alter original media bytes, evidence-record hashes, manifests or seals
-
-Pass-7 completion:
-- final head `84ef850678551e7cb0f22004c05e070adabece9d` passed preflight, Xcode Simulator, persistence, OCR, English PDF, German PDF, privacy lock and German runtime localization before merge
-
-Pass 8 — GREEN / MERGED:
-
-- PR #32 — MERGED
-- final exact head `d3af5d59abea850dd7724beb92e223a691172ba3`
-- full simulator run `32408185123` / run #98 — SUCCESS
-- merge `e5c57335888a80e120fefea686b29f6ed8715b2f`
-- `.evpack` valid/tamper/derived-OCR/process-relaunch checks green
-
-Release pass — Kamilunavo Trace — GREEN / MERGED / BUILD 1 UPLOADED:
-
-- PR #33 — GREEN / MERGED
+- PR #33 — merged
 - final tested release head `090b1471…`
 - static release run `32412043585` — SUCCESS
-- unsigned iPhone Release/TestFlight validation run `32412043598` — SUCCESS
-- full simulator integrity/relaunch run `32412043953` — SUCCESS
+- unsigned iPhone Release/TestFlight validation `32412043598` — SUCCESS
+- full simulator integrity/relaunch `32412043953` — SUCCESS
 - release merge `69b8a1d99082ff804f2a532c636af3008d79546a`
 - public name `Kamilunavo Trace`; bundle `de.kamilunavo.trace`
-- public `.evpack` v1 format id `de.kamilunavo.trace.evpack`
+- `.evpack` v1 format id `de.kamilunavo.trace.evpack`
 - Lifetime Pro non-consumable `de.kamilunavo.trace.pro.lifetime`
 - Free: up to 3 cases; received-bundle verification remains free
 - Pro: unlimited cases + PDF export + `.evpack` export
-- App Store Connect app record — EXISTS
-- signed TestFlight Build 1 `0.1.0 (1)` upload — SUCCESS via protected One More Floor bridge
-- bridge run `32445560808`; upload job `96665754912`; Apple export result `Upload succeeded.` / `EXPORT SUCCEEDED`
-- Apple processing / TestFlight visibility — PENDING external confirmation
+- App Store Connect app record exists
+- signed TestFlight Build 1 `0.1.0 (1)` upload succeeded via protected bridge
+- bridge run `32445560808`; upload job `96665754912`
+- Apple processing / TestFlight visibility remains an external confirmation gate
 
-External next:
+External next for #002:
 
-- create/configure Lifetime Pro IAP `de.kamilunavo.trace.pro.lifetime` and final price if not already done
-- wait for/confirm Apple TestFlight processing visibility
+- create/configure Lifetime Pro IAP and final price if not already done
+- confirm Apple TestFlight processing visibility
 - physical iPhone camera/OCR/biometric/VoiceOver/Dynamic Type QA
 - real TestFlight Lifetime purchase, relaunch entitlement recovery and Restore
 
@@ -151,24 +122,33 @@ Authoritative detailed state:
 
 ## Current checkpoint — 2026-08-21
 
-Complete-v1 is the baseline. PR #31 and PR #34 are merged, their hosted backend changes have been intentionally promoted, and Family Life OS `0.1.0 (4)` has been successfully handed to App Store Connect/TestFlight.
+Complete-v1 is the baseline. PR #31, PR #34 and PR #40 are merged. Hosted Supabase migration + Edge v3 are live. Build 4 is visible in TestFlight, installed on a physical iPhone, and has completed the first real production-runtime canaries. OpenAI is now production-proven.
 
 ### Repository promotion
 
 PR #31:
 
-- final validated head `29b942fca118792146acc6079a0fe07697a3bd8d`
+- validated head `29b942fca118792146acc6079a0fe07697a3bd8d`
 - merge `0db452c41a4c197cb95d0bb48b9455561435f8d4`
 
 PR #34:
 
-- final exact post-main head `1802a909b27e61ee4ecc5b0ce3d8f9342529d84d`
+- final exact head `1802a909b27e61ee4ecc5b0ce3d8f9342529d84d`
 - Database Tests `32464891177` — SUCCESS
 - Prototype Build `32464891211` — SUCCESS
 - iPhone/iPad validation `32464891184` — SUCCESS
 - merge `1de4a500b15fa733306f75605f817dd10b5fa43b`
 
-Do not regress either PR to open/pending/unmerged state.
+PR #40:
+
+- fixes fallback parser treating dotted German date `21.08.` as clock time `21:08`
+- head `8df3e5fc5a1cd1ae67d0889ba0732772dd183276`
+- Prototype Build `32473333689` — SUCCESS
+- Database Tests `32473333746` — SUCCESS
+- merge `ad531aef1f2c78b6d04df1a2217353157001e824`
+- fallback marker is now `family-rules-v3`
+
+Do not regress these PRs to open/pending/unmerged state.
 
 ### Hosted Supabase — LIVE
 
@@ -178,63 +158,49 @@ Project:
 - Frankfurt / `eu-central-1`
 - household locale/timezone `de-DE` / `Europe/Berlin`
 
-Promoted on 2026-08-21:
+Live backend:
 
 - migration `source_ingestion_idempotency`
-- hosted `process-family-source` Edge Function version `2`
+- hosted `process-family-source` Edge Function version `3`
 - Edge status `ACTIVE`
 - JWT verification enabled
+- schema version `3`
 
 Post-migration verification:
 
 - `source_items.client_request_id` exists
 - tenant-scoped idempotency index exists
-- 5-argument `create_source_item` and 7-argument `finalize_source_upload` are active
+- 5-argument `create_source_item` and 7-argument `finalize_source_upload` active
 - `anon` execute denied
 - `authenticated` execute granted
 
-Production DB canary was run inside a transaction and rolled back. It proved:
+DB rollback canary proved same-request idempotency, wrong-household rejection, deferred-finalize idempotency and lost-response retry behavior.
 
-- duplicate `clientRequestID` resolves to one source
-- wrong-household routing is rejected
-- deferred upload finalize is idempotent and remains queued
-- simulated lost-response retry still resolves to one source
-- no canary rows were intentionally retained
+### Physical Build-4 runtime evidence
 
-### Timezone/review trust now deployed
+Rules fallback:
 
-- household IANA timezone used for deterministic extraction
-- no invented 09:00 for missing source time
-- member/time/start/due blockers remain independent
-- explicit offset/Z required for provider timestamps
-- unresolved proposals receive no reminder suggestion
+- initial `family-rules-v2` canary exposed the dotted-date bug (`21.08.` -> 21:08)
+- Edge v3 / `family-rules-v3` corrected the same source to 18:00 Europe/Berlin
+- date-without-time source remained `time = required`
+- no reminder was produced while time was unresolved
 
-### Edge/provider evidence boundary
+Offline queue:
 
-Do not overclaim the runtime provider.
+- offline source appears immediately as `Wartet auf Upload` / `lokal gesichert`
+- local source survives app termination/relaunch while offline
+- reconnect automatically resumes sync
+- separately created test sources had separate client request IDs and exactly one server row per request ID
 
-After deployment there had not yet been a real authenticated Edge-v2 canary. The latest observed `extraction_runs` still contained only older fixture evidence (`fixture` / `school-letter-v1`, schema 1).
+OpenAI:
 
-Therefore do not claim:
+- user configured `OPENAI_API_KEY` in hosted Supabase secrets
+- real schema-v3 run proved `provider = openai`, `model = gpt-5.6-luna`
+- `Elternabend am 26.08.2026 um 18:30` stored as `16:30Z` = 18:30 Europe/Berlin
+- date-without-time `Elternabend am 27.08.2026` remained `time = required`
+- missing-time OpenAI proposal had no reminder
 
-- `OPENAI_API_KEY` exists
-- OpenAI has run in production
-- rules fallback has run on Edge v2
-- 18:00 Europe/Berlin behavior has been proven by a live schema-v3 extraction
-
-The first Build-4 source import is the next proof point; inspect its resulting `extraction_runs` provider/model afterward.
-
-### Durable offline source path now deployed
-
-- text/photo/camera/PDF/voice are persisted locally before network work
-- queue survives app restart
-- local Inbox visibility
-- stable client request UUID
-- tenant-scoped server idempotency
-- deterministic retry-safe Storage path/upsert
-- queue bound to authenticated user + household
-- automatic `NWPathMonitor` offline -> online resume
-- fresh processing lease avoids duplicate parallel extraction after lost response
+The production provider boundary is closed: both `family-rules-v3` and OpenAI are proven live.
 
 ### Apple / TestFlight
 
@@ -258,30 +224,37 @@ Build 4:
 - bridge commit `bc77c18f5ee5ef65ea2a1822635fc86c8b41fa10`
 - workflow run `32466397060`
 - upload job `96723790084`
-- source built from `appideenchatgpt/main`
 - Apple exporter: `ARCHIVE SUCCEEDED`, `Upload succeeded`, `EXPORT SUCCEEDED`
-- bridge result: SUCCESS
+- user confirmed Build 4 visible in TestFlight and installed it
+- physical runtime canaries above were performed with Build 4
 
-Safe claim: Build 4 was successfully uploaded/handed to App Store Connect/TestFlight.
-
-Apple processing/TestFlight visibility remains pending until externally observed.
+PR #40 is server-side; no new TestFlight build is required solely for that parser fix.
 
 ### Security / StoreKit boundaries
 
-Security advisor still reports security-definer warnings for the ingestion RPCs and the older hosted E2E RPC, plus leaked-password protection disabled. The new ingestion RPCs are nevertheless execution-restricted to authenticated users and enforce household permission checks. Do not describe the advisor warnings as resolved.
+Security advisor still reports security-definer warnings for the ingestion RPCs and older hosted E2E RPC plus leaked-password protection disabled. The ingestion RPCs remain execution-restricted to authenticated users and perform household permission checks. Do not describe advisor warnings as resolved.
 
-StoreKit 2 Family Pro foundation exists, but paid release readiness is not proven until App Store Connect IAP products and a real sandbox/TestFlight purchase + restore path are verified.
+StoreKit 2 Family Pro foundation exists for:
+
+- monthly `de.kamilunavo.family.familypro.monthly`
+- annual `de.kamilunavo.family.familypro.annual`
+- product loading
+- entitlement observation
+- purchase
+- Restore via `AppStore.sync()`
+
+Paid release readiness is not proven until App Store Connect products and a real TestFlight/sandbox purchase, relaunch entitlement recovery and Restore are physically verified.
 
 ## #011 next physical sequence
 
 One step at a time:
 
-1. Wait until Build 4 is visible in TestFlight and install it.
-2. First live Edge-v2 canary: capture exactly `Elternabend am 21.08.2026 um 18:00 Uhr.` and verify review displays 18:00 Europe/Berlin.
-3. Inspect the resulting hosted schema-v3 `extraction_runs` provider/model.
-4. Then test date without time -> explicit unresolved time, never fake 09:00.
-5. Then test offline capture -> reconnect -> exactly one source.
-6. Then finish physical account/household isolation and StoreKit/release QA.
+1. Physical household/account isolation, especially ownership of locally queued sources across login/household changes.
+2. Verify monthly + annual Family Pro products in App Store Connect.
+3. Real TestFlight/sandbox purchase.
+4. Relaunch entitlement recovery.
+5. Restore / `AppStore.sync()`.
+6. Remaining App Store release metadata/device gates.
 
 ## #011 product/trust guardrail
 
@@ -305,12 +278,12 @@ Core loop:
 ## Handoff rule for new chats
 
 1. Read this file first.
-2. For #002 read `apps/002-evidaro/PROJECT_STATE.md` and preserve its current Kamilunavo Trace release state.
-3. For #011 read `apps/011-family-life-os/PROJECT_STATE.md` first; it is the detailed authoritative checkpoint.
-4. Inspect current `main` and any newer Family PRs before code changes.
-5. Do not regress KeepMeter to pre-TestFlight/pre-StoreKit state; it is submitted to Apple review.
-6. Do not regress Kamilunavo Trace to `ProofVault`, `Evidaro` public branding, pre-Pass-8, pre-release or pre-TestFlight state.
-7. Do not regress Family Life OS to Build-2-only, PR31/34-pending, backend-not-deployed, or Build-3-missing state.
-8. Treat Family Edge v2 + migration as live, but do not claim a real provider run until a schema-v3 hosted extraction proves it.
-9. Treat Build 4 as uploaded successfully, while processing/visibility remains unconfirmed until observed.
+2. For #001 preserve KeepMeter as submitted to Apple review with StoreKit/TestFlight already proven.
+3. For #002 read `apps/002-evidaro/PROJECT_STATE.md`; preserve Kamilunavo Trace public branding, merged Pass 7/8/release state and successful Build 1 upload.
+4. For #011 read `apps/011-family-life-os/PROJECT_STATE.md`; it is the detailed authoritative checkpoint.
+5. Inspect current `main` and newer Family PRs before changes.
+6. Do not regress Family Life OS to Build-2-only, Build-3-missing, PR31/34/40-pending, backend-not-deployed, provider-unproven or Build-4-not-installed state.
+7. Treat Family Edge v3 + idempotency migration as live.
+8. Treat both `family-rules-v3` and `openai` / `gpt-5.6-luna` production execution as proven.
+9. Preserve the Review trust boundary and household isolation on every future Family pass.
 10. Preserve every other portfolio entry when updating one workstream.
