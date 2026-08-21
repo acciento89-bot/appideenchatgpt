@@ -1,0 +1,175 @@
+name: Kamilunavo Trace PDF Visual QA
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'apps/002-evidaro/prototype/EvidaroPrototype/EvidencePackExporter.swift'
+      - 'apps/002-evidaro/prototype/EvidaroPrototype/de.lproj/Localizable.strings'
+      - 'apps/002-evidaro/prototype/EvidaroPrototype/en.lproj/Localizable.strings'
+      - '.github/workflows/kamilunavo-trace-pdf-visual-qa.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  render-pdf:
+    runs-on: macos-26
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Run Trace preflight
+        run: python3 apps/002-evidaro/ci/preflight.py
+
+      - name: Build and install simulator app
+        shell: bash
+        run: |
+          set -euo pipefail
+          DEVICE_UDID="$(xcrun simctl list devices available -j | python3 -c '
+          import json, sys
+          data = json.load(sys.stdin)
+          for devices in data.get("devices", {}).values():
+              for device in devices:
+                  if device.get("isAvailable") and device.get("name", "").startswith("iPhone"):
+                      print(device["udid"])
+                      raise SystemExit(0)
+          raise SystemExit("No available iPhone simulator found")
+          ')"
+          echo "DEVICE_UDID=$DEVICE_UDID" >> "$GITHUB_ENV"
+          xcrun simctl boot "$DEVICE_UDID" 2>/dev/null || true
+          xcrun simctl bootstatus "$DEVICE_UDID" -b
+
+          rm -rf /tmp/trace-pdf-qa-derived
+          xcodebuild \
+            -project apps/002-evidaro/prototype/EvidaroPrototype.xcodeproj \
+            -scheme EvidaroPrototype \
+            -configuration Debug \
+            -destination "id=$DEVICE_UDID" \
+            -derivedDataPath /tmp/trace-pdf-qa-derived \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+
+          APP_PATH="/tmp/trace-pdf-qa-derived/Build/Products/Debug-iphonesimulator/EvidaroPrototype.app"
+          BUNDLE_ID="de.kamilunavo.trace"
+          xcrun simctl uninstall "$DEVICE_UDID" "$BUNDLE_ID" 2>/dev/null || true
+          xcrun simctl install "$DEVICE_UDID" "$APP_PATH"
+          DATA_CONTAINER="$(xcrun simctl get_app_container "$DEVICE_UDID" "$BUNDLE_ID" data)"
+          echo "DATA_CONTAINER=$DATA_CONTAINER" >> "$GITHUB_ENV"
+
+      - name: Seed and verify deterministic OCR fixture
+        shell: bash
+        run: |
+          set -euo pipefail
+          BUNDLE_ID="de.kamilunavo.trace"
+          SMOKE_DIR="$DATA_CONTAINER/Library/Application Support/EvidaroSmoke"
+
+          rm -f "$SMOKE_DIR/failed.txt" "$SMOKE_DIR/ocr-prepared.txt" "$SMOKE_DIR/ocr-verified.txt"
+          xcrun simctl launch "$DEVICE_UDID" "$BUNDLE_ID" --evidaro-persistence-smoke ocr-prepare -AppleLanguages "(de)" -AppleLocale "de_DE"
+          for _ in $(seq 1 30); do
+            test -f "$SMOKE_DIR/ocr-prepared.txt" && break
+            test -f "$SMOKE_DIR/failed.txt" && { cat "$SMOKE_DIR/failed.txt"; exit 1; }
+            sleep 1
+          done
+          test -f "$SMOKE_DIR/ocr-prepared.txt"
+          grep -q '^ocr-prepared text=' "$SMOKE_DIR/ocr-prepared.txt"
+          grep -qi 'EVIDARO' "$SMOKE_DIR/ocr-prepared.txt"
+          grep -q '4827' "$SMOKE_DIR/ocr-prepared.txt"
+          cat "$SMOKE_DIR/ocr-prepared.txt"
+
+          xcrun simctl terminate "$DEVICE_UDID" "$BUNDLE_ID"
+          xcrun simctl launch "$DEVICE_UDID" "$BUNDLE_ID" --evidaro-persistence-smoke ocr-verify -AppleLanguages "(de)" -AppleLocale "de_DE"
+          for _ in $(seq 1 20); do
+            test -f "$SMOKE_DIR/ocr-verified.txt" && break
+            test -f "$SMOKE_DIR/failed.txt" && { cat "$SMOKE_DIR/failed.txt"; exit 1; }
+            sleep 1
+          done
+          test -f "$SMOKE_DIR/ocr-verified.txt"
+          grep -q '^ocr-verified text=' "$SMOKE_DIR/ocr-verified.txt"
+          grep -qi 'EVIDARO' "$SMOKE_DIR/ocr-verified.txt"
+          grep -q '4827' "$SMOKE_DIR/ocr-verified.txt"
+          cat "$SMOKE_DIR/ocr-verified.txt"
+          xcrun simctl terminate "$DEVICE_UDID" "$BUNDLE_ID" || true
+
+      - name: Generate and verify German PDF smoke pack
+        shell: bash
+        run: |
+          set -euo pipefail
+          BUNDLE_ID="de.kamilunavo.trace"
+          SMOKE_DIR="$DATA_CONTAINER/Library/Application Support/EvidaroSmoke"
+          PDF_PATH="$DATA_CONTAINER/Library/Application Support/EvidaroExports/Kamilunavo-Trace-44444444-4444-4444-8444-444444444444-Evidence-Pack.pdf"
+
+          rm -f "$SMOKE_DIR/failed.txt" "$SMOKE_DIR/pack-prepared.txt" "$SMOKE_DIR/pack-verified.txt"
+          xcrun simctl launch "$DEVICE_UDID" "$BUNDLE_ID" --evidaro-persistence-smoke pack-prepare -AppleLanguages "(de)" -AppleLocale "de_DE"
+          for _ in $(seq 1 30); do
+            test -f "$SMOKE_DIR/pack-prepared.txt" && break
+            test -f "$SMOKE_DIR/failed.txt" && { cat "$SMOKE_DIR/failed.txt"; exit 1; }
+            sleep 1
+          done
+          test -f "$SMOKE_DIR/pack-prepared.txt"
+          test -f "$PDF_PATH"
+          PREPARED_HASH="$(sed -E 's/.*pdfHash=([0-9a-f]{64}).*/\1/' "$SMOKE_DIR/pack-prepared.txt")"
+          test "${#PREPARED_HASH}" -eq 64
+          cat "$SMOKE_DIR/pack-prepared.txt"
+
+          mkdir -p pdf-visual-qa
+          cp "$PDF_PATH" pdf-visual-qa/Kamilunavo-Trace-PDF-QA-de.pdf
+
+          xcrun simctl terminate "$DEVICE_UDID" "$BUNDLE_ID"
+          xcrun simctl launch "$DEVICE_UDID" "$BUNDLE_ID" --evidaro-persistence-smoke pack-verify -AppleLanguages "(de)" -AppleLocale "de_DE"
+          for _ in $(seq 1 20); do
+            test -f "$SMOKE_DIR/pack-verified.txt" && break
+            test -f "$SMOKE_DIR/failed.txt" && { cat "$SMOKE_DIR/failed.txt"; exit 1; }
+            sleep 1
+          done
+          test -f "$SMOKE_DIR/pack-verified.txt"
+          VERIFIED_HASH="$(sed -E 's/.*pdfHash=([0-9a-f]{64}).*/\1/' "$SMOKE_DIR/pack-verified.txt")"
+          test "$VERIFIED_HASH" = "$PREPARED_HASH"
+          cat "$SMOKE_DIR/pack-verified.txt"
+          xcrun simctl terminate "$DEVICE_UDID" "$BUNDLE_ID" || true
+
+      - name: Render every PDF page to PNG
+        shell: bash
+        run: |
+          cat > /tmp/render_trace_pdf.swift <<'SWIFT'
+          import AppKit
+          import Foundation
+          import PDFKit
+
+          guard CommandLine.arguments.count == 3 else { exit(2) }
+          let input = URL(fileURLWithPath: CommandLine.arguments[1])
+          let output = URL(fileURLWithPath: CommandLine.arguments[2], isDirectory: true)
+          guard let document = PDFDocument(url: input) else { exit(3) }
+          try FileManager.default.createDirectory(at: output, withIntermediateDirectories: true)
+
+          for index in 0..<document.pageCount {
+              guard let page = document.page(at: index) else { exit(4) }
+              let box = page.bounds(for: .mediaBox)
+              let scale: CGFloat = 2.0
+              let image = page.thumbnail(
+                  of: NSSize(width: box.width * scale, height: box.height * scale),
+                  for: .mediaBox
+              )
+              guard let tiff = image.tiffRepresentation,
+                    let bitmap = NSBitmapImageRep(data: tiff),
+                    let png = bitmap.representation(using: .png, properties: [:]) else { exit(6) }
+              let target = output.appendingPathComponent(String(format: "page-%02d.png", index + 1))
+              try png.write(to: target)
+          }
+          print("Rendered \(document.pageCount) pages")
+          SWIFT
+
+          swift /tmp/render_trace_pdf.swift \
+            "$PWD/pdf-visual-qa/Kamilunavo-Trace-PDF-QA-de.pdf" \
+            "$PWD/pdf-visual-qa/rendered"
+          test "$(find pdf-visual-qa/rendered -name 'page-*.png' | wc -l | tr -d ' ')" -ge 3
+
+      - name: Upload PDF visual QA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: kamilunavo-trace-pdf-visual-qa
+          path: pdf-visual-qa/
+          if-no-files-found: error
+          retention-days: 7

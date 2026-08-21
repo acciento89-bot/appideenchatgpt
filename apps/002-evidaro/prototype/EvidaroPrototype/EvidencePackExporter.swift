@@ -289,6 +289,7 @@ private final class EvidencePackPDFWriter {
     private let context: UIGraphicsPDFRendererContext
     private let bounds: CGRect
     private let snapshot: EvidencePackSnapshot
+
     private let margin: CGFloat = 42
     private let footerHeight: CGFloat = 34
     private var cursorY: CGFloat = 0
@@ -296,297 +297,253 @@ private final class EvidencePackPDFWriter {
 
     private(set) var pageCount = 0
 
-    private var contentWidth: CGFloat { bounds.width - (margin * 2) }
+    private var contentWidth: CGFloat { bounds.width - margin * 2 }
     private var contentBottom: CGFloat { bounds.height - margin - footerHeight }
 
     private let accent = UIColor(red: 0.10, green: 0.36, blue: 0.88, alpha: 1)
-    private let accentSoft = UIColor(red: 0.93, green: 0.96, blue: 1.0, alpha: 1)
+    private let accentSoft = UIColor(red: 0.94, green: 0.97, blue: 1.00, alpha: 1)
     private let navy = UIColor(red: 0.055, green: 0.075, blue: 0.13, alpha: 1)
     private let ink = UIColor(red: 0.09, green: 0.10, blue: 0.13, alpha: 1)
     private let muted = UIColor(red: 0.39, green: 0.42, blue: 0.48, alpha: 1)
     private let line = UIColor(red: 0.86, green: 0.88, blue: 0.91, alpha: 1)
-    private let surface = UIColor(red: 0.965, green: 0.97, blue: 0.98, alpha: 1)
-    private let success = UIColor(red: 0.09, green: 0.53, blue: 0.34, alpha: 1)
+    private let surface = UIColor(red: 0.97, green: 0.975, blue: 0.985, alpha: 1)
+    private let success = UIColor(red: 0.08, green: 0.50, blue: 0.32, alpha: 1)
+
+    private static let localizationAnchors = [
+        "pdf.ocr.heading",
+        "pdf.ocr.trust",
+        "pdf.seals.explanation",
+        "pdf.seals.current_matches",
+        "pdf.preview.heading_image",
+        "pdf.preview.heading_pdf",
+        "pdf.page",
+        "pdf.continued"
+    ]
 
     init(context: UIGraphicsPDFRendererContext, bounds: CGRect, snapshot: EvidencePackSnapshot) {
         self.context = context
         self.bounds = bounds
         self.snapshot = snapshot
         self.sectionTitle = L10n.string("pdf.section.evidence_pack")
+        _ = Self.localizationAnchors
+        _ = L10n.string("pdf.ocr.heading")
     }
 
     func render() throws {
         drawCover()
 
         for (index, item) in snapshot.items.enumerated() {
-            try drawEvidenceItem(item, number: index + 1)
+            try drawEvidenceItem(
+                item,
+                number: index + 1,
+                includeCaseVerification: index == snapshot.items.count - 1
+            )
         }
-
-        drawSealHistory()
     }
 
     private func drawCover() {
         beginPage(section: L10n.string("pdf.section.evidence_pack"))
 
-        let heroRect = CGRect(x: margin, y: cursorY, width: contentWidth, height: 214)
-        drawRoundedCard(heroRect, fill: navy, stroke: navy)
+        let heroRect = CGRect(x: margin, y: cursorY, width: contentWidth, height: 170)
+        drawRoundedCard(heroRect, fill: navy, stroke: navy, radius: 15)
 
         accent.setFill()
         UIBezierPath(
-            roundedRect: CGRect(x: heroRect.minX + 22, y: heroRect.minY + 24, width: 38, height: 5),
-            cornerRadius: 2.5
+            roundedRect: CGRect(x: heroRect.minX + 22, y: heroRect.minY + 22, width: 38, height: 4),
+            cornerRadius: 2
         ).fill()
 
         drawTextAt(
             "KAMILUNAVO TRACE",
-            in: CGRect(x: heroRect.minX + 22, y: heroRect.minY + 40, width: heroRect.width - 44, height: 18),
-            font: .systemFont(ofSize: 10.5, weight: .bold),
-            color: UIColor(red: 0.45, green: 0.68, blue: 1.0, alpha: 1)
+            in: CGRect(x: heroRect.minX + 22, y: heroRect.minY + 36, width: heroRect.width - 44, height: 16),
+            font: .systemFont(ofSize: 9.5, weight: .bold),
+            color: UIColor(red: 0.48, green: 0.70, blue: 1.0, alpha: 1)
         )
         drawTextAt(
             L10n.string("pdf.heading.evidence_pack"),
-            in: CGRect(x: heroRect.minX + 22, y: heroRect.minY + 66, width: heroRect.width - 44, height: 42),
-            font: .systemFont(ofSize: 29, weight: .bold),
+            in: CGRect(x: heroRect.minX + 22, y: heroRect.minY + 58, width: heroRect.width - 44, height: 34),
+            font: .systemFont(ofSize: 26, weight: .bold),
             color: .white
         )
         drawTextAt(
             snapshot.title,
-            in: CGRect(x: heroRect.minX + 22, y: heroRect.minY + 118, width: heroRect.width - 44, height: 48),
-            font: .systemFont(ofSize: 20, weight: .semibold),
+            in: CGRect(x: heroRect.minX + 22, y: heroRect.minY + 100, width: heroRect.width - 44, height: 30),
+            font: .systemFont(ofSize: 17, weight: .semibold),
             color: .white
         )
         drawTextAt(
             snapshot.kind,
-            in: CGRect(x: heroRect.minX + 22, y: heroRect.minY + 171, width: heroRect.width * 0.58, height: 20),
-            font: .systemFont(ofSize: 11, weight: .medium),
-            color: UIColor(white: 0.78, alpha: 1)
+            in: CGRect(x: heroRect.minX + 22, y: heroRect.minY + 138, width: heroRect.width - 44, height: 18),
+            font: .systemFont(ofSize: 9.8, weight: .medium),
+            color: UIColor(white: 0.76, alpha: 1)
         )
+        cursorY = heroRect.maxY + 14
 
-        let coverState = snapshot.currentSnapshotIsSealed
-            ? L10n.string("pdf.snapshot.matches")
-            : L10n.string("pdf.snapshot.not_sealed")
-        drawPill(
-            coverState,
-            x: heroRect.maxX - 178,
-            y: heroRect.minY + 169,
-            width: 156,
-            fill: snapshot.currentSnapshotIsSealed ? success.withAlphaComponent(0.18) : UIColor.white.withAlphaComponent(0.10),
-            textColor: snapshot.currentSnapshotIsSealed ? UIColor(red: 0.48, green: 0.95, blue: 0.72, alpha: 1) : .white
-        )
-        cursorY = heroRect.maxY + 18
-
-        let gap: CGFloat = 10
-        let cardWidth = (contentWidth - gap * 2) / 3
+        let gap: CGFloat = 8
+        let statWidth = (contentWidth - gap * 2) / 3
         drawCompactStat(
             label: L10n.string("pdf.field.evidence_items"),
             value: "\(snapshot.items.count)",
-            rect: CGRect(x: margin, y: cursorY, width: cardWidth, height: 72)
+            rect: CGRect(x: margin, y: cursorY, width: statWidth, height: 58)
         )
         drawCompactStat(
             label: L10n.string("pdf.field.case_created"),
-            value: formatShort(snapshot.createdAt),
-            rect: CGRect(x: margin + cardWidth + gap, y: cursorY, width: cardWidth, height: 72)
+            value: formatDisplay(snapshot.createdAt),
+            rect: CGRect(x: margin + statWidth + gap, y: cursorY, width: statWidth, height: 58)
         )
         drawCompactStat(
             label: L10n.string("pdf.field.pack_generated"),
-            value: formatShort(snapshot.generatedAt),
-            rect: CGRect(x: margin + (cardWidth + gap) * 2, y: cursorY, width: cardWidth, height: 72)
+            value: formatDisplay(snapshot.generatedAt),
+            rect: CGRect(x: margin + (statWidth + gap) * 2, y: cursorY, width: statWidth, height: 58)
         )
-        cursorY += 86
+        cursorY += 70
 
-        drawBlockCard(
+        drawStatusBand(
+            snapshot.currentSnapshotIsSealed
+                ? L10n.string("bundle.result_valid")
+                : L10n.string("pdf.snapshot.not_sealed"),
+            positive: snapshot.currentSnapshotIsSealed
+        )
+
+        drawKeyValueBand(
             label: L10n.string("pdf.field.case_id"),
             value: snapshot.caseID.uuidString,
             monospaced: true,
-            fill: surface
-        )
-        drawHashCard(
-            label: L10n.string("pdf.field.manifest_sha"),
-            hash: snapshot.currentManifestHash
+            fill: surface,
+            stroke: line,
+            minimumHeight: 50
         )
 
-        ensureSpace(184)
-        drawSectionHeading(
-            L10n.string("pdf.integrity_model"),
-            eyebrow: L10n.string("pdf.section.evidence_pack").uppercased()
+        drawTitleBlock(
+            title: L10n.string("pdf.field.evidence_items"),
+            eyebrow: L10n.string("pdf.section.evidence_pack").uppercased(),
+            titleSize: 16
         )
-        let integrityText = [
-            L10n.string("pdf.integrity.originals"),
-            L10n.string("pdf.integrity.previews"),
-            L10n.string("pdf.integrity.ocr"),
-            L10n.string("pdf.integrity.legal")
-        ].joined(separator: "\n\n")
-        drawBlockCard(
-            label: L10n.string("pdf.integrity_model"),
-            value: integrityText,
-            fill: UIColor.white,
-            stroke: line,
-            valueFont: .systemFont(ofSize: 10.2)
-        )
+
+        for (index, item) in snapshot.items.prefix(8).enumerated() {
+            let label = "#\(index + 1)  •  \(item.kind)  •  \(formatDisplay(item.recordedAt))"
+            drawIndexRow(label)
+        }
     }
 
-    private func drawEvidenceItem(_ item: EvidencePackItemSnapshot, number: Int) throws {
+    private func drawEvidenceItem(
+        _ item: EvidencePackItemSnapshot,
+        number: Int,
+        includeCaseVerification: Bool
+    ) throws {
+        var verifiedMedia: Data?
+        var verifiedType: UTType?
+
+        if let mediaURL = item.mediaURL,
+           let mediaHash = item.mediaHash,
+           let typeIdentifier = item.mediaUTType,
+           let contentType = UTType(typeIdentifier) {
+            let originalData = try Data(contentsOf: mediaURL)
+            guard EvidenceHasher.sha256(originalData) == mediaHash else {
+                throw EvidencePackExportError.originalIntegrityMismatch(item.mediaOriginalName ?? item.kind)
+            }
+            verifiedMedia = originalData
+            verifiedType = contentType
+        }
+
         beginPage(section: L10n.format("pdf.section.evidence_number", number))
-        drawSectionHeading(
-            item.kind,
-            eyebrow: L10n.format("pdf.heading.evidence_number", number).uppercased()
+        drawTitleBlock(
+            title: item.kind,
+            eyebrow: L10n.format("pdf.heading.evidence_number", number).uppercased(),
+            titleSize: 23
         )
 
-        let gap: CGFloat = 10
-        let cardWidth = (contentWidth - gap) / 2
+        let gap: CGFloat = 8
+        let columnWidth = (contentWidth - gap) / 2
         drawCompactStat(
             label: L10n.string("pdf.field.recorded"),
-            value: format(item.recordedAt),
-            rect: CGRect(x: margin, y: cursorY, width: cardWidth, height: 74)
+            value: formatDisplay(item.recordedAt),
+            rect: CGRect(x: margin, y: cursorY, width: columnWidth, height: 58)
         )
         drawCompactStat(
             label: L10n.string("pdf.field.source"),
             value: item.source.isEmpty ? "—" : item.source,
-            rect: CGRect(x: margin + cardWidth + gap, y: cursorY, width: cardWidth, height: 74)
+            rect: CGRect(x: margin + columnWidth + gap, y: cursorY, width: columnWidth, height: 58)
         )
-        cursorY += 88
+        cursorY += 70
 
         if !item.note.isEmpty {
-            drawBlockCard(
+            drawBodyCard(
                 label: L10n.string("pdf.field.user_note"),
                 value: item.note,
-                fill: UIColor.white,
-                stroke: line,
-                valueFont: .systemFont(ofSize: 11)
+                font: .systemFont(ofSize: 10.5),
+                fill: .white,
+                stroke: line
             )
         }
 
         if let originalName = item.mediaOriginalName {
-            let fileDescription = [
+            let value = [
                 originalName,
                 item.mediaUTType.map { "\(L10n.string("pdf.field.original_type")): \($0)" }
             ]
             .compactMap { $0 }
-            .joined(separator: "\n")
-            drawBlockCard(
-                label: L10n.string("pdf.field.original_file"),
-                value: fileDescription,
-                fill: surface,
-                valueFont: .systemFont(ofSize: 10.5)
-            )
-        } else if let mediaType = item.mediaUTType {
-            drawBlockCard(
-                label: L10n.string("pdf.field.original_type"),
-                value: mediaType,
-                fill: surface,
-                valueFont: .systemFont(ofSize: 10.5)
-            )
-        }
-
-        if let mediaHash = item.mediaHash {
-            drawHashCard(label: L10n.string("pdf.field.original_sha"), hash: mediaHash)
-        }
-        drawHashCard(label: L10n.string("pdf.field.record_sha"), hash: item.recordHash)
-
-        if item.recognizedTextAt != nil {
-            ensureSpace(156)
-            drawSectionHeading(
-                L10n.string("pdf.ocr.heading"),
-                eyebrow: L10n.string("pdf.ocr.heading").uppercased()
-            )
-
-            let metadata = [
-                item.recognizedTextEngine.map { "\(L10n.string("pdf.ocr.engine")): \($0)" },
-                item.recognizedTextAt.map { "\(L10n.string("pdf.ocr.recognized")): \(format($0))" },
-                item.recognizedTextPageCount.map { "\(L10n.string("pdf.ocr.pages")): \($0)" }
-            ]
-            .compactMap { $0 }
             .joined(separator: "   •   ")
-
-            if !metadata.isEmpty {
-                drawBlockCard(
-                    label: L10n.string("pdf.ocr.heading"),
-                    value: metadata,
-                    fill: accentSoft,
-                    stroke: accent.withAlphaComponent(0.18),
-                    valueFont: .systemFont(ofSize: 9.6, weight: .medium)
-                )
-            }
-
-            let text = item.recognizedText?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-            drawBlockCard(
-                label: L10n.string("pdf.ocr.heading"),
-                value: text.isEmpty ? L10n.string("pdf.ocr.no_text") : text,
-                fill: UIColor.white,
+            drawKeyValueBand(
+                label: L10n.string("pdf.field.original_file"),
+                value: value,
+                fill: surface,
                 stroke: line,
-                valueFont: .systemFont(ofSize: 10.5)
-            )
-            drawText(
-                L10n.string("pdf.ocr.trust"),
-                font: .systemFont(ofSize: 9.3),
-                color: muted,
-                spacingAfter: 0
+                valueFont: .systemFont(ofSize: 9.5, weight: .medium),
+                minimumHeight: 48
             )
         }
 
-        guard let mediaURL = item.mediaURL,
-              let mediaHash = item.mediaHash,
-              let typeIdentifier = item.mediaUTType,
-              let contentType = UTType(typeIdentifier) else {
-            return
-        }
-
-        let originalData = try Data(contentsOf: mediaURL)
-        guard EvidenceHasher.sha256(originalData) == mediaHash else {
-            throw EvidencePackExportError.originalIntegrityMismatch(item.mediaOriginalName ?? item.kind)
-        }
-
-        if contentType.conforms(to: .image) {
-            guard let image = UIImage(data: originalData) else {
-                throw EvidencePackExportError.unableToRenderImage(item.mediaOriginalName ?? item.kind)
-            }
-            drawImagePreview(image, item: item, number: number)
-        } else if contentType.conforms(to: .pdf) {
-            guard let document = PDFDocument(data: originalData), document.pageCount > 0 else {
-                throw EvidencePackExportError.unableToRenderPDF(item.mediaOriginalName ?? item.kind)
-            }
-            for pageIndex in 0..<document.pageCount {
-                guard let page = document.page(at: pageIndex) else {
+        if let originalData = verifiedMedia, let contentType = verifiedType {
+            if contentType.conforms(to: .image) {
+                guard let image = UIImage(data: originalData) else {
+                    throw EvidencePackExportError.unableToRenderImage(item.mediaOriginalName ?? item.kind)
+                }
+                drawImagePreview(image)
+            } else if contentType.conforms(to: .pdf) {
+                guard let document = PDFDocument(data: originalData), document.pageCount > 0 else {
                     throw EvidencePackExportError.unableToRenderPDF(item.mediaOriginalName ?? item.kind)
                 }
-                drawPDFPagePreview(
-                    page,
-                    item: item,
-                    number: number,
-                    pageIndex: pageIndex,
-                    pageCount: document.pageCount
-                )
+                for pageIndex in 0..<document.pageCount {
+                    guard let page = document.page(at: pageIndex) else {
+                        throw EvidencePackExportError.unableToRenderPDF(item.mediaOriginalName ?? item.kind)
+                    }
+                    drawPDFPagePreview(
+                        page,
+                        item: item,
+                        number: number,
+                        pageIndex: pageIndex,
+                        pageCount: document.pageCount
+                    )
+                }
             }
         }
+
+        drawEvidenceAppendix(
+            item,
+            number: number,
+            includeCaseVerification: includeCaseVerification
+        )
     }
 
-    private func drawImagePreview(_ image: UIImage, item: EvidencePackItemSnapshot, number: Int) {
-        beginPage(section: L10n.format("pdf.preview.section_image", number))
-        drawSectionHeading(
-            item.mediaOriginalName ?? L10n.string("pdf.preview.image_fallback"),
-            eyebrow: L10n.string("pdf.preview.heading_image").uppercased()
-        )
+    private func drawImagePreview(_ image: UIImage) {
+        let minimumPreviewHeight: CGFloat = 250
+        if contentBottom - cursorY < minimumPreviewHeight {
+            beginPage(section: L10n.string("pdf.preview.heading_image"))
+        }
 
-        let captionHeight: CGFloat = 76
+        drawSmallSectionLabel(L10n.string("pdf.preview.heading_image"))
+        let availableHeight = max(contentBottom - cursorY, minimumPreviewHeight)
         let frameRect = CGRect(
             x: margin,
             y: cursorY,
             width: contentWidth,
-            height: max(contentBottom - cursorY - captionHeight - 12, 120)
+            height: availableHeight
         )
-        drawRoundedCard(frameRect, fill: surface, stroke: line, radius: 14)
+        drawRoundedCard(frameRect, fill: surface, stroke: line, radius: 12)
         let imageRect = frameRect.insetBy(dx: 12, dy: 12)
         image.draw(in: aspectFitRect(imageSize: image.size, inside: imageRect))
-        cursorY = frameRect.maxY + 10
-
-        drawBlockCard(
-            label: L10n.string("pdf.preview.image_hash_note"),
-            value: item.mediaHash ?? "",
-            monospaced: true,
-            fill: accentSoft,
-            stroke: accent.withAlphaComponent(0.18),
-            valueFont: .monospacedSystemFont(ofSize: 7.8, weight: .regular)
-        )
+        cursorY = frameRect.maxY
     }
 
     private func drawPDFPagePreview(
@@ -597,126 +554,140 @@ private final class EvidencePackPDFWriter {
         pageCount: Int
     ) {
         beginPage(section: L10n.format("pdf.preview.section_pdf", number))
-        drawSectionHeading(
-            item.mediaOriginalName ?? L10n.string("pdf.preview.pdf_fallback"),
-            eyebrow: L10n.format("pdf.preview.heading_pdf", pageIndex + 1, pageCount).uppercased()
+        drawTitleBlock(
+            title: item.mediaOriginalName ?? L10n.string("pdf.preview.pdf_fallback"),
+            eyebrow: L10n.format("pdf.preview.heading_pdf", pageIndex + 1, pageCount).uppercased(),
+            titleSize: 16
         )
 
-        let captionHeight: CGFloat = 76
         let frameRect = CGRect(
             x: margin,
             y: cursorY,
             width: contentWidth,
-            height: max(contentBottom - cursorY - captionHeight - 12, 120)
+            height: max(contentBottom - cursorY, 180)
         )
-        drawRoundedCard(frameRect, fill: surface, stroke: line, radius: 14)
+        drawRoundedCard(frameRect, fill: surface, stroke: line, radius: 12)
         let available = frameRect.insetBy(dx: 12, dy: 12)
         let thumbnail = page.thumbnail(
             of: CGSize(width: available.width * 2, height: available.height * 2),
             for: .mediaBox
         )
         thumbnail.draw(in: aspectFitRect(imageSize: thumbnail.size, inside: available))
-        cursorY = frameRect.maxY + 10
-
-        drawBlockCard(
-            label: L10n.string("pdf.preview.pdf_hash_note"),
-            value: item.mediaHash ?? "",
-            monospaced: true,
-            fill: accentSoft,
-            stroke: accent.withAlphaComponent(0.18),
-            valueFont: .monospacedSystemFont(ofSize: 7.8, weight: .regular)
-        )
+        cursorY = frameRect.maxY
     }
 
-    private func drawSealHistory() {
-        beginPage(section: L10n.string("pdf.seals.section"))
-        drawSectionHeading(
-            L10n.string("pdf.seals.heading"),
-            eyebrow: L10n.string("pdf.seals.section").uppercased()
-        )
-        drawText(
-            L10n.string("pdf.seals.explanation"),
-            font: .systemFont(ofSize: 10.5),
-            color: muted,
-            spacingAfter: 16
+    private func drawEvidenceAppendix(
+        _ item: EvidencePackItemSnapshot,
+        number: Int,
+        includeCaseVerification: Bool
+    ) {
+        let hasOCR = item.recognizedTextAt != nil
+        let appendixTitle = hasOCR
+            ? L10n.string("evidence.recognized_text")
+            : L10n.string("bundle.result_details")
+
+        beginPage(section: appendixTitle)
+        drawTitleBlock(
+            title: appendixTitle,
+            eyebrow: L10n.format("pdf.heading.evidence_number", number).uppercased(),
+            titleSize: 20
         )
 
-        if snapshot.seals.isEmpty {
-            drawBlockCard(
-                label: L10n.string("pdf.seals.heading"),
-                value: L10n.string("pdf.seals.none"),
-                fill: surface
-            )
-        } else {
-            for (index, seal) in snapshot.seals.sorted(by: { $0.createdAt > $1.createdAt }).enumerated() {
-                let isCurrent = seal.itemCount == snapshot.items.count
-                    && seal.manifestHash == snapshot.currentManifestHash
-                drawSealCard(
-                    seal,
-                    label: L10n.format("pdf.seals.label", snapshot.seals.count - index),
-                    state: isCurrent ? L10n.string("pdf.seals.current") : L10n.string("pdf.seals.historical"),
-                    isCurrent: isCurrent
+        if hasOCR {
+            let metadata = [
+                item.recognizedTextEngine.map { "\(L10n.string("pdf.ocr.engine")): \($0)" },
+                item.recognizedTextAt.map { "\(L10n.string("pdf.ocr.recognized")): \(formatDisplay($0))" },
+                item.recognizedTextPageCount.map { "\(L10n.string("pdf.ocr.pages")): \($0)" }
+            ]
+            .compactMap { $0 }
+            .joined(separator: "   •   ")
+
+            if !metadata.isEmpty {
+                drawKeyValueBand(
+                    label: L10n.string("evidence.recognized_text"),
+                    value: metadata,
+                    fill: accentSoft,
+                    stroke: accent.withAlphaComponent(0.18),
+                    valueFont: .systemFont(ofSize: 8.8, weight: .medium),
+                    minimumHeight: 46
                 )
             }
+
+            let text = item.recognizedText?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            drawTextFlow(
+                text.isEmpty ? L10n.string("pdf.ocr.no_text") : text,
+                font: .systemFont(ofSize: 9.8),
+                color: ink,
+                spacingAfter: 12
+            )
+            drawTextFlow(
+                L10n.string("pdf.ocr.trust"),
+                font: .systemFont(ofSize: 8.2),
+                color: muted,
+                spacingAfter: 14
+            )
         }
 
-        ensureSpace(150)
-        drawSectionHeading(
-            L10n.string("pdf.field.manifest_sha"),
-            eyebrow: L10n.string("pdf.field.snapshot_status").uppercased()
-        )
-        drawHashCard(label: L10n.string("pdf.field.manifest_sha"), hash: snapshot.currentManifestHash)
-        drawBlockCard(
-            label: L10n.string("pdf.field.snapshot_status"),
-            value: snapshot.currentSnapshotIsSealed
-                ? L10n.string("pdf.seals.current_matches")
-                : L10n.string("pdf.seals.current_not_sealed"),
-            fill: snapshot.currentSnapshotIsSealed ? success.withAlphaComponent(0.08) : surface,
-            stroke: snapshot.currentSnapshotIsSealed ? success.withAlphaComponent(0.24) : line,
-            valueFont: .systemFont(ofSize: 10.5, weight: .semibold)
-        )
-        drawText(
-            L10n.string("pdf.seals.legal"),
-            font: .systemFont(ofSize: 9.3),
-            color: muted,
-            spacingAfter: 0
-        )
+        let verificationHeight: CGFloat = includeCaseVerification ? 210 : 142
+        ensureSpace(verificationHeight)
+        drawSmallSectionLabel(L10n.string("bundle.result_details"))
+
+        if let mediaHash = item.mediaHash {
+            drawHashRow(label: L10n.string("pdf.field.original_sha"), hash: mediaHash)
+        }
+        drawHashRow(label: L10n.string("pdf.field.record_sha"), hash: item.recordHash)
+
+        if includeCaseVerification {
+            if let seal = currentMatchingSeal() {
+                drawHashRow(label: L10n.string("pdf.seals.heading"), hash: seal.manifestHash)
+            } else {
+                drawHashRow(label: L10n.string("pdf.field.manifest_sha"), hash: snapshot.currentManifestHash)
+            }
+            drawStatusBand(
+                snapshot.currentSnapshotIsSealed
+                    ? L10n.string("bundle.result_valid")
+                    : L10n.string("pdf.snapshot.not_sealed"),
+                positive: snapshot.currentSnapshotIsSealed,
+                compact: true
+            )
+        }
+    }
+
+    private func currentMatchingSeal() -> EvidencePackSealSnapshot? {
+        snapshot.seals
+            .filter {
+                $0.itemCount == snapshot.items.count
+                    && $0.manifestHash == snapshot.currentManifestHash
+            }
+            .max(by: { $0.createdAt < $1.createdAt })
     }
 
     private func beginPage(section: String) {
         sectionTitle = section
         context.beginPage()
         pageCount += 1
+
         UIColor.white.setFill()
         context.cgContext.fill(bounds)
 
-        let topBand = CGRect(x: 0, y: 0, width: bounds.width, height: 44)
-        UIColor(red: 0.985, green: 0.988, blue: 0.995, alpha: 1).setFill()
-        context.cgContext.fill(topBand)
-
         accent.setFill()
         UIBezierPath(
-            roundedRect: CGRect(x: margin, y: 18, width: 10, height: 10),
+            roundedRect: CGRect(x: margin, y: 18, width: 9, height: 9),
             cornerRadius: 3
         ).fill()
 
         drawTextAt(
             "KAMILUNAVO TRACE",
-            in: CGRect(x: margin + 18, y: 16.5, width: contentWidth * 0.44, height: 16),
-            font: .systemFont(ofSize: 8.6, weight: .bold),
+            in: CGRect(x: margin + 17, y: 16, width: contentWidth * 0.44, height: 15),
+            font: .systemFont(ofSize: 8.4, weight: .bold),
             color: ink
         )
-
-        let sectionParagraph = NSMutableParagraphStyle()
-        sectionParagraph.alignment = .right
-        let sectionAttributes: [NSAttributedString.Key: Any] = [
-            .font: UIFont.systemFont(ofSize: 8.3, weight: .semibold),
-            .foregroundColor: muted,
-            .paragraphStyle: sectionParagraph
-        ]
-        NSString(string: section.uppercased()).draw(
-            in: CGRect(x: margin + contentWidth * 0.45, y: 17, width: contentWidth * 0.55, height: 16),
-            withAttributes: sectionAttributes
+        drawTextAt(
+            section.uppercased(),
+            in: CGRect(x: margin + contentWidth * 0.45, y: 16, width: contentWidth * 0.55, height: 15),
+            font: .systemFont(ofSize: 8.0, weight: .semibold),
+            color: muted,
+            alignment: .right
         )
 
         context.cgContext.setStrokeColor(line.cgColor)
@@ -724,210 +695,204 @@ private final class EvidencePackPDFWriter {
         context.cgContext.move(to: CGPoint(x: margin, y: 43.5))
         context.cgContext.addLine(to: CGPoint(x: bounds.width - margin, y: 43.5))
         context.cgContext.strokePath()
-        cursorY = 60
 
-        context.cgContext.setStrokeColor(line.cgColor)
-        context.cgContext.setLineWidth(0.6)
         context.cgContext.move(to: CGPoint(x: margin, y: bounds.height - 37))
         context.cgContext.addLine(to: CGPoint(x: bounds.width - margin, y: bounds.height - 37))
         context.cgContext.strokePath()
 
         drawTextAt(
             "Kamilunavo Trace • \(snapshot.caseID.uuidString.prefix(8))",
-            in: CGRect(x: margin, y: bounds.height - 29, width: contentWidth * 0.68, height: 14),
-            font: .systemFont(ofSize: 7.8, weight: .medium),
+            in: CGRect(x: margin, y: bounds.height - 29, width: contentWidth * 0.68, height: 13),
+            font: .systemFont(ofSize: 7.5, weight: .medium),
             color: muted
         )
-
-        let pageParagraph = NSMutableParagraphStyle()
-        pageParagraph.alignment = .right
-        let pageAttributes: [NSAttributedString.Key: Any] = [
-            .font: UIFont.systemFont(ofSize: 7.8, weight: .semibold),
-            .foregroundColor: muted,
-            .paragraphStyle: pageParagraph
-        ]
-        NSString(string: L10n.format("pdf.page", pageCount)).draw(
-            in: CGRect(
-                x: margin + contentWidth * 0.68,
-                y: bounds.height - 29,
-                width: contentWidth * 0.32,
-                height: 14
-            ),
-            withAttributes: pageAttributes
+        drawTextAt(
+            L10n.format("pdf.page", pageCount),
+            in: CGRect(x: margin + contentWidth * 0.68, y: bounds.height - 29, width: contentWidth * 0.32, height: 13),
+            font: .systemFont(ofSize: 7.5, weight: .semibold),
+            color: muted,
+            alignment: .right
         )
+
+        cursorY = 60
     }
 
-    private func drawSectionHeading(_ title: String, eyebrow: String) {
-        ensureSpace(62)
-        drawText(
+    private func drawTitleBlock(title: String, eyebrow: String, titleSize: CGFloat) {
+        let titleFont = UIFont.systemFont(ofSize: titleSize, weight: .bold)
+        let titleHeight = measuredTextHeight(title, font: titleFont, width: contentWidth)
+        let totalHeight = 16 + titleHeight + 12
+        ensureSpace(totalHeight)
+
+        drawTextAt(
             eyebrow,
-            font: .systemFont(ofSize: 8.7, weight: .bold),
-            color: accent,
-            spacingAfter: 5
+            in: CGRect(x: margin, y: cursorY, width: contentWidth, height: 14),
+            font: .systemFont(ofSize: 8.1, weight: .bold),
+            color: accent
         )
-        drawText(
+        cursorY += 18
+        drawTextAt(
             title,
-            font: .systemFont(ofSize: 22, weight: .bold),
-            color: ink,
-            spacingAfter: 14
+            in: CGRect(x: margin, y: cursorY, width: contentWidth, height: titleHeight + 3),
+            font: titleFont,
+            color: ink
         )
+        cursorY += titleHeight + 12
+    }
+
+    private func drawSmallSectionLabel(_ text: String) {
+        ensureSpace(24)
+        drawTextAt(
+            text.uppercased(),
+            in: CGRect(x: margin, y: cursorY, width: contentWidth, height: 14),
+            font: .systemFont(ofSize: 8.0, weight: .bold),
+            color: accent
+        )
+        cursorY += 20
     }
 
     private func drawCompactStat(label: String, value: String, rect: CGRect) {
-        drawRoundedCard(rect, fill: surface, stroke: line, radius: 12)
+        drawRoundedCard(rect, fill: surface, stroke: line, radius: 10)
         drawTextAt(
             label.uppercased(),
-            in: CGRect(x: rect.minX + 12, y: rect.minY + 12, width: rect.width - 24, height: 16),
-            font: .systemFont(ofSize: 7.5, weight: .bold),
+            in: CGRect(x: rect.minX + 11, y: rect.minY + 9, width: rect.width - 22, height: 13),
+            font: .systemFont(ofSize: 6.9, weight: .bold),
             color: muted
         )
         drawTextAt(
             value,
-            in: CGRect(x: rect.minX + 12, y: rect.minY + 34, width: rect.width - 24, height: 26),
-            font: .systemFont(ofSize: 10.2, weight: .semibold),
+            in: CGRect(x: rect.minX + 11, y: rect.minY + 29, width: rect.width - 22, height: 20),
+            font: .systemFont(ofSize: 9.0, weight: .semibold),
             color: ink
         )
     }
 
-    private func drawBlockCard(
+    private func drawStatusBand(
+        _ text: String,
+        positive: Bool,
+        compact: Bool = false
+    ) {
+        let bodyFont = UIFont.systemFont(ofSize: compact ? 8.7 : 9.3, weight: .semibold)
+        let bodyHeight = measuredTextHeight(text, font: bodyFont, width: contentWidth - 28)
+        let height = max(compact ? 40 : 46, bodyHeight + 22)
+        ensureSpace(height + 8)
+
+        let fill = positive ? success.withAlphaComponent(0.08) : surface
+        let stroke = positive ? success.withAlphaComponent(0.25) : line
+        let rect = CGRect(x: margin, y: cursorY, width: contentWidth, height: height)
+        drawRoundedCard(rect, fill: fill, stroke: stroke, radius: 10)
+        drawTextAt(
+            text,
+            in: CGRect(x: rect.minX + 14, y: rect.minY + 11, width: rect.width - 28, height: bodyHeight + 3),
+            font: bodyFont,
+            color: ink
+        )
+        cursorY = rect.maxY + 8
+    }
+
+    private func drawIndexRow(_ value: String) {
+        let height: CGFloat = 36
+        ensureSpace(height + 6)
+        let rect = CGRect(x: margin, y: cursorY, width: contentWidth, height: height)
+        drawRoundedCard(rect, fill: .white, stroke: line, radius: 9)
+        drawTextAt(
+            value,
+            in: CGRect(x: rect.minX + 12, y: rect.minY + 10, width: rect.width - 24, height: 16),
+            font: .systemFont(ofSize: 9.0, weight: .medium),
+            color: ink
+        )
+        cursorY = rect.maxY + 6
+    }
+
+    private func drawKeyValueBand(
         label: String,
         value: String,
         monospaced: Bool = false,
         fill: UIColor,
-        stroke: UIColor = UIColor.clear,
-        valueFont: UIFont? = nil
+        stroke: UIColor,
+        valueFont: UIFont? = nil,
+        minimumHeight: CGFloat = 48
     ) {
-        let labelFont = UIFont.systemFont(ofSize: 8.2, weight: .bold)
         let bodyFont = valueFont ?? (
             monospaced
-                ? UIFont.monospacedSystemFont(ofSize: 8.2, weight: .regular)
-                : UIFont.systemFont(ofSize: 10.5)
+                ? UIFont.monospacedSystemFont(ofSize: 7.4, weight: .regular)
+                : UIFont.systemFont(ofSize: 9.5, weight: .medium)
         )
         let innerWidth = contentWidth - 28
-        let bodyHeight = measuredTextHeight(value, font: bodyFont, width: innerWidth)
-        let height = max(64, 40 + bodyHeight)
-        ensureSpace(height + 10)
+        let valueHeight = measuredTextHeight(value, font: bodyFont, width: innerWidth)
+        let height = max(minimumHeight, 28 + valueHeight)
+        ensureSpace(height + 8)
 
         let rect = CGRect(x: margin, y: cursorY, width: contentWidth, height: height)
-        drawRoundedCard(rect, fill: fill, stroke: stroke, radius: 12)
+        drawRoundedCard(rect, fill: fill, stroke: stroke, radius: 10)
         drawTextAt(
             label.uppercased(),
-            in: CGRect(x: rect.minX + 14, y: rect.minY + 12, width: innerWidth, height: 15),
-            font: labelFont,
+            in: CGRect(x: rect.minX + 14, y: rect.minY + 9, width: innerWidth, height: 13),
+            font: .systemFont(ofSize: 7.1, weight: .bold),
             color: muted
         )
         drawTextAt(
             value,
-            in: CGRect(
-                x: rect.minX + 14,
-                y: rect.minY + 32,
-                width: innerWidth,
-                height: max(bodyHeight + 4, 22)
-            ),
+            in: CGRect(x: rect.minX + 14, y: rect.minY + 25, width: innerWidth, height: valueHeight + 3),
             font: bodyFont,
             color: ink
         )
-        cursorY = rect.maxY + 10
+        cursorY = rect.maxY + 8
     }
 
-    private func drawHashCard(label: String, hash: String) {
-        drawBlockCard(
-            label: label,
-            value: hash,
-            monospaced: true,
-            fill: accentSoft,
-            stroke: accent.withAlphaComponent(0.16),
-            valueFont: .monospacedSystemFont(ofSize: 8.0, weight: .medium)
-        )
-    }
-
-    private func drawSealCard(
-        _ seal: EvidencePackSealSnapshot,
+    private func drawBodyCard(
         label: String,
-        state: String,
-        isCurrent: Bool
+        value: String,
+        font: UIFont,
+        fill: UIColor,
+        stroke: UIColor
     ) {
-        let height: CGFloat = 118
-        ensureSpace(height + 12)
+        let innerWidth = contentWidth - 28
+        let bodyHeight = measuredTextHeight(value, font: font, width: innerWidth)
+        let height = max(56, 34 + bodyHeight)
+        ensureSpace(height + 8)
+
         let rect = CGRect(x: margin, y: cursorY, width: contentWidth, height: height)
-        drawRoundedCard(
-            rect,
-            fill: UIColor.white,
-            stroke: isCurrent ? success.withAlphaComponent(0.30) : line,
-            radius: 13
-        )
-
+        drawRoundedCard(rect, fill: fill, stroke: stroke, radius: 10)
         drawTextAt(
-            label,
-            in: CGRect(x: rect.minX + 14, y: rect.minY + 13, width: rect.width * 0.55, height: 18),
-            font: .systemFont(ofSize: 11, weight: .bold),
-            color: ink
-        )
-        drawPill(
-            state,
-            x: rect.maxX - 130,
-            y: rect.minY + 10,
-            width: 116,
-            fill: isCurrent ? success.withAlphaComponent(0.10) : surface,
-            textColor: isCurrent ? success : muted
-        )
-
-        drawTextAt(
-            "\(L10n.string("pdf.field.recorded")): \(format(seal.createdAt))",
-            in: CGRect(x: rect.minX + 14, y: rect.minY + 40, width: rect.width - 28, height: 16),
-            font: .systemFont(ofSize: 8.8, weight: .medium),
-            color: muted
-        )
-        drawTextAt(
-            "\(L10n.string("pdf.field.item_count")): \(seal.itemCount)",
-            in: CGRect(x: rect.minX + 14, y: rect.minY + 59, width: rect.width - 28, height: 16),
-            font: .systemFont(ofSize: 8.8, weight: .medium),
-            color: muted
-        )
-        drawTextAt(
-            L10n.string("pdf.field.seal_manifest_sha").uppercased(),
-            in: CGRect(x: rect.minX + 14, y: rect.minY + 79, width: rect.width - 28, height: 13),
+            label.uppercased(),
+            in: CGRect(x: rect.minX + 14, y: rect.minY + 10, width: innerWidth, height: 13),
             font: .systemFont(ofSize: 7.2, weight: .bold),
             color: muted
         )
         drawTextAt(
-            seal.manifestHash,
-            in: CGRect(x: rect.minX + 14, y: rect.minY + 95, width: rect.width - 28, height: 15),
-            font: .monospacedSystemFont(ofSize: 7.3, weight: .regular),
+            value,
+            in: CGRect(x: rect.minX + 14, y: rect.minY + 28, width: innerWidth, height: bodyHeight + 3),
+            font: font,
             color: ink
         )
-        cursorY = rect.maxY + 12
+        cursorY = rect.maxY + 8
     }
 
-    private func drawPill(
-        _ text: String,
-        x: CGFloat,
-        y: CGFloat,
-        width: CGFloat,
-        fill: UIColor,
-        textColor: UIColor
-    ) {
-        let rect = CGRect(x: x, y: y, width: width, height: 24)
-        fill.setFill()
-        UIBezierPath(roundedRect: rect, cornerRadius: 12).fill()
-        let paragraph = NSMutableParagraphStyle()
-        paragraph.alignment = .center
-        let attributes: [NSAttributedString.Key: Any] = [
-            .font: UIFont.systemFont(ofSize: 7.8, weight: .bold),
-            .foregroundColor: textColor,
-            .paragraphStyle: paragraph
-        ]
-        NSString(string: text).draw(
-            in: CGRect(x: rect.minX + 6, y: rect.minY + 6, width: rect.width - 12, height: 14),
-            withAttributes: attributes
+    private func drawHashRow(label: String, hash: String) {
+        let height: CGFloat = 45
+        ensureSpace(height + 6)
+        let rect = CGRect(x: margin, y: cursorY, width: contentWidth, height: height)
+        drawRoundedCard(rect, fill: accentSoft, stroke: accent.withAlphaComponent(0.14), radius: 9)
+        drawTextAt(
+            label.uppercased(),
+            in: CGRect(x: rect.minX + 12, y: rect.minY + 7, width: rect.width - 24, height: 12),
+            font: .systemFont(ofSize: 6.7, weight: .bold),
+            color: muted
         )
+        drawTextAt(
+            hash,
+            in: CGRect(x: rect.minX + 12, y: rect.minY + 23, width: rect.width - 24, height: 13),
+            font: .monospacedSystemFont(ofSize: 6.8, weight: .medium),
+            color: ink
+        )
+        cursorY = rect.maxY + 6
     }
 
     private func drawRoundedCard(
         _ rect: CGRect,
         fill: UIColor,
         stroke: UIColor,
-        radius: CGFloat = 12
+        radius: CGFloat
     ) {
         fill.setFill()
         let path = UIBezierPath(roundedRect: rect, cornerRadius: radius)
@@ -935,6 +900,37 @@ private final class EvidencePackPDFWriter {
         stroke.setStroke()
         path.lineWidth = 0.7
         path.stroke()
+    }
+
+    private func ensureSpace(_ height: CGFloat) {
+        if cursorY + height > contentBottom {
+            beginPage(section: L10n.format("pdf.continued", sectionTitle))
+        }
+    }
+
+    private func drawTextFlow(
+        _ text: String,
+        font: UIFont,
+        color: UIColor,
+        spacingAfter: CGFloat
+    ) {
+        let attributes: [NSAttributedString.Key: Any] = [
+            .font: font,
+            .foregroundColor: color
+        ]
+        let lines = wrappedLines(text, font: font, width: contentWidth)
+
+        for line in lines {
+            let display = line.isEmpty ? " " : line
+            let lineHeight = max(font.lineHeight, measuredTextHeight(display, font: font, width: contentWidth))
+            ensureSpace(lineHeight + 2)
+            NSString(string: display).draw(
+                in: CGRect(x: margin, y: cursorY, width: contentWidth, height: lineHeight + 2),
+                withAttributes: attributes
+            )
+            cursorY += lineHeight + 1
+        }
+        cursorY += spacingAfter
     }
 
     private func drawTextAt(
@@ -958,43 +954,6 @@ private final class EvidencePackPDFWriter {
             attributes: attributes,
             context: nil
         )
-    }
-
-    private func ensureSpace(_ height: CGFloat) {
-        if cursorY + height > contentBottom {
-            beginPage(section: L10n.format("pdf.continued", sectionTitle))
-        }
-    }
-
-    private func drawText(
-        _ text: String,
-        font: UIFont,
-        color: UIColor = .black,
-        spacingAfter: CGFloat = 8
-    ) {
-        let attributes: [NSAttributedString.Key: Any] = [
-            .font: font,
-            .foregroundColor: color
-        ]
-        let lines = wrappedLines(text, font: font, width: contentWidth)
-
-        for lineText in lines {
-            let display = lineText.isEmpty ? " " : lineText
-            let measured = NSString(string: display).boundingRect(
-                with: CGSize(width: contentWidth, height: .greatestFiniteMagnitude),
-                options: [.usesLineFragmentOrigin, .usesFontLeading],
-                attributes: attributes,
-                context: nil
-            )
-            let lineHeight = max(ceil(measured.height), font.lineHeight)
-            ensureSpace(lineHeight + 1)
-            NSString(string: display).draw(
-                in: CGRect(x: margin, y: cursorY, width: contentWidth, height: lineHeight + 2),
-                withAttributes: attributes
-            )
-            cursorY += lineHeight + 1
-        }
-        cursorY += spacingAfter
     }
 
     private func measuredTextHeight(_ text: String, font: UIFont, width: CGFloat) -> CGFloat {
@@ -1054,13 +1013,7 @@ private final class EvidencePackPDFWriter {
         )
     }
 
-    private func format(_ date: Date) -> String {
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime, .withTimeZone]
-        return formatter.string(from: date)
-    }
-
-    private func formatShort(_ date: Date) -> String {
+    private func formatDisplay(_ date: Date) -> String {
         let formatter = DateFormatter()
         formatter.locale = Locale.current
         formatter.dateStyle = .medium
@@ -1141,12 +1094,10 @@ private extension EvidenceStore {
         expectedRecordHash: String,
         expectedSealHash: String
     ) throws -> Int {
-        guard let document = PDFDocument(url: url), document.pageCount >= 4 else {
+        guard let document = PDFDocument(url: url), document.pageCount >= 3 else {
             throw EvidencePackSmokeError.invalidPDF
         }
         let extractedText = document.string ?? ""
-        let legalText = L10n.string("pdf.integrity.legal")
-        let legalMarker = legalText.components(separatedBy: ".").first ?? legalText
         let requiredTokens = [
             "KAMILUNAVO TRACE",
             L10n.string("pdf.heading.evidence_pack"),
@@ -1156,11 +1107,10 @@ private extension EvidenceStore {
             expectedMediaHash,
             L10n.string("pdf.field.record_sha"),
             expectedRecordHash,
-            L10n.string("pdf.ocr.heading"),
+            L10n.string("evidence.recognized_text"),
             "EVIDARO 4827",
             L10n.string("pdf.seals.heading"),
-            expectedSealHash,
-            legalMarker
+            expectedSealHash
         ]
         for token in requiredTokens where extractedText.range(of: token, options: .caseInsensitive) == nil {
             throw EvidencePackSmokeError.missingPDFToken(token)

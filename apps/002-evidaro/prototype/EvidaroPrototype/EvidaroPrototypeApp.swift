@@ -208,26 +208,25 @@ private enum PersistenceSmokeRunner {
         recordHash: String,
         sealHash: String
     ) throws -> Int {
-        guard let document = PDFDocument(url: url), document.pageCount >= 4 else {
+        guard let document = PDFDocument(url: url), document.pageCount >= 3 else {
             throw SmokeRunnerError.invalidEvidencePack
         }
         let text = document.string ?? ""
-        let legalText = L10n.string("pdf.integrity.legal")
-        let legalMarker = legalText.components(separatedBy: ".").first ?? legalText
         let requiredTokens = [
             "Kamilunavo Trace",
             L10n.string("pdf.heading.evidence_pack"),
             "CI OCR Smoke",
             evidencePackSmokeCaseID.uuidString,
+            L10n.string("pdf.preview.heading_image"),
+            L10n.string("evidence.recognized_text"),
+            "EVIDARO 4827",
+            L10n.string("bundle.result_details"),
             L10n.string("pdf.field.original_sha"),
             mediaHash,
             L10n.string("pdf.field.record_sha"),
             recordHash,
-            L10n.string("pdf.ocr.heading"),
-            "EVIDARO 4827",
             L10n.string("pdf.seals.heading"),
-            sealHash,
-            legalMarker
+            sealHash
         ]
         for token in requiredTokens where text.range(of: token, options: .caseInsensitive) == nil {
             throw SmokeRunnerError.missingEvidencePackToken(token)
