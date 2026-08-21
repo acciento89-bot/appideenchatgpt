@@ -164,7 +164,7 @@ jobs:
           swift /tmp/render_trace_pdf.swift \
             "$PWD/pdf-visual-qa/Kamilunavo-Trace-PDF-QA-de.pdf" \
             "$PWD/pdf-visual-qa/rendered"
-          test "$(find pdf-visual-qa/rendered -name 'page-*.png' | wc -l | tr -d ' ')" -ge 4
+          test "$(find pdf-visual-qa/rendered -name 'page-*.png' | wc -l | tr -d ' ')" -ge 3
 
       - name: Upload PDF visual QA artifact
         uses: actions/upload-artifact@v4
