@@ -1,0 +1,44 @@
+name: Family Life OS App Icon Visual Gate
+
+on:
+  pull_request:
+    paths:
+      - 'apps/011-family-life-os/ci/family_app_icon.swift'
+      - 'apps/011-family-life-os/prototype/FamilyLifePrototype/Assets.xcassets/AppIcon.appiconset/**'
+      - '.github/workflows/family-life-os-icon-visual-gate.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'apps/011-family-life-os/ci/family_app_icon.swift'
+      - 'apps/011-family-life-os/prototype/FamilyLifePrototype/Assets.xcassets/AppIcon.appiconset/**'
+      - '.github/workflows/family-life-os-icon-visual-gate.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify-icon:
+    runs-on: macos-26
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Verify AppIcon asset catalog wiring
+        shell: bash
+        run: |
+          set -euo pipefail
+          ICON='apps/011-family-life-os/prototype/FamilyLifePrototype/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png'
+          CONTENTS='apps/011-family-life-os/prototype/FamilyLifePrototype/Assets.xcassets/AppIcon.appiconset/Contents.json'
+          test -f "$ICON"
+          grep -F '"filename" : "AppIcon-1024.png"' "$CONTENTS"
+          test "$(sips -g pixelWidth "$ICON" 2>/dev/null | awk '/pixelWidth/ {print $2}')" = '1024'
+          test "$(sips -g pixelHeight "$ICON" 2>/dev/null | awk '/pixelHeight/ {print $2}')" = '1024'
+          test "$(sips -g hasAlpha "$ICON" 2>/dev/null | awk '/hasAlpha/ {print $2}')" = 'no'
+
+      - name: Reject black or visually flat AppIcon
+        shell: bash
+        run: |
+          set -euo pipefail
+          swift apps/011-family-life-os/ci/family_app_icon.swift verify \
+            apps/011-family-life-os/prototype/FamilyLifePrototype/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png
