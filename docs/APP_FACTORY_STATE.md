@@ -2,7 +2,7 @@
 
 Last updated: 2026-08-21
 Status: ACTIVE
-Current user-selected workstream: #002 Kamilunavo Trace — TestFlight Build 1 uploaded / Apple processing + IAP/device QA next
+Current user-selected workstream: #011 Family Life OS — hosted backend promoted / Build 4 uploaded / physical live canary next
 Repository purpose: persistent handoff/state repository for the full App Factory so work can continue across chat limits and new conversations without losing decisions or progress.
 
 > This file is the portfolio-level single source of truth. Read it first, then the selected app-specific state. Detailed historical checkpoints remain in Git history.
@@ -31,7 +31,7 @@ Repository purpose: persistent handoff/state repository for the full App Factory
 | 008 | BeforeAfter | Guided repeat photography/alignment/comparison | Pro / Lifetime | QUEUED |
 | 009 | ScamLens | Analyze screenshots/messages for suspicious indicators | Credits / Pro | QUEUED |
 | 010 | SwipeOrDie | Fast portrait reaction/high-score game | Ads + IAP | QUEUED |
-| 011 | Family Life OS (INTERNAL CODENAME) | Family Inbox: photo/PDF/text/voice -> reviewed events/tasks/deadlines/payments/preparation | Freemium + Family Pro subscription | COMPLETE V1 / PR #31 MERGED / PR #34 FINAL PROMOTION |
+| 011 | Family Life OS (INTERNAL CODENAME) | Family Inbox: photo/PDF/text/voice -> reviewed events/tasks/deadlines/payments/preparation | Freemium + Family Pro subscription | COMPLETE V1 + PR31/34 MERGED + SUPABASE LIVE + BUILD 4 UPLOADED / PHYSICAL CANARY NEXT |
 
 # Portfolio app #001 — KeepMeter
 
@@ -145,116 +145,145 @@ External next:
 
 Internal codename only; public brand not locked.
 
-Authoritative app state:
+Authoritative detailed state:
 
 `apps/011-family-life-os/PROJECT_STATE.md`
 
 ## Current checkpoint — 2026-08-21
 
-Complete-v1 is the baseline. Do not regress #011 to the old Build-2-only roadmap.
+Complete-v1 is the baseline. PR #31 and PR #34 are merged, their hosted backend changes have been intentionally promoted, and Family Life OS `0.1.0 (4)` has been successfully handed to App Store Connect/TestFlight.
 
-Promotion state:
+### Repository promotion
 
-- PR #31 `Family Life OS: harden timezone and review trust boundary`
-  - validated head `29b942fca118792146acc6079a0fe07697a3bd8d`
-  - Prototype / Database / Device-TestFlight validation — SUCCESS
-  - merged to `main` on 2026-08-21
-  - merge commit `0db452c41a4c197cb95d0bb48b9455561435f8d4`
-  - hosted Edge Function changes are still NOT deployed live
-- PR #34 `Family Life OS: durable offline source queue`
-  - branch `agent/family-life-os-offline-queue`
-  - retargeted to `main` after PR #31 merge
-  - latest fully validated application-code checkpoint before retarget: `fd7381e97c349dd282df5b12ffcf68c4bd476538`
-  - Prototype Build run `32455964319` — SUCCESS
-  - Database Tests run `32455964347` — SUCCESS
-  - iPhone/iPad device validation run `32455964321` — SUCCESS
-  - final post-retarget CI/merge is the current promotion step
-  - migration is still NOT deployed live
+PR #31:
 
-PR #31 closes release-critical trust bugs:
+- final validated head `29b942fca118792146acc6079a0fe07697a3bd8d`
+- merge `0db452c41a4c197cb95d0bb48b9455561435f8d4`
 
-- household-timezone-aware extraction
-- no fabricated 09:00 for missing source times
-- all backend unresolved fields remain explicit blockers
-- member/time/start/due ambiguities resolve independently
-- offset-less provider timestamps rejected
+PR #34:
 
-PR #34 adds production-grade source durability:
+- final exact post-main head `1802a909b27e61ee4ecc5b0ce3d8f9342529d84d`
+- Database Tests `32464891177` — SUCCESS
+- Prototype Build `32464891211` — SUCCESS
+- iPhone/iPad validation `32464891184` — SUCCESS
+- merge `1de4a500b15fa733306f75605f817dd10b5fa43b`
 
-- text/photo/camera/PDF/voice captured locally before network work
-- atomic protected local queue
-- local Inbox visibility + manual send/discard
-- stable client request UUID + tenant-scoped idempotency
-- deterministic retry-safe Storage path
+Do not regress either PR to open/pending/unmerged state.
+
+### Hosted Supabase — LIVE
+
+Project:
+
+- ref `bqctetqraszsvknczjjr`
+- Frankfurt / `eu-central-1`
+- household locale/timezone `de-DE` / `Europe/Berlin`
+
+Promoted on 2026-08-21:
+
+- migration `source_ingestion_idempotency`
+- hosted `process-family-source` Edge Function version `2`
+- Edge status `ACTIVE`
+- JWT verification enabled
+
+Post-migration verification:
+
+- `source_items.client_request_id` exists
+- tenant-scoped idempotency index exists
+- 5-argument `create_source_item` and 7-argument `finalize_source_upload` are active
+- `anon` execute denied
+- `authenticated` execute granted
+
+Production DB canary was run inside a transaction and rolled back. It proved:
+
+- duplicate `clientRequestID` resolves to one source
+- wrong-household routing is rejected
+- deferred upload finalize is idempotent and remains queued
+- simulated lost-response retry still resolves to one source
+- no canary rows were intentionally retained
+
+### Timezone/review trust now deployed
+
+- household IANA timezone used for deterministic extraction
+- no invented 09:00 for missing source time
+- member/time/start/due blockers remain independent
+- explicit offset/Z required for provider timestamps
+- unresolved proposals receive no reminder suggestion
+
+### Edge/provider evidence boundary
+
+Do not overclaim the runtime provider.
+
+After deployment there had not yet been a real authenticated Edge-v2 canary. The latest observed `extraction_runs` still contained only older fixture evidence (`fixture` / `school-letter-v1`, schema 1).
+
+Therefore do not claim:
+
+- `OPENAI_API_KEY` exists
+- OpenAI has run in production
+- rules fallback has run on Edge v2
+- 18:00 Europe/Berlin behavior has been proven by a live schema-v3 extraction
+
+The first Build-4 source import is the next proof point; inspect its resulting `extraction_runs` provider/model afterward.
+
+### Durable offline source path now deployed
+
+- text/photo/camera/PDF/voice are persisted locally before network work
+- queue survives app restart
+- local Inbox visibility
+- stable client request UUID
+- tenant-scoped server idempotency
+- deterministic retry-safe Storage path/upsert
 - queue bound to authenticated user + household
-- server rejects cross-household routing
-- processing lease prevents duplicate parallel extraction after a lost Edge response
-- automatic `NWPathMonitor` resume on real offline -> online transition
-- initial/repeated online observations do not duplicate normal startup sync
+- automatic `NWPathMonitor` offline -> online resume
+- fresh processing lease avoids duplicate parallel extraction after lost response
 
-Complete-v1 already includes:
+### Apple / TestFlight
 
-- hosted auth + invite acceptance
-- household/member management
-- realtime refresh
-- photo/camera/screenshot capture
-- PDF/document capture
-- text capture
-- voice recording + transcription
-- private Supabase Storage
-- image/PDF OCR
-- server-side structured extraction with deterministic fallback
-- review-before-confirmation and original-source provenance
-- source retry/archive lifecycle
-- agenda/week Plan + Plan CRUD + persisted completion
-- optimistic version conflicts + activity history
-- notification preferences/local reminders
-- biometric lock
-- StoreKit 2 Family Pro surface/restore
-- offline snapshot cache and share-extension intake foundations
-
-## Apple / TestFlight state
-
-Bundle ID:
+Bundle:
 
 `de.kamilunavo.familyprototype`
 
-Apple team:
+Build 2:
 
-`TKG684N5GL`
+- physically installed and user-verified
+- completion persistence + hosted E2E including cleanup verified
 
-Build 2 was physically installed and user-verified on iPhone, including persisted completion and hosted E2E diagnostics with cleanup.
+Build 3:
 
-Build 3 is not missing. A later protected bridge attempt proved App Store Connect already contained build `3`: Apple rejected the duplicate attempt because the bundle version had to be higher than previously uploaded version `3`.
+- already existed in App Store Connect before the historical retry
+- do not describe it as missing
 
-Bridge evidence:
+Build 4:
 
-- repo `acciento89-bot/onemorefloor`
-- run `32366765776`
-- bridge head `3f300e3a70f33d86a73a26195eea0b2f3775a9f9`
+- protected bridge repo `acciento89-bot/onemorefloor`
+- bridge commit `bc77c18f5ee5ef65ea2a1822635fc86c8b41fa10`
+- workflow run `32466397060`
+- upload job `96723790084`
+- source built from `appideenchatgpt/main`
+- Apple exporter: `ARCHIVE SUCCEEDED`, `Upload succeeded`, `EXPORT SUCCEEDED`
+- bridge result: SUCCESS
 
-Any next Apple upload must use build number greater than `3`.
+Safe claim: Build 4 was successfully uploaded/handed to App Store Connect/TestFlight.
 
-## Hosted/live boundary
+Apple processing/TestFlight visibility remains pending until externally observed.
 
-Hosted Supabase:
+### Security / StoreKit boundaries
 
-- project ref `bqctetqraszsvknczjjr`
-- Frankfurt / `eu-central-1`
-- household locale/timezone `de-DE` / `Europe/Berlin`
-- RLS-enabled collaborative data model
-- active JWT-protected `process-family-source` Edge Function
+Security advisor still reports security-definer warnings for the ingestion RPCs and the older hosted E2E RPC, plus leaked-password protection disabled. The new ingestion RPCs are nevertheless execution-restricted to authenticated users and enforce household permission checks. Do not describe the advisor warnings as resolved.
 
-Not live yet:
+StoreKit 2 Family Pro foundation exists, but paid release readiness is not proven until App Store Connect IAP products and a real sandbox/TestFlight purchase + restore path are verified.
 
-- PR #31 Edge Function timezone/trust changes
-- PR #34 source-ingestion idempotency migration/offline protocol
+## #011 next physical sequence
 
-Merging repository code does not deploy those changes. Do not run the new offline upload protocol against production until the hosted migration/function changes are intentionally promoted.
+One step at a time:
 
-Real provider evidence remains open: the last hosted audit only proved fixture extraction runs. Do not claim OpenAI extraction or `OPENAI_API_KEY` availability until a live `extraction_runs` record proves the provider/model.
+1. Wait until Build 4 is visible in TestFlight and install it.
+2. First live Edge-v2 canary: capture exactly `Elternabend am 21.08.2026 um 18:00 Uhr.` and verify review displays 18:00 Europe/Berlin.
+3. Inspect the resulting hosted schema-v3 `extraction_runs` provider/model.
+4. Then test date without time -> explicit unresolved time, never fake 09:00.
+5. Then test offline capture -> reconnect -> exactly one source.
+6. Then finish physical account/household isolation and StoreKit/release QA.
 
-## Product thesis / trust boundary
+## #011 product/trust guardrail
 
 > Put family chaos in. Get an organized plan out.
 
@@ -262,64 +291,26 @@ Core loop:
 
 **Capture -> Understand -> Review -> Act -> Follow up**
 
-`Import prüfen` remains the signature trust boundary:
+`Import prüfen` remains mandatory:
 
-- original source remains reachable
-- OCR/AI produces editable proposals only
+- original source reachable
+- OCR/AI creates editable proposals only
 - unresolved required values block confirmation
-- never invent missing date/time/person data
-- explicit user confirmation creates canonical family data
-- confirmed items retain source/proposal provenance
+- never invent missing date/time/person information
+- explicit confirmation creates canonical Plan data
+- confirmed items retain provenance
 
-## #011 next promotion sequence
-
-1. Finish the exact post-#31 `main` validation for PR #34.
-2. Merge PR #34 after the exact resulting head is green.
-3. Deploy Edge + migration to hosted Supabase only with explicit live-deployment authorization.
-4. Run live canaries for Europe/Berlin timezone, missing-time blocking, offline->online exactly-once ingestion, household isolation and processing-lease recovery.
-5. Inspect live `extraction_runs` provider/model.
-6. Publish the next TestFlight build using build number > 3.
-7. Perform physical-device offline/online QA and StoreKit/App Store release gates separately.
-
-## #011 brand guardrail
-
-`Family Life OS` is internal only.
-
-Rejected first-pass names:
-
-- Famiqo
-- Kinora
-- Familoop
-- Kinbox
-
-Preferred icon direction: **Gather -> Order**.
-
-Avoid generic house/checkmark, cartoon family, or robot/AI sparkle identity.
-
-## Deferred / rejected for #011 MVP
-
-- generic calendar/shopping/chores clone
-- family social/chat replacement
-- live GPS
-- video/audio calls
-- bank/full budgeting
-- meal/recipe platform
-- complex chore economy
-- automatic mailbox surveillance
-- autonomous bookings/calls
-- medical-advice assistant
-- generic AI-chat-first interface
-- decorative Liquid Glass everywhere
+`Family Life OS` remains an internal name. Preferred icon direction remains **Gather -> Order**.
 
 ## Handoff rule for new chats
 
 1. Read this file first.
-2. For #002 read `apps/002-evidaro/PROJECT_STATE.md` and continue only from its current green/in-progress gate.
+2. For #002 read `apps/002-evidaro/PROJECT_STATE.md` and preserve its current Kamilunavo Trace release state.
 3. For #011 read `apps/011-family-life-os/PROJECT_STATE.md` first; it is the detailed authoritative checkpoint.
-4. Inspect current `main`, PR #34 and latest relevant CI before source, merge or deployment changes.
+4. Inspect current `main` and any newer Family PRs before code changes.
 5. Do not regress KeepMeter to pre-TestFlight/pre-StoreKit state; it is submitted to Apple review.
-6. Do not regress #002 to `ProofVault`, `Evidaro` public branding, pre-Pass-8, pre-release or pre-TestFlight state; Pass 7/8 and Release PR #33 are merged and signed Build 1 upload succeeded.
-7. Do not claim physical camera, physical-iPhone OCR, real biometric prompt, VoiceOver, largest-Dynamic-Type or physical `.evpack` verification for Kamilunavo Trace until explicitly exercised on hardware.
-8. Do not regress Family Life OS to Build-2-only, “Realtime/Storage/OCR not implemented”, or “Build 3 missing”.
-9. Do not claim PR #31/#34 behavior is live before explicit hosted deployment + verification.
+6. Do not regress Kamilunavo Trace to `ProofVault`, `Evidaro` public branding, pre-Pass-8, pre-release or pre-TestFlight state.
+7. Do not regress Family Life OS to Build-2-only, PR31/34-pending, backend-not-deployed, or Build-3-missing state.
+8. Treat Family Edge v2 + migration as live, but do not claim a real provider run until a schema-v3 hosted extraction proves it.
+9. Treat Build 4 as uploaded successfully, while processing/visibility remains unconfirmed until observed.
 10. Preserve every other portfolio entry when updating one workstream.
