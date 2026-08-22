@@ -10,6 +10,7 @@ permissions:
   actions: write
   contents: read
 
+# Touching this file intentionally triggers the final App Store workflow.
 jobs:
   trigger:
     runs-on: ubuntu-latest
