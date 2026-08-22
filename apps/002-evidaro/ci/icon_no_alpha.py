@@ -9,7 +9,7 @@ icon_set = root / "prototype/EvidaroPrototype/Assets.xcassets/AppIcon.appiconset
 contents = icon_set / "Contents.json"
 
 EXPECTED = {
-    "default": "KamilunavoTrace-AppIcon-Default-1024.png",
+    "default": "KamilunavoTrace-AppIcon-1024.png",
     "dark": "KamilunavoTrace-AppIcon-Dark-1024.png",
     "tinted": "KamilunavoTrace-AppIcon-Tinted-1024.png",
 }
