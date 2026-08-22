@@ -5,13 +5,17 @@ on:
     branches: [main]
     paths:
       - 'apps/011-family-life-os/prototype/**'
+      - 'apps/011-family-life-os/ci/family_app_icon.swift'
       - 'apps/011-family-life-os/supabase/functions/process-family-source/**'
+      - 'apps/011-family-life-os/supabase/functions/delete-family-data/**'
       - '.github/workflows/family-life-os-prototype-build.yml'
   push:
     branches: [main]
     paths:
       - 'apps/011-family-life-os/prototype/**'
+      - 'apps/011-family-life-os/ci/family_app_icon.swift'
       - 'apps/011-family-life-os/supabase/functions/process-family-source/**'
+      - 'apps/011-family-life-os/supabase/functions/delete-family-data/**'
       - '.github/workflows/family-life-os-prototype-build.yml'
 
 jobs:
@@ -27,6 +31,12 @@ jobs:
 
       - name: Test household timezone conversion
         run: node --test apps/011-family-life-os/supabase/functions/process-family-source/timezone.test.mjs
+
+      - name: Test explicit clock parsing
+        run: node --test apps/011-family-life-os/supabase/functions/process-family-source/clock-time.test.mjs
+
+      - name: Test account deletion request policy
+        run: node --test apps/011-family-life-os/supabase/functions/delete-family-data/policy.test.mjs
 
       - name: Test proposal review blockers
         run: |
@@ -51,6 +61,33 @@ jobs:
             apps/011-family-life-os/prototype/Tests/ConnectivityResumePolicyRegression.swift \
             -o /tmp/family-connectivity-resume-regression
           /tmp/family-connectivity-resume-regression
+
+      - name: Test Family Pro entitlement policy
+        run: |
+          swiftc \
+            apps/011-family-life-os/prototype/FamilyLifePrototype/Domain/Models.swift \
+            apps/011-family-life-os/prototype/Tests/FamilyProPolicyRegression.swift \
+            -o /tmp/family-pro-policy-regression
+          /tmp/family-pro-policy-regression
+
+      - name: Verify Family Pro and account-deletion release links
+        run: |
+          grep -F 'https://www.kamilunavo.com/family/privacy' apps/011-family-life-os/prototype/FamilyLifePrototype/Views/SettingsView.swift
+          grep -F 'https://www.kamilunavo.com/family/terms' apps/011-family-life-os/prototype/FamilyLifePrototype/Views/SettingsView.swift
+          grep -F 'Account und Daten löschen' apps/011-family-life-os/prototype/FamilyLifePrototype/Views/SettingsView.swift
+          grep -F 'delete-family-data' apps/011-family-life-os/prototype/FamilyLifePrototype/Views/SettingsView.swift
+
+      - name: Verify AppIcon release asset
+        run: |
+          set -euo pipefail
+          ICON='apps/011-family-life-os/prototype/FamilyLifePrototype/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png'
+          test -f "$ICON"
+          test -s "$ICON"
+          test "$(sips -g pixelWidth "$ICON" 2>/dev/null | awk '/pixelWidth/ {print $2}')" = '1024'
+          test "$(sips -g pixelHeight "$ICON" 2>/dev/null | awk '/pixelHeight/ {print $2}')" = '1024'
+          test "$(sips -g hasAlpha "$ICON" 2>/dev/null | awk '/hasAlpha/ {print $2}')" = 'no'
+          grep -F '"filename" : "AppIcon-1024.png"' apps/011-family-life-os/prototype/FamilyLifePrototype/Assets.xcassets/AppIcon.appiconset/Contents.json
+          swift apps/011-family-life-os/ci/family_app_icon.swift verify "$ICON"
 
       - name: Build Family Life OS prototype for iOS Simulator
         run: |
