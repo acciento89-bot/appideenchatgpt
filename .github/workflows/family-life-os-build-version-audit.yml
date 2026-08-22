@@ -1,0 +1,52 @@
+name: Family Life OS Build Version Audit
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/family-life-os-build-version-audit.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Prepare App Store Connect token
+        env:
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_PRIVATE_KEY_B64: ${{ secrets.ASC_PRIVATE_KEY_B64 }}
+        run: |
+          set -euo pipefail
+          test -n "$ASC_ISSUER_ID"; test -n "$ASC_KEY_ID"; test -n "$ASC_PRIVATE_KEY_B64"
+          KEY_PATH="$RUNNER_TEMP/AuthKey_${ASC_KEY_ID}.p8"
+          printf '%s' "$ASC_PRIVATE_KEY_B64" | base64 --decode > "$KEY_PATH"
+          chmod 600 "$KEY_PATH"
+          export ASC_KEY_PATH="$KEY_PATH"
+          JWT=$(ruby <<'RUBY'
+          require 'openssl'; require 'base64'; require 'json'
+          def b(v); Base64.urlsafe_encode64(v,padding:false); end
+          key=OpenSSL::PKey.read(File.read(ENV.fetch('ASC_KEY_PATH'))); now=Time.now.to_i
+          h=b(JSON.generate({alg:'ES256',kid:ENV.fetch('ASC_KEY_ID'),typ:'JWT'})); p=b(JSON.generate({iss:ENV.fetch('ASC_ISSUER_ID'),iat:now,exp:now+600,aud:'appstoreconnect-v1'})); s="#{h}.#{p}"
+          seq=OpenSSL::ASN1.decode(key.sign(OpenSSL::Digest::SHA256.new,s)); raw=seq.value.map{|i|[i.value.to_i.to_s(16).rjust(64,'0')].pack('H*')}.join
+          puts "#{s}.#{b(raw)}"
+          RUBY
+          )
+          echo "ASC_TOKEN=$JWT" >> "$GITHUB_ENV"
+
+      - name: Read build 7 version relationships
+        run: |
+          set -euo pipefail
+          BUILD_ID='ffa8e10c-13b6-4325-9c6d-a7f841c9c9df'
+          PRE=$(curl -fsS -H "Authorization: Bearer $ASC_TOKEN" "https://api.appstoreconnect.apple.com/v1/builds/${BUILD_ID}/preReleaseVersion")
+          ASV=$(curl -fsS -H "Authorization: Bearer $ASC_TOKEN" "https://api.appstoreconnect.apple.com/v1/builds/${BUILD_ID}/appStoreVersion")
+          {
+            echo '## Family Life OS build 7 version alignment'
+            echo "- binary marketing version: \`$(jq -r '.data.attributes.version // "MISSING"' <<<"$PRE")\`"
+            echo "- attached App Store version: \`$(jq -r '.data.attributes.versionString // "MISSING"' <<<"$ASV")\`"
+            echo "- build: \`7\`"
+          } >> "$GITHUB_STEP_SUMMARY"
