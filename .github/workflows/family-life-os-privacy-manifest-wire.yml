@@ -1,0 +1,84 @@
+name: Wire Family Life OS Privacy Manifest
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'apps/011-family-life-os/prototype/FamilyLifePrototype/PrivacyInfo.xcprivacy'
+      - 'apps/011-family-life-os/prototype/FamilyLifePrototype.xcodeproj/project.pbxproj'
+      - '.github/workflows/family-life-os-privacy-manifest-wire.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  wire-and-verify:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: macos-26
+    timeout-minutes: 15
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+
+      - name: Wire manifest into Xcode target
+        shell: python3 {0}
+        run: |
+          from pathlib import Path
+
+          project = Path('apps/011-family-life-os/prototype/FamilyLifePrototype.xcodeproj/project.pbxproj')
+          text = project.read_text()
+
+          build_line = '\t\tA1100000000000000000001D /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = B1100000000000000000001E /* PrivacyInfo.xcprivacy */; };\n'
+          file_line = '\t\tB1100000000000000000001E /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };\n'
+          group_line = '\t\t\t\tB1100000000000000000001E /* PrivacyInfo.xcprivacy */,\n'
+          resource_line = '\t\t\t\tA1100000000000000000001D /* PrivacyInfo.xcprivacy in Resources */,\n'
+
+          if 'PrivacyInfo.xcprivacy in Resources' not in text:
+              marker = '/* End PBXBuildFile section */'
+              text = text.replace(marker, build_line + marker, 1)
+
+          if 'B1100000000000000000001E /* PrivacyInfo.xcprivacy */ = ' not in text:
+              marker = '/* End PBXFileReference section */'
+              text = text.replace(marker, file_line + marker, 1)
+
+          if 'B1100000000000000000001E /* PrivacyInfo.xcprivacy */,' not in text:
+              marker = '\t\t\t\tB11000000000000000000012 /* Info.plist */,\n'
+              if marker not in text:
+                  raise SystemExit('Info.plist group marker not found')
+              text = text.replace(marker, marker + group_line, 1)
+
+          resources_marker = '\t\t\tfiles = (\n\t\t\t\tA11000000000000000000013 /* Assets.xcassets in Resources */,\n'
+          if resource_line.strip() not in text:
+              if resources_marker not in text:
+                  raise SystemExit('Resources phase marker not found')
+              text = text.replace(resources_marker, resources_marker + resource_line, 1)
+
+          project.write_text(text)
+
+      - name: Validate privacy manifest
+        run: |
+          set -euo pipefail
+          MANIFEST='apps/011-family-life-os/prototype/FamilyLifePrototype/PrivacyInfo.xcprivacy'
+          PROJECT='apps/011-family-life-os/prototype/FamilyLifePrototype.xcodeproj/project.pbxproj'
+          plutil -lint "$MANIFEST"
+          grep -F 'NSPrivacyAccessedAPICategoryUserDefaults' "$MANIFEST"
+          grep -F 'CA92.1' "$MANIFEST"
+          grep -F 'NSPrivacyTracking' "$MANIFEST"
+          grep -F 'PrivacyInfo.xcprivacy in Resources' "$PROJECT"
+
+      - name: Commit Xcode project wiring
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- apps/011-family-life-os/prototype/FamilyLifePrototype.xcodeproj/project.pbxproj; then
+            echo 'Xcode project already wired.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add apps/011-family-life-os/prototype/FamilyLifePrototype.xcodeproj/project.pbxproj
+          git commit -m 'Wire Family Life OS privacy manifest into app target'
+          git push origin HEAD:${{ github.head_ref }}
