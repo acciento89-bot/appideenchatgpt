@@ -1,3 +1,4 @@
+import StoreKit
 import SwiftUI
 
 struct FamilyView: View {
@@ -10,6 +11,7 @@ struct FamilyView: View {
     @State private var isCreatingInvite = false
     @State private var editingMember: FamilyMember?
     @State private var inviteError: String?
+    @State private var proStore = FamilyProStore()
 
     var body: some View {
         List {
@@ -52,6 +54,103 @@ struct FamilyView: View {
                 .padding(.vertical, 8)
             } footer: {
                 Text("Einladungen sind 7 Tage gültig. Kinderprofile benötigen keinen eigenen Login.")
+            }
+
+            Section {
+                VStack(alignment: .leading, spacing: 14) {
+                    HStack(alignment: .top, spacing: 12) {
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                .fill(.indigo.gradient)
+                            Image(systemName: proStore.isPro ? "checkmark.seal.fill" : "sparkles")
+                                .font(.title3.bold())
+                                .foregroundStyle(.white)
+                        }
+                        .frame(width: 48, height: 48)
+                        .accessibilityHidden(true)
+
+                        VStack(alignment: .leading, spacing: 3) {
+                            HStack(spacing: 8) {
+                                Text(proStore.isPro ? "Family Pro aktiv" : "Family Pro")
+                                    .font(.headline)
+                                if proStore.isPro {
+                                    Text("AKTIV")
+                                        .font(.caption2.bold())
+                                        .padding(.horizontal, 7)
+                                        .padding(.vertical, 3)
+                                        .background(.green.opacity(0.15), in: Capsule())
+                                        .foregroundStyle(.green)
+                                }
+                            }
+                            Text(proStore.isPro
+                                 ? "Alle Pro-Funktionen sind auf diesem Apple-Account freigeschaltet."
+                                 : "Mehr AI-Importe, Automationen, Speicher und Verlauf für deine Familie.")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+
+                    if !proStore.isPro {
+                        if proStore.isBusy && proStore.products.isEmpty {
+                            HStack(spacing: 10) {
+                                ProgressView()
+                                Text("Family-Pro-Angebote werden geladen …")
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                            }
+                        } else {
+                            ForEach(proStore.products, id: \.id) { product in
+                                Button {
+                                    Task { await proStore.purchase(product) }
+                                } label: {
+                                    HStack {
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text(product.displayName)
+                                                .font(.body.weight(.semibold))
+                                            if let period = product.subscription?.subscriptionPeriod {
+                                                Text(period.unit == .year ? "Jährlich" : "Monatlich")
+                                                    .font(.caption)
+                                                    .foregroundStyle(.secondary)
+                                            }
+                                        }
+                                        Spacer()
+                                        Text(product.displayPrice)
+                                            .font(.body.weight(.bold))
+                                    }
+                                    .frame(maxWidth: .infinity)
+                                }
+                                .buttonStyle(.borderedProminent)
+                                .disabled(proStore.isBusy)
+                            }
+                        }
+                    }
+
+                    if let statusMessage = proStore.statusMessage {
+                        Label(statusMessage, systemImage: "checkmark.circle.fill")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    if let errorMessage = proStore.errorMessage {
+                        Label(errorMessage, systemImage: "exclamationmark.triangle.fill")
+                            .font(.caption)
+                            .foregroundStyle(.red)
+                    }
+
+                    Button {
+                        Task { await proStore.restore() }
+                    } label: {
+                        Label("Käufe wiederherstellen", systemImage: "arrow.clockwise")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered)
+                    .disabled(proStore.isBusy)
+                }
+                .padding(.vertical, 8)
+            } header: {
+                Text("Family Pro")
+            } footer: {
+                Text("Das Abo wird über deinen Apple-Account verwaltet und kann jederzeit über den App Store gekündigt werden.")
             }
 
             if let invite {
@@ -98,7 +197,11 @@ struct FamilyView: View {
         }
         .listStyle(.insetGrouped)
         .navigationTitle("Familie")
-        .refreshable { await store.refreshHosted() }
+        .refreshable {
+            await store.refreshHosted()
+            await proStore.refresh()
+        }
+        .task { await proStore.refresh() }
         .sheet(isPresented: $isAddingChild) { addChildSheet }
         .sheet(item: $editingMember) { member in
             MemberEditorView(store: store, member: member)
