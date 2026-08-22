@@ -13,7 +13,19 @@
           "value" : "dark"
         }
       ],
-      "filename" : "KamilunavoTrace-AppIcon-1024.png",
+      "filename" : "KamilunavoTrace-AppIcon-Dark-1024.png",
+      "idiom" : "universal",
+      "platform" : "ios",
+      "size" : "1024x1024"
+    },
+    {
+      "appearances" : [
+        {
+          "appearance" : "luminosity",
+          "value" : "tinted"
+        }
+      ],
+      "filename" : "KamilunavoTrace-AppIcon-Tinted-1024.png",
       "idiom" : "universal",
       "platform" : "ios",
       "size" : "1024x1024"
