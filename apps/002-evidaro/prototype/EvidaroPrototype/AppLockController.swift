@@ -1,6 +1,7 @@
 import Combine
 import Foundation
 import LocalAuthentication
+import UIKit
 
 protocol AppLockAuthenticating {
     func canAuthenticate() -> Bool
@@ -207,7 +208,114 @@ enum AppLockSmokeRunner {
             )
         }
 
+        let iconResult = try verifyCompiledHomeScreenIcon()
+        print("TRACE_COMPILED_APPICON SUCCESS: \(iconResult)")
+
         return "localization-verified language=de cases=Fälle property=Immobilie camera=localized faceID=localized"
+    }
+
+    private static func verifyCompiledHomeScreenIcon() throws -> String {
+        let fileManager = FileManager.default
+        let bundleURL = Bundle.main.bundleURL
+        guard let enumerator = fileManager.enumerator(
+            at: bundleURL,
+            includingPropertiesForKeys: [.isRegularFileKey],
+            options: [.skipsHiddenFiles]
+        ) else {
+            throw AppLockSmokeError.compiledAppIconMissing
+        }
+
+        var pngURLs: [URL] = []
+        for case let url as URL in enumerator {
+            let name = url.lastPathComponent.lowercased()
+            if url.pathExtension.lowercased() == "png", name.contains("appicon") {
+                pngURLs.append(url)
+            }
+        }
+
+        struct Candidate {
+            let url: URL
+            let image: CGImage
+        }
+
+        let candidates: [Candidate] = pngURLs.compactMap { url in
+            guard let image = UIImage(contentsOfFile: url.path)?.cgImage else { return nil }
+            return Candidate(url: url, image: image)
+        }
+
+        guard let target = candidates.first(where: { $0.image.width == 120 && $0.image.height == 120 }) else {
+            let dimensions = candidates
+                .map { "\($0.url.lastPathComponent)=\($0.image.width)x\($0.image.height)" }
+                .sorted()
+                .joined(separator: ",")
+            throw AppLockSmokeError.compiledAppIcon120Missing(dimensions)
+        }
+
+        let width = target.image.width
+        let height = target.image.height
+        let bytesPerRow = width * 4
+        var pixels = [UInt8](repeating: 0, count: height * bytesPerRow)
+        let rendered = pixels.withUnsafeMutableBytes { rawBuffer -> Bool in
+            guard let baseAddress = rawBuffer.baseAddress,
+                  let colorSpace = CGColorSpace(name: CGColorSpace.sRGB),
+                  let context = CGContext(
+                    data: baseAddress,
+                    width: width,
+                    height: height,
+                    bitsPerComponent: 8,
+                    bytesPerRow: bytesPerRow,
+                    space: colorSpace,
+                    bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+                  ) else {
+                return false
+            }
+            context.interpolationQuality = .none
+            context.draw(target.image, in: CGRect(x: 0, y: 0, width: width, height: height))
+            return true
+        }
+        guard rendered else {
+            throw AppLockSmokeError.compiledAppIconDecodeFailed
+        }
+
+        var luminanceSum = 0.0
+        var luminanceSquaredSum = 0.0
+        var minimum = 255.0
+        var maximum = 0.0
+        let pixelCount = width * height
+
+        for index in stride(from: 0, to: pixels.count, by: 4) {
+            let red = Double(pixels[index])
+            let green = Double(pixels[index + 1])
+            let blue = Double(pixels[index + 2])
+            let luminance = 0.2126 * red + 0.7152 * green + 0.0722 * blue
+            luminanceSum += luminance
+            luminanceSquaredSum += luminance * luminance
+            minimum = min(minimum, luminance)
+            maximum = max(maximum, luminance)
+        }
+
+        let mean = luminanceSum / Double(pixelCount)
+        let variance = max(0, luminanceSquaredSum / Double(pixelCount) - mean * mean)
+        let standardDeviation = sqrt(variance)
+        let range = maximum - minimum
+
+        guard mean >= 35, mean <= 220, standardDeviation >= 18, range >= 70 else {
+            throw AppLockSmokeError.compiledAppIconLooksBlank(
+                String(format: "file=%@ mean=%.2f stddev=%.2f min=%.2f max=%.2f range=%.2f", target.url.lastPathComponent, mean, standardDeviation, minimum, maximum, range)
+            )
+        }
+
+        return String(
+            format: "file=%@ size=%dx%d mean=%.2f stddev=%.2f min=%.2f max=%.2f range=%.2f",
+            target.url.lastPathComponent,
+            width,
+            height,
+            mean,
+            standardDeviation,
+            minimum,
+            maximum,
+            range
+        )
     }
 
     private static func prepare() async throws -> String {
@@ -278,6 +386,10 @@ private enum AppLockSmokeError: LocalizedError {
     case unlockFailed
     case disableFailed
     case localizationMismatch(String)
+    case compiledAppIconMissing
+    case compiledAppIcon120Missing(String)
+    case compiledAppIconDecodeFailed
+    case compiledAppIconLooksBlank(String)
 
     var errorDescription: String? {
         switch self {
@@ -299,6 +411,14 @@ private enum AppLockSmokeError: LocalizedError {
             "The privacy lock could not be disabled after verification."
         case .localizationMismatch(let detail):
             "The German localization runtime smoke did not resolve the expected values: \(detail)"
+        case .compiledAppIconMissing:
+            "The compiled app bundle did not expose any AppIcon PNG candidates."
+        case .compiledAppIcon120Missing(let detail):
+            "The compiled app bundle did not contain the 120x120 Home Screen AppIcon. Candidates: \(detail)"
+        case .compiledAppIconDecodeFailed:
+            "The compiled 120x120 Home Screen AppIcon could not be decoded into pixels."
+        case .compiledAppIconLooksBlank(let detail):
+            "The compiled 120x120 Home Screen AppIcon is visually blank/dark or lacks contrast: \(detail)"
         }
     }
 }
