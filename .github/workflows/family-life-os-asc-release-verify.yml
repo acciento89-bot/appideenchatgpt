@@ -1,0 +1,119 @@
+name: Verify Family Life OS App Store Release
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+    branches: [main]
+
+permissions:
+  contents: read
+  statuses: write
+
+env:
+  APP_ID: '6803079524'
+  BUILD_7_ID: ffa8e10c-13b6-4325-9c6d-a7f841c9c9df
+  INFO_LOC_ID: 4200e95c-e36b-4867-b697-e1fe53d61be2
+  VERSION_ID: e7a061e3-bd05-453c-a911-00e1e8cb4f76
+  VLOC_ID: 557ca16e-28b4-44d0-83ec-11d8890f0376
+  REVIEW_EMAIL: apple-review@kamilunavo.com
+
+jobs:
+  verify:
+    if: github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'family-life-os-privacy-manifest'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Publish pending status
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          U="https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          B=$(jq -n --arg u "$U" '{state:"pending",target_url:$u,description:"Verifying Family Life OS App Store release metadata",context:"family-life-os/asc-release"}')
+          curl -fsSL -X POST -H "Authorization: Bearer $GH_TOKEN" -H 'Accept: application/vnd.github+json' -H 'X-GitHub-Api-Version: 2022-11-28' "https://api.github.com/repos/${GITHUB_REPOSITORY}/statuses/${HEAD_SHA}" -d "$B" >/dev/null
+
+      - name: Prepare App Store Connect token
+        env:
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_PRIVATE_KEY_B64: ${{ secrets.ASC_PRIVATE_KEY_B64 }}
+        run: |
+          set -euo pipefail
+          test -n "$ASC_ISSUER_ID"; test -n "$ASC_KEY_ID"; test -n "$ASC_PRIVATE_KEY_B64"
+          KEY_PATH="$RUNNER_TEMP/AuthKey_${ASC_KEY_ID}.p8"
+          printf '%s' "$ASC_PRIVATE_KEY_B64" | base64 --decode > "$KEY_PATH"
+          chmod 600 "$KEY_PATH"
+          export ASC_KEY_PATH="$KEY_PATH"
+          JWT=$(ruby <<'RUBY'
+          require 'openssl'; require 'base64'; require 'json'
+          def b(v); Base64.urlsafe_encode64(v,padding:false); end
+          key=OpenSSL::PKey.read(File.read(ENV.fetch('ASC_KEY_PATH'))); now=Time.now.to_i
+          h=b(JSON.generate({alg:'ES256',kid:ENV.fetch('ASC_KEY_ID'),typ:'JWT'})); p=b(JSON.generate({iss:ENV.fetch('ASC_ISSUER_ID'),iat:now,exp:now+600,aud:'appstoreconnect-v1'})); s="#{h}.#{p}"
+          seq=OpenSSL::ASN1.decode(key.sign(OpenSSL::Digest::SHA256.new,s)); raw=seq.value.map{|i|[i.value.to_i.to_s(16).rjust(64,'0')].pack('H*')}.join
+          puts "#{s}.#{b(raw)}"
+          RUBY
+          )
+          echo "ASC_TOKEN=$JWT" >> "$GITHUB_ENV"
+          echo "ASC_KEY_PATH=$KEY_PATH" >> "$GITHUB_ENV"
+
+      - name: Wait for and verify release metadata
+        run: |
+          set -euo pipefail
+          ok=false
+          for attempt in $(seq 1 20); do
+            I=$(curl -fsS -H "Authorization: Bearer $ASC_TOKEN" "https://api.appstoreconnect.apple.com/v1/appInfoLocalizations/$INFO_LOC_ID")
+            V=$(curl -fsS -H "Authorization: Bearer $ASC_TOKEN" "https://api.appstoreconnect.apple.com/v1/appStoreVersionLocalizations/$VLOC_ID")
+            R=$(curl -fsS -H "Authorization: Bearer $ASC_TOKEN" "https://api.appstoreconnect.apple.com/v1/appStoreVersions/$VERSION_ID")
+            D=$(curl -sS -H "Authorization: Bearer $ASC_TOKEN" "https://api.appstoreconnect.apple.com/v1/appStoreVersions/$VERSION_ID/appStoreReviewDetail" || true)
+            privacy=$(jq -r '.data.attributes.privacyPolicyUrl // ""' <<<"$I" 2>/dev/null || true)
+            choices=$(jq -r '.data.attributes.privacyChoicesUrl // ""' <<<"$I" 2>/dev/null || true)
+            support=$(jq -r '.data.attributes.supportUrl // ""' <<<"$V" 2>/dev/null || true)
+            description=$(jq -r '.data.attributes.description // ""' <<<"$V" 2>/dev/null || true)
+            keywords=$(jq -r '.data.attributes.keywords // ""' <<<"$V" 2>/dev/null || true)
+            copyright=$(jq -r '.data.attributes.copyright // ""' <<<"$R" 2>/dev/null || true)
+            demo=$(jq -r '.data.attributes.demoAccountName // ""' <<<"$D" 2>/dev/null || true)
+            notes=$(jq -r '.data.attributes.notes // ""' <<<"$D" 2>/dev/null || true)
+            if [[ "$privacy" == 'https://www.kamilunavo.com/family/privacy' && "$choices" == 'https://www.kamilunavo.com/family/privacy-choices' && "$support" == 'https://www.kamilunavo.com/family/support' && -n "$description" && -n "$keywords" && -n "$copyright" && "$demo" == "$REVIEW_EMAIL" && -n "$notes" ]]; then
+              ok=true
+              break
+            fi
+            sleep 15
+          done
+          [[ "$ok" == true ]]
+
+          SUBS=$(curl -fsS -H "Authorization: Bearer $ASC_TOKEN" "https://api.appstoreconnect.apple.com/v1/apps/${APP_ID}/subscriptionGroups?include=subscriptions&limit%5Bsubscriptions%5D=50")
+          MONTHLY=$(jq -r '.included[]? | select(.type=="subscriptions" and .attributes.productId=="de.kamilunavo.family.familypro.monthly") | .attributes.state' <<<"$SUBS")
+          ANNUAL=$(jq -r '.included[]? | select(.type=="subscriptions" and .attributes.productId=="de.kamilunavo.family.familypro.annual") | .attributes.state' <<<"$SUBS")
+          test "$MONTHLY" = READY_TO_SUBMIT
+          test "$ANNUAL" = READY_TO_SUBMIT
+
+          PRE=$(curl -fsS -H "Authorization: Bearer $ASC_TOKEN" "https://api.appstoreconnect.apple.com/v1/builds/${BUILD_7_ID}/preReleaseVersion")
+          ASV=$(curl -fsS -H "Authorization: Bearer $ASC_TOKEN" "https://api.appstoreconnect.apple.com/v1/builds/${BUILD_7_ID}/appStoreVersion")
+          BINARY_VERSION=$(jq -r '.data.attributes.version // "MISSING"' <<<"$PRE")
+          STORE_VERSION=$(jq -r '.data.attributes.versionString // "MISSING"' <<<"$ASV")
+          {
+            echo '## Family Life OS release verification'
+            echo '- Privacy and privacy choices URLs: verified'
+            echo '- Description, keywords, support URL and copyright: verified'
+            echo '- App Review demo account and notes: verified'
+            echo "- Family Pro Monthly: $MONTHLY"
+            echo "- Family Pro Annual: $ANNUAL"
+            echo "- Build 7 binary marketing version: \`$BINARY_VERSION\`"
+            echo "- Attached App Store version: \`$STORE_VERSION\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Publish final status
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          U="https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          if [[ "${{ job.status }}" == success ]]; then S=success; D='Family Life OS App Store release metadata verified'; else S=failure; D='Family Life OS App Store release metadata incomplete'; fi
+          B=$(jq -n --arg s "$S" --arg d "$D" --arg u "$U" '{state:$s,description:$d,target_url:$u,context:"family-life-os/asc-release"}')
+          curl -fsSL -X POST -H "Authorization: Bearer $GH_TOKEN" -H 'Accept: application/vnd.github+json' -H 'X-GitHub-Api-Version: 2022-11-28' "https://api.github.com/repos/${GITHUB_REPOSITORY}/statuses/${HEAD_SHA}" -d "$B" >/dev/null
+
+      - name: Remove key
+        if: always()
+        run: rm -f "$RUNNER_TEMP"/AuthKey_*.p8
