@@ -21,7 +21,7 @@ jobs:
         with:
           ref: fix/002-trace-appicon-binary-build9
           fetch-depth: 0
-      - name: Reconstruct exact valid Trace AppIcon and self-clean
+      - name: Reconstruct and push exact valid Trace AppIcon
         shell: bash
         run: |
           set -euo pipefail
@@ -31,52 +31,8 @@ jobs:
           test "$(sha256sum "$ICON" | awk '{print $1}')" = 'd13e4198d6583a7a7cf1f41217d67285075581f53952100d21ad720edcb60dfe'
           python3 apps/002-evidaro/ci/icon_no_alpha.py
           rm -rf "$PAYLOAD"
-          cat > .github/workflows/kamilunavo-trace-static-release.yml <<'YAML'
-          name: Kamilunavo Trace Static Release
-
-          on:
-            pull_request:
-              branches: [main]
-              paths:
-                - 'apps/002-evidaro/**'
-                - '.github/workflows/kamilunavo-trace-static-release.yml'
-                - '.github/workflows/kamilunavo-trace-testflight.yml'
-            push:
-              branches: [main]
-              paths:
-                - 'apps/002-evidaro/**'
-                - '.github/workflows/kamilunavo-trace-static-release.yml'
-                - '.github/workflows/kamilunavo-trace-testflight.yml'
-
-          permissions:
-            contents: read
-
-          concurrency:
-            group: kamilunavo-trace-static-${{ github.ref }}
-            cancel-in-progress: true
-
-          jobs:
-            release-preflight:
-              runs-on: ubuntu-latest
-              timeout-minutes: 5
-              steps:
-                - name: Checkout
-                  uses: actions/checkout@v5
-
-                - name: Foundation and integrity source preflight
-                  run: python3 apps/002-evidaro/ci/preflight.py
-
-                - name: Release identity, StoreKit, icon and TestFlight preflight
-                  run: python3 apps/002-evidaro/ci/release_preflight.py
-
-                - name: Approved production AppIcon guard
-                  run: python3 apps/002-evidaro/ci/icon_no_alpha.py
-
-                - name: Final public identity preflight
-                  run: python3 apps/002-evidaro/ci/public_identity_preflight.py
-          YAML
           git config user.name 'Kamilunavo CI'
           git config user.email 'acciento89@gmail.com'
-          git add "$ICON" apps/002-evidaro/ci/icon_payload .github/workflows/kamilunavo-trace-static-release.yml
+          git add "$ICON" apps/002-evidaro/ci/icon_payload
           git commit -m 'Install verified Trace AppIcon binary'
           git push origin HEAD:fix/002-trace-appicon-binary-build9
