@@ -1,19 +1,13 @@
 # Kamilunavo Trace App Icon
 
-`KamilunavoTrace-AppIcon-1024.png` is the production App Store icon source.
+Build 8 replaces the fragile single-PNG AppIcon setup with three explicit iOS appearances:
 
-Release requirements enforced by CI:
-- 1024 × 1024 pixels
-- 8-bit PNG
-- truecolor RGB
-- no alpha channel
-- no transparent pixels
-- wired as the Xcode `AppIcon` asset
-- default iOS appearance explicitly uses the approved production PNG
-- dark iOS appearance explicitly uses the same approved production PNG instead of relying on automatic system generation
+- `KamilunavoTrace-AppIcon-Default-1024.png` — bright blue/teal default artwork
+- `KamilunavoTrace-AppIcon-Dark-1024.png` — explicit dark appearance that remains visibly blue
+- `KamilunavoTrace-AppIcon-Tinted-1024.png` — explicit high-contrast grayscale artwork for iOS tinted mode
 
-Build 5 device QA exposed a visual release bug: the previous dark-graphite icon passed all technical PNG checks but appeared effectively black on the physical iPhone Homescreen.
+All three files are 1024 × 1024, 8-bit truecolor RGB PNGs with no alpha channel. Xcode `AppIcon` wiring is explicit for default, dark and tinted appearances.
 
-Build 6 replaced the artwork with a clearly visible blue/teal field, a white traced evidence path, integrity points, a document outline and a confirmed endpoint. Physical Build 6 QA still showed an effectively black Homescreen icon because the asset catalog only supplied the default appearance and allowed iOS to synthesize the dark appearance.
+`ci/icon_no_alpha.py` decodes the actual PNG pixels in release CI. It rejects missing appearance wiring, unexpected dimensions/color type, default/dark artwork that is too dark, insufficient bright foreground detail, and non-grayscale tinted artwork.
 
-Build 7 therefore keeps the approved blue/teal artwork but explicitly supplies it for both the default and dark AppIcon appearances. Tinted appearance remains system-controlled by design. No product-name text is embedded in the icon.
+This supersedes the Build 6/7 approach. Build 6 changed only the main artwork; Build 7 added only the dark appearance. Physical iPhone QA still showed an effectively black icon, so Build 8 covers the remaining tinted appearance and uses three distinct assets rather than relying on iOS-generated variants.
