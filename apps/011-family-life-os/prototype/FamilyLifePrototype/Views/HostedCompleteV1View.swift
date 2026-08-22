@@ -96,8 +96,10 @@ struct HostedCompleteV1View: View {
 private struct CompleteAuthView: View {
     @Binding var errorMessage: String?
     @State private var email = ""
-    @State private var isSending = false
-    @State private var didSend = false
+    @State private var password = ""
+    @State private var isSigningIn = false
+    @State private var isSendingLink = false
+    @State private var didSendLink = false
 
     var body: some View {
         NavigationStack {
@@ -113,54 +115,107 @@ private struct CompleteAuthView: View {
                     .padding(.vertical, 8)
                 }
 
-                Section {
+                Section("Mit E-Mail und Passwort") {
                     TextField("name@beispiel.de", text: $email)
                         .textContentType(.emailAddress)
                         .textInputAutocapitalization(.never)
                         .keyboardType(.emailAddress)
                         .autocorrectionDisabled()
+                    SecureField("Passwort", text: $password)
+                        .textContentType(.password)
+                    Button {
+                        signInWithPassword()
+                    } label: {
+                        HStack {
+                            if isSigningIn { ProgressView() }
+                            Text(isSigningIn ? "Anmeldung läuft …" : "Anmelden")
+                                .frame(maxWidth: .infinity)
+                        }
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(!validCredentials || isSigningIn || isSendingLink)
+                }
+
+                Section {
                     Button {
                         sendMagicLink()
                     } label: {
                         HStack {
-                            if isSending { ProgressView() }
-                            Text(isSending ? "Wird gesendet …" : "Anmeldelink senden").frame(maxWidth: .infinity)
+                            if isSendingLink { ProgressView() }
+                            Text(isSendingLink ? "Wird gesendet …" : "Stattdessen Anmeldelink senden")
+                                .frame(maxWidth: .infinity)
                         }
                     }
-                    .buttonStyle(.borderedProminent)
-                    .disabled(!validEmail || isSending)
+                    .disabled(!validEmail || isSendingLink || isSigningIn)
                 } header: {
-                    Text("E-Mail")
+                    Text("Anmeldung ohne Passwort")
                 } footer: {
-                    Text("Der Link öffnet diese App wieder und erstellt eine sichere Supabase-Session.")
+                    Text("Der Anmeldelink öffnet diese App wieder und erstellt eine sichere Supabase-Session.")
                 }
 
-                if didSend {
-                    Section { Label("Link gesendet. Bitte Postfach prüfen.", systemImage: "envelope.badge.fill").foregroundStyle(.green) }
+                if didSendLink {
+                    Section {
+                        Label("Link gesendet. Bitte Postfach prüfen.", systemImage: "envelope.badge.fill")
+                            .foregroundStyle(.green)
+                    }
                 }
                 if let errorMessage {
-                    Section { Label(errorMessage, systemImage: "exclamationmark.triangle.fill").foregroundStyle(.red) }
+                    Section {
+                        Label(errorMessage, systemImage: "exclamationmark.triangle.fill")
+                            .foregroundStyle(.red)
+                    }
                 }
             }
             .navigationTitle("Anmelden")
         }
     }
 
+    private var cleanEmail: String {
+        email.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
     private var validEmail: Bool {
-        let clean = email.trimmingCharacters(in: .whitespacesAndNewlines)
-        return clean.contains("@") && clean.contains(".")
+        cleanEmail.contains("@") && cleanEmail.contains(".")
+    }
+
+    private var validCredentials: Bool {
+        validEmail && !password.isEmpty
+    }
+
+    private func signInWithPassword() {
+        guard validCredentials else { return }
+        isSigningIn = true
+        didSendLink = false
+        errorMessage = nil
+        Task {
+            defer { isSigningIn = false }
+            do {
+                try await SupabaseEnvironment.client.auth.signIn(
+                    email: cleanEmail,
+                    password: password
+                )
+            } catch {
+                errorMessage = "Anmeldung fehlgeschlagen: \(error.localizedDescription)"
+            }
+        }
     }
 
     private func sendMagicLink() {
-        let clean = email.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !clean.isEmpty else { return }
-        isSending = true; didSend = false; errorMessage = nil
+        guard validEmail else { return }
+        isSendingLink = true
+        didSendLink = false
+        errorMessage = nil
         Task {
-            defer { isSending = false }
+            defer { isSendingLink = false }
             do {
-                try await SupabaseEnvironment.client.auth.signInWithOTP(email: clean, redirectTo: SupabaseEnvironment.authRedirectURL)
-                didSend = true
-            } catch { errorMessage = error.localizedDescription }
+                try await SupabaseEnvironment.client.auth.signInWithOTP(
+                    email: cleanEmail,
+                    redirectTo: SupabaseEnvironment.authRedirectURL
+                )
+                didSendLink = true
+            } catch {
+                errorMessage = error.localizedDescription
+            }
         }
     }
 }
