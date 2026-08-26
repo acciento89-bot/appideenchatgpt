@@ -5,7 +5,9 @@ struct FamilyLifePrototypeApp: App {
     var body: some Scene {
         WindowGroup {
 #if DEBUG
-            if ProcessInfo.processInfo.arguments.contains("-familyProReviewScreenshot") {
+            if let screenshotSection = FamilyAppScreenshotSection(arguments: ProcessInfo.processInfo.arguments) {
+                FamilyAppScreenshotView(section: screenshotSection)
+            } else if ProcessInfo.processInfo.arguments.contains("-familyProReviewScreenshot") {
                 FamilyProReviewScreenshotView()
             } else {
                 HostedCompleteV1View()
@@ -18,6 +20,102 @@ struct FamilyLifePrototypeApp: App {
 }
 
 #if DEBUG
+private enum FamilyAppScreenshotSection: String, CaseIterable, Identifiable, Hashable {
+    case today
+    case inbox
+    case plan
+    case family
+
+    var id: Self { self }
+
+    init?(arguments: [String]) {
+        if arguments.contains("-familyScreenshotToday") { self = .today; return }
+        if arguments.contains("-familyScreenshotInbox") { self = .inbox; return }
+        if arguments.contains("-familyScreenshotPlan") { self = .plan; return }
+        if arguments.contains("-familyScreenshotFamily") { self = .family; return }
+        return nil
+    }
+
+    var title: String {
+        switch self {
+        case .today: "Heute"
+        case .inbox: "Inbox"
+        case .plan: "Plan"
+        case .family: "Familie"
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .today: "house.fill"
+        case .inbox: "tray.fill"
+        case .plan: "calendar"
+        case .family: "person.3.fill"
+        }
+    }
+}
+
+/// DEBUG-only deterministic App Store screenshot shell.
+///
+/// The content is not a marketing mockup: every detail screen below is the same
+/// production SwiftUI view used by RootView. DemoStore supplies the existing
+/// first-party fixture data so the screenshots can be captured without a live
+/// reviewer account or network dependency.
+@MainActor
+private struct FamilyAppScreenshotView: View {
+    let section: FamilyAppScreenshotSection
+    private let store = DemoStore()
+
+    var body: some View {
+        NavigationSplitView {
+            List {
+                ForEach(FamilyAppScreenshotSection.allCases) { item in
+                    Label(item.title, systemImage: item.systemImage)
+                        .font(.body.weight(item == section ? .semibold : .regular))
+                        .foregroundStyle(item == section ? Color.accentColor : Color.primary)
+                        .padding(.vertical, 5)
+                        .listRowBackground(
+                            item == section
+                                ? Color.accentColor.opacity(0.12)
+                                : Color.clear
+                        )
+                }
+            }
+            .navigationTitle(store.household?.name ?? "Familie")
+            .navigationSplitViewColumnWidth(min: 220, ideal: 260, max: 320)
+        } detail: {
+            NavigationStack {
+                destination
+                    .toolbar {
+                        ToolbarItem(placement: .topBarTrailing) {
+                            Image(systemName: "gearshape")
+                                .foregroundStyle(.secondary)
+                                .accessibilityLabel("Einstellungen")
+                        }
+                    }
+            }
+        }
+        .navigationSplitViewStyle(.balanced)
+    }
+
+    @ViewBuilder
+    private var destination: some View {
+        switch section {
+        case .today:
+            TodayView(
+                store: store,
+                referenceDate: TodayView.previewDate(2026, 8, 18, 12, 0)
+            )
+        case .inbox:
+            InboxView(store: store)
+        case .plan:
+            PlanView(store: store)
+        case .family:
+            FamilyView(store: store)
+        }
+    }
+}
+
 private struct FamilyProReviewScreenshotView: View {
     var body: some View {
         NavigationStack {

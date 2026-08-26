@@ -1,0 +1,324 @@
+name: Family Life OS App Store Screenshot Repair
+
+on:
+  pull_request:
+    paths:
+      - 'apps/011-family-life-os/prototype/FamilyLifePrototype/FamilyLifePrototypeApp.swift'
+      - '.github/workflows/family-life-os-screenshot-repair.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'apps/011-family-life-os/prototype/FamilyLifePrototype/FamilyLifePrototypeApp.swift'
+      - '.github/workflows/family-life-os-screenshot-repair.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  APP_ID: '6803079524'
+  VERSION_ID: 'e7a061e3-bd05-453c-a911-00e1e8cb4f76'
+  VLOC_ID: '557ca16e-28b4-44d0-83ec-11d8890f0376'
+  BUNDLE_ID: 'de.kamilunavo.familyprototype'
+  PROJECT_DIR: 'apps/011-family-life-os/prototype'
+  XCODE_PROJECT: 'FamilyLifePrototype.xcodeproj'
+  SCHEME: 'FamilyLifePrototype'
+
+jobs:
+  screenshots:
+    name: Real 13-inch iPad screenshots
+    runs-on: macos-26
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Resolve Swift packages
+        working-directory: ${{ env.PROJECT_DIR }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          xcodebuild -version
+          xcodebuild -project "$XCODE_PROJECT" -scheme "$SCHEME" -resolvePackageDependencies
+
+      - name: Select and boot 13-inch or 12.9-inch iPad simulator
+        id: sim
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          DEVICES=$(xcrun simctl list devices available -j)
+          UDID=$(jq -r '[.devices[][] | select(.isAvailable==true and (.name|test("iPad Pro 13-inch")))] | last | .udid // empty' <<<"$DEVICES")
+          DEVICE_NAME='iPad Pro 13-inch'
+          if [[ -z "$UDID" ]]; then
+            UDID=$(jq -r '[.devices[][] | select(.isAvailable==true and (.name|test("iPad Pro \\(12.9-inch\\)")))] | last | .udid // empty' <<<"$DEVICES")
+            DEVICE_NAME='iPad Pro 12.9-inch'
+          fi
+
+          if [[ -z "$UDID" ]]; then
+            RUNTIME=$(xcrun simctl list runtimes -j | jq -r '[.runtimes[] | select(.isAvailable==true and (.name|startswith("iOS")))] | sort_by(.version) | last | .identifier')
+            test -n "$RUNTIME"; test "$RUNTIME" != null
+            TYPES=$(xcrun simctl list devicetypes -j)
+            TYPE=$(jq -r '[.devicetypes[] | select(.name|test("iPad Pro 13-inch"))] | last | .identifier // empty' <<<"$TYPES")
+            DEVICE_NAME='iPad Pro 13-inch'
+            if [[ -z "$TYPE" ]]; then
+              TYPE=$(jq -r '[.devicetypes[] | select(.name|test("iPad Pro \\(12.9-inch\\)"))] | last | .identifier // empty' <<<"$TYPES")
+              DEVICE_NAME='iPad Pro 12.9-inch'
+            fi
+            test -n "$TYPE"
+            UDID=$(xcrun simctl create 'FamilyLife-Real-AppStore-iPad' "$TYPE" "$RUNTIME")
+          fi
+
+          echo "Using $DEVICE_NAME / $UDID"
+          xcrun simctl boot "$UDID" >/dev/null 2>&1 || true
+          open -a Simulator --args -CurrentDeviceUDID "$UDID" || true
+
+          STATE=''
+          for _ in $(seq 1 90); do
+            STATE=$(xcrun simctl list devices -j | jq -r --arg udid "$UDID" '[.devices[][] | select(.udid==$udid)] | first | .state // empty')
+            [[ "$STATE" == 'Booted' ]] && break
+            sleep 2
+          done
+          echo "Simulator state: $STATE"
+          test "$STATE" = 'Booted'
+          sleep 4
+          echo "udid=$UDID" >> "$GITHUB_OUTPUT"
+
+      - name: Build real Family Life OS UI for simulator
+        working-directory: ${{ env.PROJECT_DIR }}
+        shell: bash
+        env:
+          UDID: ${{ steps.sim.outputs.udid }}
+        run: |
+          set -euo pipefail
+          rm -rf "$RUNNER_TEMP/FamilyLifeRealScreenshotDerivedData"
+          xcodebuild \
+            -project "$XCODE_PROJECT" \
+            -scheme "$SCHEME" \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination "platform=iOS Simulator,id=$UDID" \
+            -derivedDataPath "$RUNNER_TEMP/FamilyLifeRealScreenshotDerivedData" \
+            PRODUCT_BUNDLE_IDENTIFIER="$BUNDLE_ID" \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+          APP=$(find "$RUNNER_TEMP/FamilyLifeRealScreenshotDerivedData/Build/Products/Debug-iphonesimulator" -maxdepth 1 -name '*.app' -type d -print -quit)
+          test -n "$APP"; test -d "$APP"
+          echo "SIM_APP=$APP" >> "$GITHUB_ENV"
+
+      - name: Capture actual app screens
+        shell: bash
+        env:
+          UDID: ${{ steps.sim.outputs.udid }}
+        run: |
+          set -euo pipefail
+          SHOT_DIR="$RUNNER_TEMP/family-ipad-real-shots"
+          rm -rf "$SHOT_DIR"
+          mkdir -p "$SHOT_DIR"
+          xcrun simctl install "$UDID" "$SIM_APP"
+
+          capture() {
+            local file="$1"
+            local arg="$2"
+            xcrun simctl terminate "$UDID" "$BUNDLE_ID" >/dev/null 2>&1 || true
+            xcrun simctl launch "$UDID" "$BUNDLE_ID" "$arg" >/dev/null
+            sleep 4
+            xcrun simctl io "$UDID" screenshot "$SHOT_DIR/$file"
+          }
+
+          capture 'Family-Life-OS-iPad-01-Heute.png' '-familyScreenshotToday'
+          capture 'Family-Life-OS-iPad-02-Inbox.png' '-familyScreenshotInbox'
+          capture 'Family-Life-OS-iPad-03-Plan.png' '-familyScreenshotPlan'
+          capture 'Family-Life-OS-iPad-04-Familie.png' '-familyScreenshotFamily'
+
+          test "$(find "$SHOT_DIR" -name '*.png' -type f | wc -l | tr -d ' ')" = '4'
+          for f in "$SHOT_DIR"/*.png; do
+            WIDTH=$(sips -g pixelWidth "$f" | awk '/pixelWidth/{print $2}')
+            HEIGHT=$(sips -g pixelHeight "$f" | awk '/pixelHeight/{print $2}')
+            SIZE="${WIDTH}x${HEIGHT}"
+            echo "$(basename "$f") $SIZE"
+            case "$SIZE" in
+              2048x2732|2064x2752) ;;
+              *) echo "Unsupported App Store iPad screenshot size: $SIZE" >&2; exit 1 ;;
+            esac
+          done
+          echo "SHOT_DIR=$SHOT_DIR" >> "$GITHUB_ENV"
+
+      - name: Preserve screenshot proof
+        uses: actions/upload-artifact@v4
+        with:
+          name: family-life-os-real-ipad-appstore
+          path: ${{ env.SHOT_DIR }}/*.png
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Prepare App Store Connect token
+        if: github.event_name != 'pull_request'
+        env:
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_PRIVATE_KEY_B64: ${{ secrets.ASC_PRIVATE_KEY_B64 }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$ASC_ISSUER_ID"; test -n "$ASC_KEY_ID"; test -n "$ASC_PRIVATE_KEY_B64"
+          KEY_PATH="$RUNNER_TEMP/AuthKey_${ASC_KEY_ID}.p8"
+          printf '%s' "$ASC_PRIVATE_KEY_B64" | base64 --decode > "$KEY_PATH"
+          chmod 600 "$KEY_PATH"
+          export ASC_KEY_PATH="$KEY_PATH"
+          JWT=$(ruby <<'RUBY'
+          require 'openssl'; require 'base64'; require 'json'
+          def b(v); Base64.urlsafe_encode64(v,padding:false); end
+          key=OpenSSL::PKey.read(File.read(ENV.fetch('ASC_KEY_PATH'))); now=Time.now.to_i
+          header=b(JSON.generate({alg:'ES256',kid:ENV.fetch('ASC_KEY_ID'),typ:'JWT'}))
+          payload=b(JSON.generate({iss:ENV.fetch('ASC_ISSUER_ID'),iat:now,exp:now+1200,aud:'appstoreconnect-v1'})); signing="#{header}.#{payload}"
+          seq=OpenSSL::ASN1.decode(key.sign(OpenSSL::Digest::SHA256.new,signing))
+          raw=seq.value.map{|i|[i.value.to_i.to_s(16).rjust(64,'0')].pack('H*')}.join
+          puts "#{signing}.#{b(raw)}"
+          RUBY
+          )
+          echo "ASC_TOKEN=$JWT" >> "$GITHUB_ENV"
+
+      - name: Replace rejected iPad screenshot set with real app UI
+        if: github.event_name != 'pull_request'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 <<'PY'
+          import hashlib
+          import json
+          import os
+          import pathlib
+          import time
+          import urllib.error
+          import urllib.request
+
+          BASE='https://api.appstoreconnect.apple.com/v1'
+          TOKEN=os.environ['ASC_TOKEN']
+          VLOC=os.environ['VLOC_ID']
+          SHOT_DIR=pathlib.Path(os.environ['SHOT_DIR'])
+          expected=[
+              'Family-Life-OS-iPad-01-Heute.png',
+              'Family-Life-OS-iPad-02-Inbox.png',
+              'Family-Life-OS-iPad-03-Plan.png',
+              'Family-Life-OS-iPad-04-Familie.png',
+          ]
+          files=[SHOT_DIR/name for name in expected]
+          for path in files:
+              if not path.is_file():
+                  raise RuntimeError(f'Missing screenshot: {path}')
+
+          def api(method, path, body=None):
+              headers={'Authorization': f'Bearer {TOKEN}', 'Accept':'application/json'}
+              data=None
+              if body is not None:
+                  headers['Content-Type']='application/json'
+                  data=json.dumps(body).encode()
+              req=urllib.request.Request(BASE+path, data=data, headers=headers, method=method)
+              try:
+                  with urllib.request.urlopen(req, timeout=90) as response:
+                      raw=response.read()
+                      return response.status, json.loads(raw) if raw else {}
+              except urllib.error.HTTPError as exc:
+                  raw=exc.read().decode('utf-8','replace')
+                  raise RuntimeError(f'{method} {path} -> HTTP {exc.code}: {raw}')
+
+          _, sets=api('GET', f'/appStoreVersionLocalizations/{VLOC}/appScreenshotSets?limit=50')
+          set_id=None
+          for screenshot_set in sets.get('data', []):
+              if screenshot_set.get('attributes', {}).get('screenshotDisplayType') == 'APP_IPAD_PRO_3GEN_129':
+                  set_id=screenshot_set['id']
+                  break
+          if not set_id:
+              body={
+                  'data':{
+                      'type':'appScreenshotSets',
+                      'attributes':{'screenshotDisplayType':'APP_IPAD_PRO_3GEN_129'},
+                      'relationships':{
+                          'appStoreVersionLocalization':{
+                              'data':{'type':'appStoreVersionLocalizations','id':VLOC}
+                          }
+                      }
+                  }
+              }
+              _, created=api('POST', '/appScreenshotSets', body)
+              set_id=created['data']['id']
+              print('Created iPad screenshot set', set_id)
+          else:
+              print('Using iPad screenshot set', set_id)
+
+          _, existing=api('GET', f'/appScreenshotSets/{set_id}/appScreenshots?limit=50')
+          for shot in existing.get('data', []):
+              print('Deleting old screenshot', shot.get('attributes', {}).get('fileName'), shot['id'])
+              api('DELETE', f"/appScreenshots/{shot['id']}")
+
+          for path in files:
+              raw=path.read_bytes()
+              name=path.name
+              body={
+                  'data':{
+                      'type':'appScreenshots',
+                      'attributes':{'fileName':name,'fileSize':len(raw)},
+                      'relationships':{
+                          'appScreenshotSet':{
+                              'data':{'type':'appScreenshotSets','id':set_id}
+                          }
+                      }
+                  }
+              }
+              _, reservation=api('POST', '/appScreenshots', body)
+              shot=reservation['data']
+              sid=shot['id']
+              for op in shot['attributes']['uploadOperations']:
+                  offset=int(op['offset'])
+                  length=int(op['length'])
+                  chunk=raw[offset:offset+length]
+                  headers={h['name']:h['value'] for h in op.get('requestHeaders', [])}
+                  req=urllib.request.Request(op['url'], data=chunk, headers=headers, method=op['method'])
+                  with urllib.request.urlopen(req, timeout=180) as response:
+                      if not (200 <= response.status < 300):
+                          raise RuntimeError(f'upload {name}: HTTP {response.status}')
+              api(
+                  'PATCH',
+                  f'/appScreenshots/{sid}',
+                  {'data':{'type':'appScreenshots','id':sid,'attributes':{
+                      'uploaded':True,
+                      'sourceFileChecksum':hashlib.md5(raw).hexdigest()
+                  }}}
+              )
+              state=''
+              for _ in range(60):
+                  time.sleep(2)
+                  _, check=api('GET', f'/appScreenshots/{sid}')
+                  state=check['data']['attributes']['assetDeliveryState']['state']
+                  print(name, state)
+                  if state == 'COMPLETE':
+                      break
+                  if state == 'FAILED':
+                      raise RuntimeError(json.dumps(check['data']['attributes']['assetDeliveryState']))
+              if state != 'COMPLETE':
+                  raise RuntimeError(f'{name} did not reach COMPLETE; last={state}')
+
+          _, final=api('GET', f'/appScreenshotSets/{set_id}/appScreenshots?limit=50')
+          complete=[
+              item for item in final.get('data', [])
+              if item.get('attributes', {}).get('assetDeliveryState', {}).get('state') == 'COMPLETE'
+          ]
+          names=[item.get('attributes', {}).get('fileName') for item in complete]
+          print('Final COMPLETE screenshots:', names)
+          if len(complete) != 4:
+              raise RuntimeError(f'Expected exactly 4 COMPLETE screenshots, got {len(complete)}')
+          if set(names) != set(expected):
+              raise RuntimeError(f'Unexpected final screenshot set: {names}')
+          PY
+
+      - name: Report App Store version state after repair
+        if: github.event_name != 'pull_request'
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE='https://api.appstoreconnect.apple.com/v1'
+          VERSION=$(curl --fail-with-body -sS -H "Authorization: Bearer $ASC_TOKEN" "$BASE/appStoreVersions/$VERSION_ID")
+          echo "App Store version state: $(jq -r '.data.attributes.appStoreState // "unknown"' <<<"$VERSION")"
+          echo "Screenshot repair complete. No binary was changed or uploaded."
