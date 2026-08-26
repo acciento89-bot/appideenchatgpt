@@ -42,28 +42,48 @@ jobs:
           xcodebuild -version
           xcodebuild -project "$XCODE_PROJECT" -scheme "$SCHEME" -resolvePackageDependencies
 
-      - name: Create 13-inch or 12.9-inch iPad simulator
+      - name: Select and boot 13-inch or 12.9-inch iPad simulator
         id: sim
         shell: bash
         run: |
           set -euo pipefail
-          RUNTIME=$(xcrun simctl list runtimes -j | jq -r '[.runtimes[] | select(.isAvailable==true and (.name|startswith("iOS")))] | sort_by(.version) | last | .identifier')
-          test -n "$RUNTIME"; test "$RUNTIME" != null
 
-          DEVICES=$(xcrun simctl list devicetypes -j)
-          TYPE=$(jq -r '[.devicetypes[] | select(.name|test("iPad Pro 13-inch"))] | last | .identifier // empty' <<<"$DEVICES")
+          DEVICES=$(xcrun simctl list devices available -j)
+          UDID=$(jq -r '[.devices[][] | select(.isAvailable==true and (.name|test("iPad Pro 13-inch")))] | last | .udid // empty' <<<"$DEVICES")
           DEVICE_NAME='iPad Pro 13-inch'
-          if [[ -z "$TYPE" ]]; then
-            TYPE=$(jq -r '[.devicetypes[] | select(.name|test("iPad Pro \\(12.9-inch\\)"))] | last | .identifier // empty' <<<"$DEVICES")
+          if [[ -z "$UDID" ]]; then
+            UDID=$(jq -r '[.devices[][] | select(.isAvailable==true and (.name|test("iPad Pro \\(12.9-inch\\)")))] | last | .udid // empty' <<<"$DEVICES")
             DEVICE_NAME='iPad Pro 12.9-inch'
           fi
-          test -n "$TYPE"
-          echo "Using $DEVICE_NAME / $TYPE / $RUNTIME"
 
-          UDID=$(xcrun simctl create 'FamilyLife-Real-AppStore-iPad' "$TYPE" "$RUNTIME")
+          if [[ -z "$UDID" ]]; then
+            RUNTIME=$(xcrun simctl list runtimes -j | jq -r '[.runtimes[] | select(.isAvailable==true and (.name|startswith("iOS")))] | sort_by(.version) | last | .identifier')
+            test -n "$RUNTIME"; test "$RUNTIME" != null
+            TYPES=$(xcrun simctl list devicetypes -j)
+            TYPE=$(jq -r '[.devicetypes[] | select(.name|test("iPad Pro 13-inch"))] | last | .identifier // empty' <<<"$TYPES")
+            DEVICE_NAME='iPad Pro 13-inch'
+            if [[ -z "$TYPE" ]]; then
+              TYPE=$(jq -r '[.devicetypes[] | select(.name|test("iPad Pro \\(12.9-inch\\)"))] | last | .identifier // empty' <<<"$TYPES")
+              DEVICE_NAME='iPad Pro 12.9-inch'
+            fi
+            test -n "$TYPE"
+            UDID=$(xcrun simctl create 'FamilyLife-Real-AppStore-iPad' "$TYPE" "$RUNTIME")
+          fi
+
+          echo "Using $DEVICE_NAME / $UDID"
+          xcrun simctl boot "$UDID" >/dev/null 2>&1 || true
+          open -a Simulator --args -CurrentDeviceUDID "$UDID" || true
+
+          STATE=''
+          for _ in $(seq 1 90); do
+            STATE=$(xcrun simctl list devices -j | jq -r --arg udid "$UDID" '[.devices[][] | select(.udid==$udid)] | first | .state // empty')
+            [[ "$STATE" == 'Booted' ]] && break
+            sleep 2
+          done
+          echo "Simulator state: $STATE"
+          test "$STATE" = 'Booted'
+          sleep 4
           echo "udid=$UDID" >> "$GITHUB_OUTPUT"
-          xcrun simctl boot "$UDID"
-          xcrun simctl bootstatus "$UDID" -b
 
       - name: Build real Family Life OS UI for simulator
         working-directory: ${{ env.PROJECT_DIR }}
@@ -228,8 +248,6 @@ jobs:
           else:
               print('Using iPad screenshot set', set_id)
 
-          # Delete every screenshot from the rejected set. Keeping even one old
-          # promo/login image risks failing the "majority shows app in use" rule again.
           _, existing=api('GET', f'/appScreenshotSets/{set_id}/appScreenshots?limit=50')
           for shot in existing.get('data', []):
               print('Deleting old screenshot', shot.get('attributes', {}).get('fileName'), shot['id'])
