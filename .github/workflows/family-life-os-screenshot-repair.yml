@@ -26,7 +26,7 @@ env:
 
 jobs:
   screenshots:
-    name: Real 12.9-inch iPad screenshots
+    name: Real 13-inch iPad screenshots
     runs-on: macos-26
     timeout-minutes: 45
 
@@ -42,15 +42,24 @@ jobs:
           xcodebuild -version
           xcodebuild -project "$XCODE_PROJECT" -scheme "$SCHEME" -resolvePackageDependencies
 
-      - name: Create 12.9-inch iPad simulator
+      - name: Create 13-inch or 12.9-inch iPad simulator
         id: sim
         shell: bash
         run: |
           set -euo pipefail
           RUNTIME=$(xcrun simctl list runtimes -j | jq -r '[.runtimes[] | select(.isAvailable==true and (.name|startswith("iOS")))] | sort_by(.version) | last | .identifier')
-          TYPE=$(xcrun simctl list devicetypes -j | jq -r '[.devicetypes[] | select(.name|test("iPad Pro \\(12.9-inch\\)"))] | last | .identifier')
           test -n "$RUNTIME"; test "$RUNTIME" != null
-          test -n "$TYPE"; test "$TYPE" != null
+
+          DEVICES=$(xcrun simctl list devicetypes -j)
+          TYPE=$(jq -r '[.devicetypes[] | select(.name|test("iPad Pro 13-inch"))] | last | .identifier // empty' <<<"$DEVICES")
+          DEVICE_NAME='iPad Pro 13-inch'
+          if [[ -z "$TYPE" ]]; then
+            TYPE=$(jq -r '[.devicetypes[] | select(.name|test("iPad Pro \\(12.9-inch\\)"))] | last | .identifier // empty' <<<"$DEVICES")
+            DEVICE_NAME='iPad Pro 12.9-inch'
+          fi
+          test -n "$TYPE"
+          echo "Using $DEVICE_NAME / $TYPE / $RUNTIME"
+
           UDID=$(xcrun simctl create 'FamilyLife-Real-AppStore-iPad' "$TYPE" "$RUNTIME")
           echo "udid=$UDID" >> "$GITHUB_OUTPUT"
           xcrun simctl boot "$UDID"
@@ -107,16 +116,19 @@ jobs:
           for f in "$SHOT_DIR"/*.png; do
             WIDTH=$(sips -g pixelWidth "$f" | awk '/pixelWidth/{print $2}')
             HEIGHT=$(sips -g pixelHeight "$f" | awk '/pixelHeight/{print $2}')
-            echo "$(basename "$f") ${WIDTH}x${HEIGHT}"
-            test "$WIDTH" = '2048'
-            test "$HEIGHT" = '2732'
+            SIZE="${WIDTH}x${HEIGHT}"
+            echo "$(basename "$f") $SIZE"
+            case "$SIZE" in
+              2048x2732|2064x2752) ;;
+              *) echo "Unsupported App Store iPad screenshot size: $SIZE" >&2; exit 1 ;;
+            esac
           done
           echo "SHOT_DIR=$SHOT_DIR" >> "$GITHUB_ENV"
 
       - name: Preserve screenshot proof
         uses: actions/upload-artifact@v4
         with:
-          name: family-life-os-real-ipad-2048x2732
+          name: family-life-os-real-ipad-appstore
           path: ${{ env.SHOT_DIR }}/*.png
           if-no-files-found: error
           retention-days: 14
@@ -212,9 +224,9 @@ jobs:
               }
               _, created=api('POST', '/appScreenshotSets', body)
               set_id=created['data']['id']
-              print('Created 12.9-inch iPad screenshot set', set_id)
+              print('Created iPad screenshot set', set_id)
           else:
-              print('Using 12.9-inch iPad screenshot set', set_id)
+              print('Using iPad screenshot set', set_id)
 
           # Delete every screenshot from the rejected set. Keeping even one old
           # promo/login image risks failing the "majority shows app in use" rule again.
