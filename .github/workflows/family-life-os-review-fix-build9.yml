@@ -1,0 +1,195 @@
+name: Family Life OS Review Fix Build 9
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/family-life-os-review-fix-build9.yml'
+
+permissions:
+  contents: read
+
+env:
+  APP_ID: '6803079524'
+  VERSION_ID: 'e7a061e3-bd05-453c-a911-00e1e8cb4f76'
+  TEAM_ID: 'TKG684N5GL'
+  BUNDLE_ID: 'de.kamilunavo.familyprototype'
+  BUILD_NUMBER: '9'
+  MARKETING_VERSION: '0.1.0'
+  PROJECT_DIR: 'apps/011-family-life-os/prototype'
+  XCODE_PROJECT: 'FamilyLifePrototype.xcodeproj'
+  SCHEME: 'FamilyLifePrototype'
+
+jobs:
+  upload:
+    name: Build and upload Family Life OS 0.1.0 (9)
+    runs-on: macos-26
+    timeout-minutes: 50
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Verify App Review fixes are present
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -F 'ReviewSafeVoiceCaptureModel' "$PROJECT_DIR/FamilyLifePrototype/Views/CaptureView.swift"
+          grep -F 'https://www.apple.com/legal/internet-services/itunes/dev/stdeula/' "$PROJECT_DIR/FamilyLifePrototype/Views/SettingsView.swift"
+          grep -F 'Terms of Use (EULA)' "$PROJECT_DIR/FamilyLifePrototype/Views/SettingsView.swift"
+
+      - name: Show Xcode version
+        run: xcodebuild -version
+
+      - name: Resolve Swift packages
+        working-directory: ${{ env.PROJECT_DIR }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          xcodebuild \
+            -project "$XCODE_PROJECT" \
+            -scheme "$SCHEME" \
+            -resolvePackageDependencies
+
+      - name: Prepare App Store Connect API key
+        shell: bash
+        env:
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_PRIVATE_KEY_B64: ${{ secrets.ASC_PRIVATE_KEY_B64 }}
+        run: |
+          set -euo pipefail
+          test -n "$ASC_ISSUER_ID"
+          test -n "$ASC_KEY_ID"
+          test -n "$ASC_PRIVATE_KEY_B64"
+          KEY_PATH="$RUNNER_TEMP/AuthKey_${ASC_KEY_ID}.p8"
+          printf '%s' "$ASC_PRIVATE_KEY_B64" | base64 --decode > "$KEY_PATH"
+          chmod 600 "$KEY_PATH"
+          grep -q 'BEGIN PRIVATE KEY' "$KEY_PATH"
+          echo "ASC_KEY_PATH=$KEY_PATH" >> "$GITHUB_ENV"
+
+      - name: Create release archive
+        working-directory: ${{ env.PROJECT_DIR }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf "$RUNNER_TEMP/FamilyLifePrototype.xcarchive"
+          xcodebuild \
+            -project "$XCODE_PROJECT" \
+            -scheme "$SCHEME" \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$RUNNER_TEMP/FamilyLifePrototype.xcarchive" \
+            DEVELOPMENT_TEAM="$TEAM_ID" \
+            PRODUCT_BUNDLE_IDENTIFIER="$BUNDLE_ID" \
+            MARKETING_VERSION="$MARKETING_VERSION" \
+            CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            archive
+          test -f "$RUNNER_TEMP/FamilyLifePrototype.xcarchive/Info.plist"
+          test -d "$RUNNER_TEMP/FamilyLifePrototype.xcarchive/Products/Applications/FamilyLifePrototype.app"
+
+      - name: Create App Store export options
+        shell: bash
+        run: |
+          cat > "$RUNNER_TEMP/ExportOptions.plist" <<PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key><string>app-store-connect</string>
+            <key>destination</key><string>upload</string>
+            <key>signingStyle</key><string>automatic</string>
+            <key>teamID</key><string>$TEAM_ID</string>
+            <key>uploadSymbols</key><true/>
+            <key>manageAppVersionAndBuildNumber</key><false/>
+          </dict>
+          </plist>
+          PLIST
+
+      - name: Upload Build 9 to App Store Connect
+        shell: bash
+        env:
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+        run: |
+          set -euo pipefail
+          rm -rf "$RUNNER_TEMP/FamilyLifeAppStoreExport"
+          xcodebuild \
+            -exportArchive \
+            -archivePath "$RUNNER_TEMP/FamilyLifePrototype.xcarchive" \
+            -exportPath "$RUNNER_TEMP/FamilyLifeAppStoreExport" \
+            -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$ASC_KEY_PATH" \
+            -authenticationKeyID "$ASC_KEY_ID" \
+            -authenticationKeyIssuerID "$ASC_ISSUER_ID"
+
+      - name: Prepare App Store Connect JWT
+        shell: bash
+        env:
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+        run: |
+          set -euo pipefail
+          JWT=$(ruby <<'RUBY'
+          require 'openssl'
+          require 'base64'
+          require 'json'
+          def b(v); Base64.urlsafe_encode64(v, padding: false); end
+          key = OpenSSL::PKey.read(File.read(ENV.fetch('ASC_KEY_PATH')))
+          now = Time.now.to_i
+          header = b(JSON.generate({alg:'ES256', kid:ENV.fetch('ASC_KEY_ID'), typ:'JWT'}))
+          payload = b(JSON.generate({iss:ENV.fetch('ASC_ISSUER_ID'), iat:now, exp:now+1200, aud:'appstoreconnect-v1'}))
+          signing = "#{header}.#{payload}"
+          seq = OpenSSL::ASN1.decode(key.sign(OpenSSL::Digest::SHA256.new, signing))
+          raw = seq.value.map { |i| [i.value.to_i.to_s(16).rjust(64,'0')].pack('H*') }.join
+          puts "#{signing}.#{b(raw)}"
+          RUBY
+          )
+          echo "ASC_TOKEN=$JWT" >> "$GITHUB_ENV"
+
+      - name: Wait for Build 9 processing and attach to App Store version
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE='https://api.appstoreconnect.apple.com'
+          BUILD_ID=''
+          STATE=''
+
+          for i in $(seq 1 60); do
+            BUILDS=$(curl --fail-with-body -sS \
+              -H "Authorization: Bearer $ASC_TOKEN" \
+              "$BASE/v1/builds?filter%5Bapp%5D=$APP_ID&filter%5Bversion%5D=$BUILD_NUMBER&sort=-uploadedDate&limit=10")
+            BUILD_ID=$(jq -r '.data[0].id // empty' <<<"$BUILDS")
+            STATE=$(jq -r '.data[0].attributes.processingState // empty' <<<"$BUILDS")
+            echo "Build $BUILD_NUMBER: id=${BUILD_ID:-pending} state=${STATE:-pending}"
+            if [[ -n "$BUILD_ID" && "$STATE" == 'VALID' ]]; then
+              break
+            fi
+            if [[ "$STATE" == 'INVALID' || "$STATE" == 'FAILED' ]]; then
+              echo "Build processing failed with state $STATE"
+              exit 1
+            fi
+            sleep 20
+          done
+
+          test -n "$BUILD_ID"
+          test "$STATE" = 'VALID'
+
+          BODY=$(jq -n --arg id "$BUILD_ID" '{data:{type:"builds",id:$id}}')
+          curl --fail-with-body -sS -X PATCH \
+            -H "Authorization: Bearer $ASC_TOKEN" \
+            -H 'Content-Type: application/json' \
+            -d "$BODY" \
+            "$BASE/v1/appStoreVersions/$VERSION_ID/relationships/build" >/dev/null
+
+          echo "BUILD_ID=$BUILD_ID" >> "$GITHUB_ENV"
+          echo "Family Life OS $MARKETING_VERSION ($BUILD_NUMBER) is VALID and attached to App Store version $VERSION_ID." >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Remove App Store Connect key
+        if: always()
+        shell: bash
+        run: rm -f "$RUNNER_TEMP"/AuthKey_*.p8

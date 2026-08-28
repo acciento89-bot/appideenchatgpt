@@ -16,6 +16,7 @@ struct FamilySettingsView: View {
 
     private let familyPrivacyURL = URL(string: "https://www.kamilunavo.com/family/privacy")!
     private let familyTermsURL = URL(string: "https://www.kamilunavo.com/family/terms")!
+    private let appleStandardEULAURL = URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")!
 
     var body: some View {
         NavigationStack {
@@ -94,9 +95,10 @@ struct FamilySettingsView: View {
                             .font(.caption2)
                             .foregroundStyle(.secondary)
 
-                        HStack(spacing: 16) {
-                            Link("Datenschutz", destination: familyPrivacyURL)
+                        VStack(alignment: .leading, spacing: 6) {
+                            Link("Terms of Use (EULA)", destination: appleStandardEULAURL)
                             Link("Nutzungsbedingungen", destination: familyTermsURL)
+                            Link("Datenschutz", destination: familyPrivacyURL)
                         }
                         .font(.caption)
                     }
