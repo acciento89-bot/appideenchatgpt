@@ -1,4 +1,7 @@
+import AVFoundation
+import Observation
 import PhotosUI
+import Speech
 import SwiftUI
 import UniformTypeIdentifiers
 
@@ -12,7 +15,7 @@ struct CaptureView: View {
     @State private var photoItem: PhotosPickerItem?
     @State private var isDocumentPickerPresented = false
     @State private var isCameraPresented = false
-    @State private var voice = VoiceCaptureModel()
+    @State private var voice = ReviewSafeVoiceCaptureModel()
     @State private var isPreparing = false
     @State private var errorMessage: String?
 
@@ -328,5 +331,139 @@ private struct CameraPicker: UIViewControllerRepresentable {
             parent.dismiss()
         }
         func imagePickerControllerDidCancel(_ picker: UIImagePickerController) { parent.dismiss() }
+    }
+}
+
+@MainActor
+@Observable
+private final class ReviewSafeVoiceCaptureModel: NSObject, AVAudioRecorderDelegate {
+    var isRecording = false
+    var transcript = ""
+    var errorMessage: String?
+
+    private var recorder: AVAudioRecorder?
+    private var audioURL: URL?
+
+    func start() async {
+        errorMessage = nil
+        transcript = ""
+
+        do {
+            let microphoneGranted = await withCheckedContinuation { continuation in
+                AVAudioApplication.requestRecordPermission { allowed in
+                    continuation.resume(returning: allowed)
+                }
+            }
+            guard microphoneGranted else { throw VoiceCaptureError.microphonePermission }
+
+            let session = AVAudioSession.sharedInstance()
+            try session.setCategory(.record, mode: .default)
+            try session.setActive(true)
+
+            let url = FileManager.default.temporaryDirectory
+                .appendingPathComponent("family-voice-\(UUID().uuidString).m4a")
+            let settings: [String: Any] = [
+                AVFormatIDKey: Int(kAudioFormatMPEG4AAC),
+                AVSampleRateKey: 44_100,
+                AVNumberOfChannelsKey: 1,
+                AVEncoderAudioQualityKey: AVAudioQuality.high.rawValue
+            ]
+
+            let recorder = try AVAudioRecorder(url: url, settings: settings)
+            recorder.delegate = self
+            recorder.prepareToRecord()
+            guard recorder.record() else { throw VoiceCaptureError.recordingStart }
+
+            self.recorder = recorder
+            audioURL = url
+            isRecording = true
+        } catch {
+            recorder?.stop()
+            recorder = nil
+            audioURL = nil
+            isRecording = false
+            try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    func stopAndTranscribe() async -> (Data, String)? {
+        recorder?.stop()
+        recorder = nil
+        isRecording = false
+        try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+
+        guard let audioURL, let data = try? Data(contentsOf: audioURL) else {
+            errorMessage = VoiceCaptureError.recordingData.localizedDescription
+            return nil
+        }
+
+        defer {
+            try? FileManager.default.removeItem(at: audioURL)
+            self.audioURL = nil
+        }
+
+        let authorization = await speechAuthorization()
+        guard authorization == .authorized else {
+            transcript = ""
+            return (data, "")
+        }
+
+        guard let recognizer = SFSpeechRecognizer(locale: Locale(identifier: "de-DE")), recognizer.isAvailable else {
+            transcript = ""
+            return (data, "")
+        }
+
+        let request = SFSpeechURLRecognitionRequest(url: audioURL)
+        do {
+            let text: String = try await withCheckedThrowingContinuation { continuation in
+                var task: SFSpeechRecognitionTask?
+                task = recognizer.recognitionTask(with: request) { result, error in
+                    if let error {
+                        task?.cancel()
+                        continuation.resume(throwing: error)
+                        return
+                    }
+                    if let result, result.isFinal {
+                        task?.cancel()
+                        continuation.resume(returning: result.bestTranscription.formattedString)
+                    }
+                }
+            }
+            transcript = text
+            return (data, text)
+        } catch {
+            // The recording itself is still valid. Speech recognition is an optional
+            // enhancement and must never turn a successful recording into a failed import.
+            transcript = ""
+            return (data, "")
+        }
+    }
+
+    private func speechAuthorization() async -> SFSpeechRecognizerAuthorizationStatus {
+        let current = SFSpeechRecognizer.authorizationStatus()
+        guard current == .notDetermined else { return current }
+        return await withCheckedContinuation { continuation in
+            SFSpeechRecognizer.requestAuthorization { status in
+                continuation.resume(returning: status)
+            }
+        }
+    }
+
+    private enum VoiceCaptureError: LocalizedError {
+        case microphonePermission
+        case recordingStart
+        case recordingData
+
+        var errorDescription: String? {
+            switch self {
+            case .microphonePermission:
+                return "Für Sprachaufnahmen wird Mikrofonzugriff benötigt. Bitte erlaube den Zugriff in den iOS-Einstellungen."
+            case .recordingStart:
+                return "Die Audioaufnahme konnte nicht gestartet werden. Bitte versuche es erneut."
+            case .recordingData:
+                return "Die Audioaufnahme konnte nicht gespeichert werden. Bitte versuche es erneut."
+            }
+        }
     }
 }
