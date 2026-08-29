@@ -122,8 +122,8 @@ static func format_money(value: float, include_decimals := false) -> String:
 	var integer := parts[0]
 	var formatted := ""
 	while integer.length() > 3:
-		formatted = "." + integer.right(3) + formatted
-		integer = integer.left(integer.length() - 3)
+		formatted = "." + integer.substr(integer.length() - 3, 3) + formatted
+		integer = integer.substr(0, integer.length() - 3)
 	formatted = integer + formatted
 	if parts.size() > 1:
 		formatted += "," + parts[1]
