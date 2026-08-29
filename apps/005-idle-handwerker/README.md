@@ -12,6 +12,10 @@ Ein mobiles Idle-Game von Kamilunavo Games: Vom tropfenden Wasserhahn zum eigene
 - lokaler Spielstand mit Autosave
 - portraitoptimierte, responsive Godot-UI
 - deutsch formatierte Preise und direktes Spiel-Feedback
+- vollständig code-gezeichnete, animierte Werkstattszene
+- animierter Handwerker mit jobabhängigen Arbeitseffekten
+- prozedural erzeugte Soundeffekte und mobile Haptik
+- Auftragsserien mit Bonusbelohnung und Bestwert
 
 ## Start
 
@@ -40,4 +44,3 @@ Phase 1 fokussiert bewusst auf Spielgefühl, Progression, Balance und Retention.
 ## Technische Ausrichtung
 
 Das Projekt nutzt Godot und GDScript ohne Expo. Für den späteren iOS-Export kann die bewährte native Bridge-Struktur aus dem separaten Projekt `onemorefloor` als Referenz dienen, ohne dessen Code oder Produktidentität zu verändern.
-

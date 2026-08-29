@@ -11,6 +11,7 @@ const GOLD := Color("f3b553")
 const RED := Color("ef756b")
 
 var game: GameState
+var sfx: SfxBank
 var current_tab := "betrieb"
 var content: VBoxContainer
 var money_label: Label
@@ -20,6 +21,7 @@ var progress_bar: ProgressBar
 var job_label: Label
 var job_time_label: Label
 var primary_button: Button
+var workshop_visual: WorkshopVisual
 var toast_layer: Control
 var last_money_display := -1.0
 var nav_buttons: Dictionary = {}
@@ -29,6 +31,8 @@ func _ready() -> void:
 	set_process(false)
 	game = GameState.new()
 	add_child(game)
+	sfx = SfxBank.new()
+	add_child(sfx)
 	game.job_completed.connect(_on_job_completed)
 	game.level_up.connect(_on_level_up)
 	game.notice.connect(_show_toast)
@@ -182,14 +186,10 @@ func _build_dashboard() -> void:
 	copy.add_child(_label(_business_title(), 24, TEXT, true))
 	copy.add_child(_label(_business_subtitle(), 13, MUTED))
 	scene_row.add_child(copy)
-	var garage := PanelContainer.new()
-	garage.custom_minimum_size = Vector2(126, 86)
-	garage.add_theme_stylebox_override("panel", _box(Color("0e211b"), 14, GREEN, 2))
-	var garage_label := _label("  ___\n /___\\\n | SHK |\n O---O", 15, GREEN, true)
-	garage_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	garage_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	garage.add_child(garage_label)
-	scene_row.add_child(garage)
+	workshop_visual = WorkshopVisual.new()
+	workshop_visual.custom_minimum_size = Vector2(162, 112)
+	workshop_visual.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scene_row.add_child(workshop_visual)
 	hero_v.add_child(scene_row)
 
 	progress_bar = ProgressBar.new()
@@ -222,7 +222,7 @@ func _build_dashboard() -> void:
 	stat_row.add_theme_constant_override("separation", 9)
 	stat_row.add_child(_stat_card("AUFTRÄGE", str(game.completed_jobs), "erledigt"))
 	stat_row.add_child(_stat_card("TEAM", str(_employee_count()), "Mitarbeiter"))
-	stat_row.add_child(_stat_card("GESAMT", GameData.format_money(game.lifetime_earnings), "verdient"))
+	stat_row.add_child(_stat_card("SERIE", "%d×" % game.current_streak, "max. %d×" % game.best_streak))
 	content.add_child(stat_row)
 
 	content.add_child(_section_title("Nächster Meilenstein", "MEHR"))
@@ -334,18 +334,24 @@ func _primary_action() -> void:
 
 func _start_job(job_id: String, source: Control) -> void:
 	if game.start_job(job_id):
+		sfx.play_cue("start")
+		_haptic(22, 0.35)
 		_punch(source)
 		_switch_tab("betrieb")
 
 
 func _buy_upgrade(upgrade_id: String, source: Control) -> void:
 	if game.buy_upgrade(upgrade_id):
+		sfx.play_cue("upgrade")
+		_haptic(35, 0.55)
 		_punch(source)
 		_refresh_current_tab()
 
 
 func _hire(employee_id: String, source: Control) -> void:
 	if game.hire_employee(employee_id):
+		sfx.play_cue("upgrade")
+		_haptic(35, 0.55)
 		_punch(source)
 		_refresh_current_tab()
 
@@ -369,12 +375,16 @@ func _update_active_job() -> void:
 	if not progress_bar or not primary_button:
 		return
 	if game.active_job_id == "":
+		if workshop_visual:
+			workshop_visual.set_job("", 0.0)
 		progress_bar.value = 0.0
 		job_label.text = "Bereit für den nächsten Auftrag"
 		job_time_label.text = ""
 		primary_button.text = "AUFTRAG STARTEN"
 		return
 	var job := game.get_job(game.active_job_id)
+	if workshop_visual:
+		workshop_visual.set_job(game.active_job_id, game.active_job_progress())
 	progress_bar.value = game.active_job_progress() * 100.0
 	job_label.text = str(job.title)
 	job_time_label.text = "%.1f s" % game.active_job_remaining
@@ -382,13 +392,19 @@ func _update_active_job() -> void:
 
 
 func _on_job_completed(job: Dictionary, reward: float) -> void:
-	_show_reward_burst("+" + GameData.format_money(reward), job.color)
-	_show_toast("Auftrag erledigt: %s" % job.title)
+	sfx.play_cue("coin")
+	_haptic(70, 0.8)
 	if current_tab == "betrieb":
 		_refresh_current_tab()
+		if workshop_visual:
+			workshop_visual.celebrate()
+	_show_reward_burst("+" + GameData.format_money(reward), job.color)
+	_show_toast("Auftrag erledigt · Serie %d×" % game.current_streak)
 
 
 func _on_level_up(new_level: int) -> void:
+	sfx.play_cue("level")
+	_haptic(120, 1.0)
 	_show_reward_burst("BETRIEBSSTUFE %d!" % new_level, GOLD)
 
 
@@ -611,6 +627,10 @@ func _punch(control: Control) -> void:
 	var tween := create_tween()
 	tween.tween_property(control, "scale", Vector2(0.94, 0.94), 0.07)
 	tween.tween_property(control, "scale", Vector2.ONE, 0.16).set_trans(Tween.TRANS_BACK)
+
+
+func _haptic(duration_ms: int, strength: float) -> void:
+	Input.vibrate_handheld(duration_ms, strength)
 
 
 func _employee_count() -> int:
