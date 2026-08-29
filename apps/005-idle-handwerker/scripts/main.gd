@@ -39,7 +39,9 @@ func _ready() -> void:
 	_build_shell()
 	_switch_tab("betrieb")
 	set_process(true)
-	if game.offline_reward > 0.0:
+	if not game.tutorial_completed:
+		_show_tutorial()
+	elif game.offline_reward > 0.0:
 		_show_offline_dialog()
 
 
@@ -127,10 +129,11 @@ func _build_nav() -> Control:
 	row.add_theme_constant_override("separation", 4)
 	margin.add_child(row)
 	var items := [
-		["betrieb", "Betrieb", "HA"],
-		["auftraege", "Aufträge", "AU"],
+		["betrieb", "Betrieb", "BT"],
+		["auftraege", "Jobs", "AU"],
 		["ausbau", "Ausbau", "UP"],
 		["team", "Team", "TE"],
+		["ziele", "Ziele", "ZL"],
 	]
 	for item in items:
 		var button := Button.new()
@@ -149,7 +152,7 @@ func _switch_tab(tab_id: String) -> void:
 	current_tab = tab_id
 	for child in content.get_children():
 		child.queue_free()
-	for id in ["betrieb", "auftraege", "ausbau", "team"]:
+	for id in ["betrieb", "auftraege", "ausbau", "team", "ziele"]:
 		var button: Button = nav_buttons.get(id)
 		if button:
 			_style_nav(button, id == tab_id)
@@ -158,12 +161,13 @@ func _switch_tab(tab_id: String) -> void:
 		"auftraege": _build_jobs()
 		"ausbau": _build_upgrades()
 		"team": _build_team()
+		"ziele": _build_goals()
 
 
 func _build_dashboard() -> void:
 	var hero := PanelContainer.new()
 	hero.custom_minimum_size.y = 238
-	hero.add_theme_stylebox_override("panel", _box(Color("1b3c2e"), 24, Color("2c6048"), 1))
+	hero.add_theme_stylebox_override("panel", UiSkin.hero())
 	var hero_margin := MarginContainer.new()
 	_set_margins(hero_margin, 20, 20, 18, 18)
 	hero.add_child(hero_margin)
@@ -212,9 +216,9 @@ func _build_dashboard() -> void:
 	primary_button.custom_minimum_size.y = 62
 	primary_button.add_theme_font_size_override("font_size", 17)
 	primary_button.add_theme_color_override("font_color", Color("071811"))
-	primary_button.add_theme_stylebox_override("normal", _box(GREEN, 18))
-	primary_button.add_theme_stylebox_override("hover", _box(Color("63e3a0"), 18))
-	primary_button.add_theme_stylebox_override("pressed", _box(Color("2dbd76"), 18))
+	primary_button.add_theme_stylebox_override("normal", UiSkin.primary_button())
+	primary_button.add_theme_stylebox_override("hover", UiSkin.primary_button())
+	primary_button.add_theme_stylebox_override("pressed", UiSkin.pressed_button())
 	primary_button.pressed.connect(_primary_action)
 	content.add_child(primary_button)
 
@@ -225,14 +229,21 @@ func _build_dashboard() -> void:
 	stat_row.add_child(_stat_card("SERIE", "%d×" % game.current_streak, "max. %d×" % game.best_streak))
 	content.add_child(stat_row)
 
+	var location := game.current_location()
+	content.add_child(_highlight_card("AKTIVER STANDORT · %s" % location.code, str(location.title), "+%d %% Auftragswert · %d/3 Tagesziele" % [int((float(location.multiplier) - 1.0) * 100.0), game.completed_daily_missions()]))
+
 	content.add_child(_section_title("Nächster Meilenstein", "MEHR"))
 	content.add_child(_milestone_card())
 
 
 func _build_jobs() -> void:
 	content.add_child(_page_intro("Auftragsbörse", "Wähle Aufträge, verdiene Geld und steigere deinen Ruf."))
+	content.add_child(_section_title("Einsatzgebiet", "STANDORTBONUS"))
+	content.add_child(_location_selector())
+	content.add_child(_section_title("Verfügbare Aufträge", str(game.current_location().title).to_upper()))
 	for job in GameData.JOBS:
-		content.add_child(_job_card(job))
+		if str(job.location) == game.current_location_id:
+			content.add_child(_job_card(job))
 
 
 func _build_upgrades() -> void:
@@ -249,6 +260,17 @@ func _build_team() -> void:
 		content.add_child(_employee_card(employee))
 
 
+func _build_goals() -> void:
+	content.add_child(_page_intro("Ziele & Erfolge", "Klare Etappen, tägliche Belohnungen und dauerhafte Meilensteine."))
+	content.add_child(_highlight_card("HEUTIGER FORTSCHRITT", "%d / %d Ziele" % [game.completed_daily_missions(), GameData.DAILY_MISSIONS.size()], "Neue Tagesziele am nächsten Kalendertag"))
+	content.add_child(_section_title("Tagesziele", "HEUTE"))
+	for mission in GameData.DAILY_MISSIONS:
+		content.add_child(_goal_card(mission, true))
+	content.add_child(_section_title("Karriere-Erfolge", "DAUERHAFT"))
+	for achievement in GameData.ACHIEVEMENTS:
+		content.add_child(_goal_card(achievement, false))
+
+
 func _job_card(job: Dictionary) -> Control:
 	var card := _card_container()
 	var row := HBoxContainer.new()
@@ -259,7 +281,7 @@ func _job_card(job: Dictionary) -> Control:
 	copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	copy.add_child(_label(str(job.title), 16, TEXT, true))
 	copy.add_child(_label(str(job.customer) + "  •  " + str(int(job.duration)) + " Sek.", 11, MUTED))
-	var reward := float(job.reward) * game.job_reward_multiplier()
+	var reward := float(job.reward) * game.job_reward_multiplier() * game.streak_reward_multiplier() * game.location_reward_multiplier()
 	copy.add_child(_label(GameData.format_money(reward) + "  +%d XP" % int(job.xp), 12, GREEN, true))
 	row.add_child(copy)
 	var button := Button.new()
@@ -271,6 +293,70 @@ func _job_card(job: Dictionary) -> Control:
 	_style_small_button(button)
 	button.pressed.connect(_start_job.bind(str(job.id), button))
 	row.add_child(button)
+	return card
+
+
+func _location_selector() -> Control:
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 8)
+	for location in GameData.LOCATIONS:
+		var selected := str(location.id) == game.current_location_id
+		var unlocked := game.level >= int(location.level)
+		var card := _card_container()
+		if selected:
+			card.add_theme_stylebox_override("panel", UiSkin.hero())
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 12)
+		card.get_child(0).get_child(0).add_child(row)
+		row.add_child(_icon_box(str(location.code), GOLD if selected else GREEN))
+		var copy := VBoxContainer.new()
+		copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		copy.add_child(_label(str(location.title), 15, TEXT, true))
+		var subtitle := str(location.subtitle) if unlocked else "Freischaltung ab Stufe %d" % int(location.level)
+		copy.add_child(_label(subtitle, 10, MUTED))
+		copy.add_child(_label("+%d %% Auftragswert" % int((float(location.multiplier) - 1.0) * 100.0), 10, GOLD, true))
+		row.add_child(copy)
+		var button := Button.new()
+		button.text = "Aktiv" if selected else ("Wählen" if unlocked else "St. %d" % int(location.level))
+		button.disabled = selected or not unlocked or game.active_job_id != ""
+		button.custom_minimum_size = Vector2(76, 44)
+		_style_small_button(button)
+		button.pressed.connect(_select_location.bind(str(location.id), button))
+		row.add_child(button)
+		box.add_child(card)
+	return box
+
+
+func _goal_card(item: Dictionary, daily: bool) -> Control:
+	var progress := game.daily_mission_progress(item) if daily else game.achievement_progress(item)
+	var claimed := bool(game.daily_claimed.get(item.id, false)) if daily else bool(game.achievements_claimed.get(item.id, false))
+	var ready := progress >= float(item.target)
+	var card := _card_container()
+	var box: VBoxContainer = card.get_child(0).get_child(0)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 10)
+	row.add_child(_icon_box("✓" if claimed else ("!" if ready else "•"), GOLD if ready else GREEN))
+	var copy := VBoxContainer.new()
+	copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	copy.add_child(_label(str(item.title), 15, TEXT, true))
+	copy.add_child(_label(str(item.description), 10, MUTED))
+	copy.add_child(_label("Belohnung  " + GameData.format_money(float(item.reward)), 10, GOLD, true))
+	row.add_child(copy)
+	var button := Button.new()
+	button.text = "Erhalten" if claimed else ("Abholen" if ready else "%d / %d" % [int(progress), int(item.target)])
+	button.disabled = claimed or not ready
+	button.custom_minimum_size = Vector2(88, 44)
+	_style_small_button(button)
+	button.pressed.connect(_claim_goal.bind(str(item.id), daily, button))
+	row.add_child(button)
+	box.add_child(row)
+	var bar := ProgressBar.new()
+	bar.show_percentage = false
+	bar.custom_minimum_size.y = 7
+	bar.value = progress / maxf(1.0, float(item.target)) * 100.0
+	bar.add_theme_stylebox_override("background", _box(Color("0a1713"), 4))
+	bar.add_theme_stylebox_override("fill", _box(GOLD if ready else GREEN, 4))
+	box.add_child(bar)
 	return card
 
 
@@ -327,9 +413,27 @@ func _primary_action() -> void:
 		_switch_tab("auftraege")
 		return
 	for job in GameData.JOBS:
-		if game.level >= int(job.level):
+		if game.level >= int(job.level) and str(job.location) == game.current_location_id:
 			_start_job(str(job.id), primary_button)
 			return
+
+
+func _select_location(location_id: String, source: Control) -> void:
+	if game.select_location(location_id):
+		sfx.play_cue("upgrade")
+		_haptic(30, 0.5)
+		_punch(source)
+		_refresh_current_tab()
+
+
+func _claim_goal(goal_id: String, daily: bool, source: Control) -> void:
+	var claimed := game.claim_daily_mission(goal_id) if daily else game.claim_achievement(goal_id)
+	if claimed:
+		sfx.play_cue("coin")
+		_haptic(60, 0.75)
+		_punch(source)
+		_show_reward_burst("BELOHNUNG ABGEHOLT", GOLD)
+		_refresh_current_tab()
 
 
 func _start_job(job_id: String, source: Control) -> void:
@@ -419,6 +523,85 @@ func _show_offline_dialog() -> void:
 	dialog.confirmed.connect(dialog.queue_free)
 
 
+func _show_tutorial() -> void:
+	var steps := [
+		["01 · DEIN ERSTER AUFTRAG", "Starte mit kleinen Reparaturen in der Nachbarschaft. Jeder Auftrag bringt Geld, XP und eine stärkere Auftragsserie."],
+		["02 · BETRIEB AUSBAUEN", "Investiere Einnahmen in Werkzeug, Transporter und Büro. So steigen Lohn, Tempo und das passive Einkommen."],
+		["03 · TEAM AUFBAUEN", "Mitarbeiter verdienen dauerhaft Geld – sogar bis zu acht Stunden während du nicht spielst."],
+		["04 · NEUE STANDORTE", "Steige im Betriebslevel auf, erschließe Premium-Gebiete und hole tägliche Ziele sowie Karriere-Erfolge ab."],
+	]
+	var overlay := ColorRect.new()
+	overlay.color = Color("09110fe8")
+	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	overlay.z_index = 50
+	add_child(overlay)
+	var center := CenterContainer.new()
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	overlay.add_child(center)
+	var panel := PanelContainer.new()
+	panel.custom_minimum_size = Vector2(350, 430)
+	panel.add_theme_stylebox_override("panel", UiSkin.hero())
+	center.add_child(panel)
+	var margin := MarginContainer.new()
+	_set_margins(margin, 26, 26, 28, 24)
+	panel.add_child(margin)
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 16)
+	margin.add_child(box)
+	var eyebrow := _label("KAMILUNAVO · SCHNELLSTART", 10, GREEN, true)
+	eyebrow.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	box.add_child(eyebrow)
+	var medallion := PanelContainer.new()
+	medallion.custom_minimum_size = Vector2(82, 82)
+	medallion.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	medallion.add_theme_stylebox_override("panel", UiSkin.medallion())
+	var medallion_text := _label("IH", 23, GOLD, true)
+	medallion_text.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	medallion_text.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	medallion.add_child(medallion_text)
+	box.add_child(medallion)
+	var title := _label("", 22, TEXT, true)
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	box.add_child(title)
+	var body := _label("", 13, MUTED)
+	body.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	body.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	box.add_child(body)
+	var progress := _label("", 10, GOLD, true)
+	progress.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	box.add_child(progress)
+	var next := Button.new()
+	next.custom_minimum_size.y = 58
+	next.add_theme_font_size_override("font_size", 15)
+	next.add_theme_color_override("font_color", Color("071811"))
+	next.add_theme_stylebox_override("normal", UiSkin.primary_button())
+	next.add_theme_stylebox_override("hover", UiSkin.primary_button())
+	next.add_theme_stylebox_override("pressed", UiSkin.pressed_button())
+	box.add_child(next)
+	var index := [0]
+	var render_step := func() -> void:
+		title.text = str(steps[index[0]][0])
+		body.text = str(steps[index[0]][1])
+		progress.text = "SCHRITT %d VON %d" % [index[0] + 1, steps.size()]
+		next.text = "LOSLEGEN" if index[0] == steps.size() - 1 else "WEITER"
+	render_step.call()
+	next.pressed.connect(func() -> void:
+		sfx.play_cue("start")
+		_haptic(20, 0.35)
+		if index[0] < steps.size() - 1:
+			index[0] += 1
+			render_step.call()
+			_punch(panel)
+			return
+		game.finish_tutorial()
+		overlay.queue_free()
+		if game.offline_reward > 0.0:
+			_show_offline_dialog()
+	)
+
+
 func _show_toast(message: String) -> void:
 	if not toast_layer:
 		return
@@ -499,7 +682,7 @@ func _section_title(title: String, action: String) -> Control:
 func _stat_card(title: String, value: String, caption: String) -> Control:
 	var card := PanelContainer.new()
 	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	card.add_theme_stylebox_override("panel", _box(SURFACE, 16, Color("203b33"), 1))
+	card.add_theme_stylebox_override("panel", UiSkin.panel())
 	var box := VBoxContainer.new()
 	box.alignment = BoxContainer.ALIGNMENT_CENTER
 	box.add_theme_constant_override("separation", 1)
@@ -520,7 +703,7 @@ func _stat_card(title: String, value: String, caption: String) -> Control:
 
 func _highlight_card(kicker: String, value: String, caption: String) -> Control:
 	var card := PanelContainer.new()
-	card.add_theme_stylebox_override("panel", _box(GREEN_DARK, 18, Color("2f7354"), 1))
+	card.add_theme_stylebox_override("panel", UiSkin.hero())
 	var box := VBoxContainer.new()
 	box.alignment = BoxContainer.ALIGNMENT_CENTER
 	box.add_child(_label(kicker, 10, GREEN, true))
@@ -533,7 +716,7 @@ func _highlight_card(kicker: String, value: String, caption: String) -> Control:
 
 func _card_container() -> PanelContainer:
 	var card := PanelContainer.new()
-	card.add_theme_stylebox_override("panel", _box(SURFACE, 18, Color("203a32"), 1))
+	card.add_theme_stylebox_override("panel", UiSkin.panel())
 	var margin := MarginContainer.new()
 	_set_margins(margin, 14, 14, 13, 13)
 	card.add_child(margin)
@@ -546,7 +729,7 @@ func _card_container() -> PanelContainer:
 func _icon_box(text: String, color: Color) -> Control:
 	var panel := PanelContainer.new()
 	panel.custom_minimum_size = Vector2(52, 52)
-	panel.add_theme_stylebox_override("panel", _box(Color(color, 0.14), 14, Color(color, 0.55), 1))
+	panel.add_theme_stylebox_override("panel", UiSkin.medallion())
 	var label := _label(text, 13, color, true)
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
@@ -610,16 +793,18 @@ func _style_small_button(button: Button) -> void:
 	button.add_theme_font_size_override("font_size", 11)
 	button.add_theme_color_override("font_color", Color("0a1b14"))
 	button.add_theme_color_override("font_disabled_color", MUTED)
-	button.add_theme_stylebox_override("normal", _box(GREEN, 12))
-	button.add_theme_stylebox_override("pressed", _box(Color("2bbd75"), 12))
-	button.add_theme_stylebox_override("disabled", _box(Color("253a33"), 12))
+	button.add_theme_stylebox_override("normal", UiSkin.primary_button())
+	button.add_theme_stylebox_override("hover", UiSkin.primary_button())
+	button.add_theme_stylebox_override("pressed", UiSkin.pressed_button())
+	button.add_theme_stylebox_override("disabled", UiSkin.dark_button())
 
 
 func _style_nav(button: Button, active: bool) -> void:
 	var fg := GREEN if active else MUTED
 	button.add_theme_color_override("font_color", fg)
-	button.add_theme_stylebox_override("normal", _box(GREEN_DARK if active else Color.TRANSPARENT, 13))
-	button.add_theme_stylebox_override("pressed", _box(Color("234b39"), 13))
+	button.add_theme_stylebox_override("normal", UiSkin.active_nav() if active else _box(Color.TRANSPARENT, 13))
+	button.add_theme_stylebox_override("hover", UiSkin.active_nav() if active else UiSkin.dark_button())
+	button.add_theme_stylebox_override("pressed", UiSkin.pressed_button())
 
 
 func _punch(control: Control) -> void:

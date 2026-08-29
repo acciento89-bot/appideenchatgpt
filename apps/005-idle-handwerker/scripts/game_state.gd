@@ -25,11 +25,18 @@ var active_job_remaining := 0.0
 var active_job_total := 0.0
 var offline_reward := 0.0
 var last_saved_unix := 0
+var current_location_id := "neighborhood"
+var tutorial_completed := false
+var daily_key := ""
+var daily_progress := {"jobs": 0.0, "earnings": 0.0, "upgrades": 0.0}
+var daily_claimed := {"jobs": false, "earnings": false, "invest": false}
+var achievements_claimed: Dictionary = {}
 var _autosave_elapsed := 0.0
 
 
 func _ready() -> void:
 	load_game()
+	_ensure_daily_state()
 
 
 func _process(delta: float) -> void:
@@ -67,6 +74,9 @@ func start_job(job_id: String) -> bool:
 	if level < int(job.level):
 		notice.emit("Ab Betriebsstufe %d verfügbar." % int(job.level))
 		return false
+	if str(job.location) != current_location_id:
+		notice.emit("Dieser Auftrag gehört zu einem anderen Standort.")
+		return false
 	active_job_id = job_id
 	active_job_total = maxf(1.0, float(job.duration) * job_duration_multiplier())
 	active_job_remaining = active_job_total
@@ -82,10 +92,12 @@ func complete_active_job() -> void:
 		active_job_id = ""
 		return
 	_update_streak()
-	var reward := float(job.reward) * job_reward_multiplier() * streak_reward_multiplier()
+	var reward := float(job.reward) * job_reward_multiplier() * streak_reward_multiplier() * location_reward_multiplier()
 	money += reward
 	lifetime_earnings += reward
 	completed_jobs += 1
+	daily_progress.jobs = float(daily_progress.jobs) + 1.0
+	daily_progress.earnings = float(daily_progress.earnings) + reward
 	add_xp(int(job.xp))
 	active_job_id = ""
 	active_job_remaining = 0.0
@@ -114,6 +126,7 @@ func buy_upgrade(upgrade_id: String) -> bool:
 			return false
 		money -= cost
 		upgrades[upgrade_id] = current + 1
+		daily_progress.upgrades = float(daily_progress.upgrades) + 1.0
 		notice.emit("%s auf Stufe %d verbessert!" % [upgrade.title, current + 1])
 		changed.emit()
 		save_game()
@@ -145,6 +158,119 @@ func job_reward_multiplier() -> float:
 
 func streak_reward_multiplier() -> float:
 	return 1.0 + float(mini(current_streak, 5)) * 0.03
+
+
+func location_reward_multiplier() -> float:
+	for location in GameData.LOCATIONS:
+		if location.id == current_location_id:
+			return float(location.multiplier)
+	return 1.0
+
+
+func select_location(location_id: String) -> bool:
+	for location in GameData.LOCATIONS:
+		if location.id != location_id:
+			continue
+		if level < int(location.level):
+			notice.emit("Standort ab Betriebsstufe %d verfügbar." % int(location.level))
+			return false
+		if active_job_id != "":
+			notice.emit("Standortwechsel erst nach dem laufenden Auftrag.")
+			return false
+		current_location_id = location_id
+		notice.emit("Neuer Standort: %s" % location.title)
+		changed.emit()
+		save_game()
+		return true
+	return false
+
+
+func current_location() -> Dictionary:
+	for location in GameData.LOCATIONS:
+		if location.id == current_location_id:
+			return location
+	return GameData.LOCATIONS[0]
+
+
+func daily_mission_progress(mission: Dictionary) -> float:
+	return minf(float(daily_progress.get(mission.metric, 0.0)), float(mission.target))
+
+
+func claim_daily_mission(mission_id: String) -> bool:
+	_ensure_daily_state()
+	for mission in GameData.DAILY_MISSIONS:
+		if mission.id != mission_id:
+			continue
+		if bool(daily_claimed.get(mission_id, false)):
+			return false
+		if daily_mission_progress(mission) < float(mission.target):
+			notice.emit("Dieses Tagesziel ist noch nicht geschafft.")
+			return false
+		daily_claimed[mission_id] = true
+		money += float(mission.reward)
+		lifetime_earnings += float(mission.reward)
+		notice.emit("Tagesziel: +%s" % GameData.format_money(float(mission.reward)))
+		changed.emit()
+		save_game()
+		return true
+	return false
+
+
+func achievement_progress(achievement: Dictionary) -> float:
+	match str(achievement.metric):
+		"jobs": return minf(float(completed_jobs), float(achievement.target))
+		"team": return minf(float(total_employees()), float(achievement.target))
+		"lifetime": return minf(lifetime_earnings, float(achievement.target))
+		"streak": return minf(float(best_streak), float(achievement.target))
+	return 0.0
+
+
+func claim_achievement(achievement_id: String) -> bool:
+	for achievement in GameData.ACHIEVEMENTS:
+		if achievement.id != achievement_id:
+			continue
+		if bool(achievements_claimed.get(achievement_id, false)):
+			return false
+		if achievement_progress(achievement) < float(achievement.target):
+			notice.emit("Erfolg noch nicht freigeschaltet.")
+			return false
+		achievements_claimed[achievement_id] = true
+		money += float(achievement.reward)
+		lifetime_earnings += float(achievement.reward)
+		notice.emit("Erfolg freigeschaltet: %s" % achievement.title)
+		changed.emit()
+		save_game()
+		return true
+	return false
+
+
+func total_employees() -> int:
+	var total := 0
+	for value in employees.values():
+		total += int(value)
+	return total
+
+
+func completed_daily_missions() -> int:
+	var total := 0
+	for mission in GameData.DAILY_MISSIONS:
+		if daily_mission_progress(mission) >= float(mission.target):
+			total += 1
+	return total
+
+
+func finish_tutorial() -> void:
+	tutorial_completed = true
+	save_game()
+
+
+func _ensure_daily_state() -> void:
+	var today := Time.get_date_string_from_system()
+	if daily_key == today:
+		return
+	daily_key = today
+	daily_progress = {"jobs": 0.0, "earnings": 0.0, "upgrades": 0.0}
+	daily_claimed = {"jobs": false, "earnings": false, "invest": false}
 
 
 func _update_streak() -> void:
@@ -199,6 +325,12 @@ func save_game() -> void:
 		"active_job_remaining": active_job_remaining,
 		"active_job_total": active_job_total,
 		"last_saved_unix": last_saved_unix,
+		"current_location_id": current_location_id,
+		"tutorial_completed": tutorial_completed,
+		"daily_key": daily_key,
+		"daily_progress": daily_progress,
+		"daily_claimed": daily_claimed,
+		"achievements_claimed": achievements_claimed,
 	}
 	var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if file:
@@ -229,6 +361,12 @@ func load_game() -> void:
 	active_job_remaining = maxf(0.0, float(parsed.get("active_job_remaining", 0.0)))
 	active_job_total = maxf(0.0, float(parsed.get("active_job_total", 0.0)))
 	last_saved_unix = int(parsed.get("last_saved_unix", Time.get_unix_time_from_system()))
+	current_location_id = str(parsed.get("current_location_id", "neighborhood"))
+	tutorial_completed = bool(parsed.get("tutorial_completed", false))
+	daily_key = str(parsed.get("daily_key", ""))
+	daily_progress.merge(parsed.get("daily_progress", {}), true)
+	daily_claimed.merge(parsed.get("daily_claimed", {}), true)
+	achievements_claimed = parsed.get("achievements_claimed", {})
 	var elapsed := clampf(float(Time.get_unix_time_from_system() - last_saved_unix), 0.0, OFFLINE_CAP_SECONDS)
 	if elapsed > 10.0:
 		offline_reward = passive_income_per_second() * elapsed
