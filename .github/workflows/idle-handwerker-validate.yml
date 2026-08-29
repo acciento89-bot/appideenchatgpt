@@ -1,0 +1,67 @@
+name: Idle Handwerker Validate
+
+on:
+  push:
+    branches:
+      - codex/idle-handwerker-mvp
+    paths:
+      - 'apps/005-idle-handwerker/**'
+      - '.github/workflows/idle-handwerker-validate.yml'
+  pull_request:
+    paths:
+      - 'apps/005-idle-handwerker/**'
+      - '.github/workflows/idle-handwerker-validate.yml'
+
+permissions:
+  contents: read
+
+env:
+  GODOT_TAG: 4.7.1-stable
+  PROJECT_DIR: apps/005-idle-handwerker
+
+jobs:
+  compile-and-test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Download Godot
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -L --fail --retry 3 -o "$RUNNER_TEMP/godot.zip" \
+            "https://github.com/godotengine/godot/releases/download/${GODOT_TAG}/Godot_v${GODOT_TAG}_linux.x86_64.zip"
+          unzip -q "$RUNNER_TEMP/godot.zip" -d "$RUNNER_TEMP/godot"
+          GODOT="$RUNNER_TEMP/godot/Godot_v${GODOT_TAG}_linux.x86_64"
+          chmod +x "$GODOT"
+          "$GODOT" --version
+          echo "GODOT=$GODOT" >> "$GITHUB_ENV"
+
+      - name: Compile project
+        shell: bash
+        run: |
+          set -o pipefail
+          "$GODOT" --headless --editor --path "$PROJECT_DIR" --quit 2>&1 | tee godot-import.log
+          if grep -E "SCRIPT ERROR|Parse Error|Compile Error|Failed to load script|Failed loading resource" godot-import.log; then
+            exit 1
+          fi
+
+      - name: Run economy tests
+        shell: bash
+        run: |
+          set -o pipefail
+          "$GODOT" --headless --path "$PROJECT_DIR" --script res://tests/test_economy.gd 2>&1 | tee godot-tests.log
+          grep -q "All economy tests passed." godot-tests.log
+
+      - name: Upload failure logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: idle-handwerker-validation-logs
+          path: |
+            godot-import.log
+            godot-tests.log
+          if-no-files-found: ignore
+
