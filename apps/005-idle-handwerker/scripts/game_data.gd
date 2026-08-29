@@ -115,7 +115,7 @@ static func xp_for_level(level: int) -> int:
 
 
 static func format_money(value: float, include_decimals := false) -> String:
-	var decimals := 2 if include_decimals and value < 1000.0 else 0
+	var decimals := 2 if include_decimals else 0
 	var number_format := "%." + str(decimals) + "f"
 	var raw := (number_format % value).replace(".", ",")
 	var parts := raw.split(",")
