@@ -18,7 +18,16 @@ func _init() -> void:
 	if GameData.format_money(1234.5, true) != "1.234,50 €":
 		failures += 1
 		printerr("FAIL: German money formatting")
+	var game := GameState.new()
+	game.current_streak = 5
+	if not is_equal_approx(game.streak_reward_multiplier(), 1.15):
+		failures += 1
+		printerr("FAIL: streak reward cap")
+	game.current_streak = 12
+	if not is_equal_approx(game.streak_reward_multiplier(), 1.15):
+		failures += 1
+		printerr("FAIL: streak reward must stay capped")
+	game.free()
 	if failures == 0:
 		print("All economy tests passed.")
 	quit(failures)
-

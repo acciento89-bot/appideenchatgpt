@@ -15,6 +15,9 @@ var lifetime_earnings := 0.0
 var level := 1
 var xp := 0
 var completed_jobs := 0
+var current_streak := 0
+var best_streak := 0
+var last_job_completed_unix := 0
 var upgrades := {"tools": 0, "van": 0, "office": 0}
 var employees := {"azubi": 0, "monteur": 0, "meisterin": 0}
 var active_job_id := ""
@@ -78,7 +81,8 @@ func complete_active_job() -> void:
 	if job.is_empty():
 		active_job_id = ""
 		return
-	var reward := float(job.reward) * job_reward_multiplier()
+	_update_streak()
+	var reward := float(job.reward) * job_reward_multiplier() * streak_reward_multiplier()
 	money += reward
 	lifetime_earnings += reward
 	completed_jobs += 1
@@ -139,6 +143,20 @@ func job_reward_multiplier() -> float:
 	return 1.0 + float(upgrades.tools) * 0.2
 
 
+func streak_reward_multiplier() -> float:
+	return 1.0 + float(mini(current_streak, 5)) * 0.03
+
+
+func _update_streak() -> void:
+	var now := int(Time.get_unix_time_from_system())
+	if last_job_completed_unix > 0 and now - last_job_completed_unix <= 5 * 60:
+		current_streak += 1
+	else:
+		current_streak = 1
+	best_streak = maxi(best_streak, current_streak)
+	last_job_completed_unix = now
+
+
 func job_duration_multiplier() -> float:
 	return maxf(0.42, 1.0 - float(upgrades.van) * 0.12)
 
@@ -172,6 +190,9 @@ func save_game() -> void:
 		"level": level,
 		"xp": xp,
 		"completed_jobs": completed_jobs,
+		"current_streak": current_streak,
+		"best_streak": best_streak,
+		"last_job_completed_unix": last_job_completed_unix,
 		"upgrades": upgrades,
 		"employees": employees,
 		"active_job_id": active_job_id,
@@ -199,6 +220,9 @@ func load_game() -> void:
 	level = maxi(1, int(parsed.get("level", 1)))
 	xp = maxi(0, int(parsed.get("xp", 0)))
 	completed_jobs = maxi(0, int(parsed.get("completed_jobs", 0)))
+	current_streak = maxi(0, int(parsed.get("current_streak", 0)))
+	best_streak = maxi(current_streak, int(parsed.get("best_streak", 0)))
+	last_job_completed_unix = maxi(0, int(parsed.get("last_job_completed_unix", 0)))
 	upgrades.merge(parsed.get("upgrades", {}), true)
 	employees.merge(parsed.get("employees", {}), true)
 	active_job_id = str(parsed.get("active_job_id", ""))
@@ -214,4 +238,3 @@ func load_game() -> void:
 			active_job_remaining = maxf(0.0, active_job_remaining - elapsed)
 			if active_job_remaining <= 0.0:
 				complete_active_job()
-
