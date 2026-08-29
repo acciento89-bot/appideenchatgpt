@@ -2,9 +2,10 @@
 
 Ein mobiles Idle-Game von Kamilunavo Games: Vom tropfenden Wasserhahn zum eigenen Handwerks-Imperium.
 
-## Spielbarer MVP
+## Spielbarer Early-Access-Build
 
-- vier freischaltbare Auftragstypen mit Echtzeit-Fortschritt
+- zehn freischaltbare Auftragstypen mit Echtzeit-Fortschritt
+- vier Einsatzgebiete mit Standortboni und eigener Auftragsauswahl
 - Betriebsstufen, XP und steigende Belohnungen
 - Werkzeug-, Transporter- und Büro-Upgrades
 - drei Mitarbeitertypen mit passivem Einkommen
@@ -16,6 +17,10 @@ Ein mobiles Idle-Game von Kamilunavo Games: Vom tropfenden Wasserhahn zum eigene
 - animierter Handwerker mit jobabhängigen Arbeitseffekten
 - prozedural erzeugte Soundeffekte und mobile Haptik
 - Auftragsserien mit Bonusbelohnung und Bestwert
+- drei rotierende Tagesziele und vier dauerhafte Karriere-Erfolge
+- vierstufiges Ingame-Tutorial für den ersten Start
+- vollständig eigenes Premium-Menüsystem aus Godot-kompatiblen SVG-Skins
+- Metallrahmen, Einlagen, Nieten, Glanzkanten und Medaillons ohne generierte Bilder
 
 ## Start
 
@@ -39,7 +44,7 @@ godot --headless --path . --script tests/test_economy.gd
 
 ## Produktstrategie
 
-Phase 1 fokussiert bewusst auf Spielgefühl, Progression, Balance und Retention. Werbung und In-App-Käufe werden erst integriert, wenn die Kernschleife Spaß macht und stabil ist.
+Die aktuelle Phase fokussiert bewusst auf Spielgefühl, Progression, Onboarding und Retention. Werbung und In-App-Käufe werden erst integriert, wenn die Kernschleife Spaß macht und stabil ist.
 
 ## Technische Ausrichtung
 
