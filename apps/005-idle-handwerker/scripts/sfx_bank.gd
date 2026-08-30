@@ -18,6 +18,7 @@ func _ready() -> void:
 	_streams.level = _make_tone([523.25, 659.25, 783.99, 1046.5], 0.12, 0.26)
 	_streams.event = _make_tone([392.0, 587.33, 783.99], 0.11, 0.25)
 	_streams.contract = _make_tone([349.23, 523.25, 698.46, 1046.5], 0.1, 0.25)
+	_streams.review = _make_tone([659.25, 783.99, 987.77], 0.09, 0.22)
 
 
 func play_cue(cue: String) -> void:

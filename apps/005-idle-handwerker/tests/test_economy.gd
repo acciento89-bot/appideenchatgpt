@@ -18,9 +18,9 @@ func _init() -> void:
 	if GameData.format_money(1234.5, true) != "1.234,50 €":
 		failures += 1
 		printerr("FAIL: German money formatting")
-	if GameData.JOBS.size() < 10:
+	if GameData.JOBS.size() < 14:
 		failures += 1
-		printerr("FAIL: phase 3 needs at least ten jobs")
+		printerr("FAIL: phase 6 needs fourteen jobs")
 	if GameData.LOCATIONS.size() != 4:
 		failures += 1
 		printerr("FAIL: expected four progression locations")
@@ -82,6 +82,25 @@ func _init() -> void:
 	if str(game.reputation_rank().code) != "R3":
 		failures += 1
 		printerr("FAIL: reputation rank progression")
+	var major_job := game.get_job("school_heating")
+	game.level = 8
+	game.current_location_id = "downtown"
+	game.reputation = 219
+	if game.start_job("school_heating"):
+		failures += 1
+		printerr("FAIL: major project reputation gate")
+	game.reputation = 220
+	if not game.start_job("school_heating"):
+		failures += 1
+		printerr("FAIL: eligible major project should start")
+	var quality := game._calculate_job_quality(major_job)
+	if quality < 50 or quality > 100:
+		failures += 1
+		printerr("FAIL: quality must stay within bounds")
+	var review := game._create_review(major_job, 95)
+	if int(review.stars) != 5 or game.recent_reviews.is_empty():
+		failures += 1
+		printerr("FAIL: excellent work should create five-star review")
 	game.free()
 	if failures == 0:
 		print("All economy tests passed.")

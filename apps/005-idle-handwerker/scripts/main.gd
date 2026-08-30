@@ -36,6 +36,7 @@ func _ready() -> void:
 	game.job_completed.connect(_on_job_completed)
 	game.job_event_started.connect(_on_job_event_started)
 	game.contract_signed.connect(_on_contract_signed)
+	game.review_created.connect(_on_review_created)
 	game.level_up.connect(_on_level_up)
 	game.notice.connect(_show_toast)
 	_build_shell()
@@ -235,6 +236,7 @@ func _build_dashboard() -> void:
 	var location := game.current_location()
 	content.add_child(_highlight_card("AKTIVER STANDORT · %s" % location.code, str(location.title), "+%d %% Auftragswert · %d/3 Tagesziele" % [int((float(location.multiplier) - 1.0) * 100.0), game.completed_daily_missions()]))
 	content.add_child(_reputation_card())
+	content.add_child(_review_summary_card())
 	if game.active_job_id != "" and not game.active_event().is_empty():
 		var event := game.active_event()
 		content.add_child(_event_card(event))
@@ -249,8 +251,17 @@ func _build_jobs() -> void:
 	content.add_child(_location_selector())
 	content.add_child(_section_title("Verfügbare Aufträge", str(game.current_location().title).to_upper()))
 	for job in GameData.JOBS:
-		if str(job.location) == game.current_location_id:
+		if str(job.location) == game.current_location_id and not bool(job.get("major", false)):
 			content.add_child(_job_card(job))
+	var has_major := false
+	for job in GameData.JOBS:
+		if str(job.location) == game.current_location_id and bool(job.get("major", false)):
+			has_major = true
+	if has_major:
+		content.add_child(_section_title("Großprojekte", "PREMIUM-AUFTRÄGE"))
+		for job in GameData.JOBS:
+			if str(job.location) == game.current_location_id and bool(job.get("major", false)):
+				content.add_child(_job_card(job))
 
 
 func _build_upgrades() -> void:
@@ -281,27 +292,39 @@ func _build_goals() -> void:
 	content.add_child(_section_title("Karriere-Erfolge", "DAUERHAFT"))
 	for achievement in GameData.ACHIEVEMENTS:
 		content.add_child(_goal_card(achievement, false))
+	if not game.recent_reviews.is_empty():
+		content.add_child(_section_title("Letzte Kundenstimmen", "BEWERTUNGEN"))
+		for review in game.recent_reviews:
+			content.add_child(_review_card(review))
 
 
 func _job_card(job: Dictionary) -> Control:
 	var card := _card_container()
+	var is_major := bool(job.get("major", false))
+	if is_major:
+		card.add_theme_stylebox_override("panel", UiSkin.hero())
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 13)
 	card.get_child(0).get_child(0).add_child(row)
 	row.add_child(_icon_box(str(job.icon), job.color))
 	var copy := VBoxContainer.new()
 	copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	if is_major:
+		copy.add_child(_label("GROSSPROJEKT", 9, GOLD, true))
 	copy.add_child(_label(str(job.title), 16, TEXT, true))
 	copy.add_child(_label(str(job.customer) + "  •  " + str(int(job.duration)) + " Sek.", 11, MUTED))
 	var reward := float(job.reward) * game.job_reward_multiplier() * game.streak_reward_multiplier() * game.location_reward_multiplier()
-	copy.add_child(_label(GameData.format_money(reward) + "  +%d XP" % int(job.xp), 12, GREEN, true))
+	copy.add_child(_label("Basis %s  +%d XP" % [GameData.format_money(reward), int(job.xp)], 12, GREEN, true))
 	row.add_child(copy)
 	var button := Button.new()
 	button.text = "Start"
 	button.custom_minimum_size = Vector2(76, 44)
-	button.disabled = game.level < int(job.level) or game.active_job_id != ""
+	var required_reputation := int(job.get("reputation", 0))
+	button.disabled = game.level < int(job.level) or game.reputation < required_reputation or game.active_job_id != ""
 	if game.level < int(job.level):
 		button.text = "St. %d" % int(job.level)
+	elif game.reputation < required_reputation:
+		button.text = "%d Ruf" % required_reputation
 	_style_small_button(button)
 	button.pressed.connect(_start_job.bind(str(job.id), button))
 	row.add_child(button)
@@ -355,7 +378,9 @@ func _goal_card(item: Dictionary, daily: bool) -> Control:
 	copy.add_child(_label("Belohnung  " + GameData.format_money(float(item.reward)), 10, GOLD, true))
 	row.add_child(copy)
 	var button := Button.new()
-	button.text = "Erhalten" if claimed else ("Abholen" if ready else "%d / %d" % [int(progress), int(item.target)])
+	var fractional := absf(float(item.target) - round(float(item.target))) > 0.01
+	var progress_text := "%.1f / %.1f" % [progress, float(item.target)] if fractional else "%d / %d" % [int(progress), int(item.target)]
+	button.text = "Erhalten" if claimed else ("Abholen" if ready else progress_text)
 	button.disabled = claimed or not ready
 	button.custom_minimum_size = Vector2(88, 44)
 	_style_small_button(button)
@@ -411,6 +436,40 @@ func _reputation_card() -> Control:
 	bar.add_theme_stylebox_override("background", _box(Color("0a1713"), 4))
 	bar.add_theme_stylebox_override("fill", _box(GOLD, 4))
 	box.add_child(bar)
+	return card
+
+
+func _review_summary_card() -> Control:
+	var card := _card_container()
+	var box: VBoxContainer = card.get_child(0).get_child(0)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 12)
+	row.add_child(_icon_box("★", GOLD))
+	var copy := VBoxContainer.new()
+	copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	copy.add_child(_label("KUNDENBEWERTUNG", 10, GREEN, true))
+	var rating_text := "Noch offen" if game.quality_samples == 0 else "%.1f / 5,0" % game.customer_rating
+	copy.add_child(_label(rating_text, 20, TEXT, true))
+	var caption := "Noch keine Bewertung" if game.recent_reviews.is_empty() else "%d %% Qualität · %s" % [game.last_job_quality, str(game.recent_reviews[0].customer)]
+	copy.add_child(_label(caption, 10, MUTED))
+	row.add_child(copy)
+	box.add_child(row)
+	return card
+
+
+func _review_card(review: Dictionary) -> Control:
+	var card := _card_container()
+	var box: VBoxContainer = card.get_child(0).get_child(0)
+	var top := HBoxContainer.new()
+	var customer := _label(str(review.customer), 13, TEXT, true)
+	customer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	top.add_child(customer)
+	top.add_child(_label("★".repeat(int(review.stars)), 13, GOLD, true))
+	box.add_child(top)
+	var quote := _label("„%s“" % str(review.text), 11, MUTED)
+	quote.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	box.add_child(quote)
+	box.add_child(_label("%s · %d %% Qualität" % [str(review.job), int(review.quality)], 9, GREEN, true))
 	return card
 
 
@@ -625,6 +684,46 @@ func _on_job_event_started(event: Dictionary) -> void:
 func _on_contract_signed(contract: Dictionary) -> void:
 	_show_reward_burst("NEUER STAMMKUNDE", GOLD)
 	_show_toast("%s zahlt jetzt dauerhaft" % contract.client)
+
+
+func _on_review_created(review: Dictionary) -> void:
+	sfx.play_cue("review")
+	_show_review_reveal(review)
+
+
+func _show_review_reveal(review: Dictionary) -> void:
+	var panel := PanelContainer.new()
+	panel.z_index = 22
+	panel.add_theme_stylebox_override("panel", UiSkin.hero())
+	panel.position = Vector2(24, size.y * 0.27)
+	panel.size = Vector2(size.x - 48, 168)
+	var box := VBoxContainer.new()
+	box.alignment = BoxContainer.ALIGNMENT_CENTER
+	var kicker := _label("NEUE KUNDENBEWERTUNG", 10, GREEN, true)
+	kicker.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	box.add_child(kicker)
+	var stars := _label("★".repeat(int(review.stars)), 25, GOLD, true)
+	stars.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	box.add_child(stars)
+	var quote := _label("„%s“" % str(review.text), 11, MUTED)
+	quote.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	quote.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	box.add_child(quote)
+	var quality := _label("%d %% Arbeitsqualität" % int(review.quality), 11, TEXT, true)
+	quality.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	box.add_child(quality)
+	panel.add_child(box)
+	toast_layer.add_child(panel)
+	panel.modulate.a = 0.0
+	panel.scale = Vector2(0.82, 0.82)
+	panel.pivot_offset = panel.size * 0.5
+	var tween := create_tween().set_parallel(true)
+	tween.tween_property(panel, "modulate:a", 1.0, 0.2)
+	tween.tween_property(panel, "scale", Vector2.ONE, 0.3).set_trans(Tween.TRANS_BACK)
+	tween.set_parallel(false)
+	tween.tween_interval(2.0)
+	tween.tween_property(panel, "modulate:a", 0.0, 0.25)
+	tween.tween_callback(panel.queue_free)
 
 
 func _show_event_reveal(event: Dictionary) -> void:

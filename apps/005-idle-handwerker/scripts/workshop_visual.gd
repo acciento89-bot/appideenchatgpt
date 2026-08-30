@@ -125,9 +125,20 @@ func _draw() -> void:
 
 	if active_job_id != "":
 		_draw_work_effect(Vector2(width * 0.68, height * 0.48))
+	if active_job_id in ["school_heating", "villa_energy", "production_hall", "clinic_energy_center"]:
+		_draw_major_project(width, height)
 
 	for particle in _particles:
 		draw_circle(particle.position, particle.radius, particle.color)
+
+
+func _draw_major_project(width: float, height: float) -> void:
+	var pulse := 0.55 + sin(_time * 5.0) * 0.15
+	draw_style_box(_flat_box(Color("10231c"), 4, GOLD, 2), Rect2(width * 0.32, height * 0.28, width * 0.24, height * 0.19))
+	draw_line(Vector2(width * 0.35, height * 0.33), Vector2(width * 0.52, height * 0.33), BLUE, 2.0)
+	draw_line(Vector2(width * 0.35, height * 0.38), Vector2(width * 0.48, height * 0.38), BLUE, 2.0)
+	draw_circle(Vector2(width * 0.54, height * 0.3), 4.0 + pulse * 2.0, GOLD)
+	draw_string(ThemeDB.fallback_font, Vector2(width * 0.34, height * 0.44), "GROSSPROJEKT", HORIZONTAL_ALIGNMENT_LEFT, -1, 7, GOLD)
 
 
 func _draw_progression_details(width: float, height: float, bench_y: float) -> void:
