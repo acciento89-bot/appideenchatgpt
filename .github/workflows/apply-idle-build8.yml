@@ -1,0 +1,24 @@
+name: Apply Idle Handwerker Build 8
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: Apply verified update
+        shell: bash
+        run: |
+          set -euo pipefail
+          gzip -dc idle-handwerker-build8.patch.gz > "$RUNNER_TEMP/idle.patch"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git am "$RUNNER_TEMP/idle.patch"
+          git rm idle-handwerker-build8.patch.gz
+          git rm .github/workflows/apply-idle-build8.yml
+          git commit -m "chore: remove Build 8 bootstrap files"
+          git push origin HEAD:main
