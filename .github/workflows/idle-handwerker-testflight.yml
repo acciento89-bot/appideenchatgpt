@@ -142,6 +142,7 @@ jobs:
           curl -L --fail --retry 3 -o "$RUNNER_TEMP/godot-source.zip" \
             "https://github.com/godotengine/godot/archive/refs/tags/$GODOT_TAG.zip"
           unzip -q "$RUNNER_TEMP/godot-source.zip" -d "$RUNNER_TEMP/godot-source"
+          rm -rf "$STOREKIT_SOURCE/godot"
           mv "$RUNNER_TEMP/godot-source/godot-$GODOT_TAG" "$STOREKIT_SOURCE/godot"
           python3 -m venv "$RUNNER_TEMP/storekit-venv"
           "$RUNNER_TEMP/storekit-venv/bin/pip" install --disable-pip-version-check scons
