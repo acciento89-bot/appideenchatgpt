@@ -22,3 +22,6 @@
 - Offline-Ertrag nach 10 Minuten und nach 8 Stunden
 - alter Spielstand nach Update auf Savegame-Version 5
 - vollständiger Durchlauf von Tutorial bis erstem Vertrag
+- Tutorial aus den Einstellungen erneut starten
+- Spielstand-Reset abbrechen und anschließend bewusst bestätigen
+- Spielstand bleibt nach App-Wechsel und erzwungenem Beenden erhalten
