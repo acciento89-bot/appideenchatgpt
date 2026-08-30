@@ -26,6 +26,11 @@ Ein mobiles Idle-Game von Kamilunavo Games: Vom tropfenden Wasserhahn zum eigene
 - dynamische Auftragsboni für Lohn, Dauer und XP
 - Firmenwert als zusätzlicher langfristiger Fortschrittsindikator
 - intensivierte Serienfeiern mit wachsendem Partikeleffekt
+- vier freischaltbare Stammkunden- und Wartungsverträge
+- Reputation mit fünf Karriere-Rängen vom neuen Betrieb bis zum Industrie-Partner
+- dauerhafte Vertragseinnahmen inklusive Offline-Fortschritt
+- Empfehlungsevents bringen doppelte Reputation
+- aktive Verträge werden auf der Werkstatt-Auftragstafel sichtbar
 
 ## Start
 

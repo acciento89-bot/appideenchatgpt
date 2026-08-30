@@ -170,6 +170,8 @@ const ACHIEVEMENTS: Array[Dictionary] = [
 	{"id": "team_three", "title": "Kleine Mannschaft", "description": "3 Mitarbeiter beschäftigen", "target": 3.0, "metric": "team", "reward": 500.0},
 	{"id": "earn_10k", "title": "Fünfstellig", "description": "10.000 € insgesamt verdienen", "target": 10000.0, "metric": "lifetime", "reward": 900.0},
 	{"id": "streak_five", "title": "Läuft bei dir", "description": "Eine 5er-Auftragsserie erreichen", "target": 5.0, "metric": "streak", "reward": 450.0},
+	{"id": "first_contract", "title": "Fester Partner", "description": "Ersten Stammkundenvertrag abschließen", "target": 1.0, "metric": "contracts", "reward": 650.0},
+	{"id": "reputation_350", "title": "In aller Munde", "description": "350 Reputation erreichen", "target": 350.0, "metric": "reputation", "reward": 1250.0},
 ]
 
 const JOB_EVENTS: Array[Dictionary] = [
@@ -200,6 +202,21 @@ const JOB_EVENTS: Array[Dictionary] = [
 		"xp_multiplier": 1.75,
 		"code": "KE",
 	},
+]
+
+const CONTRACTS: Array[Dictionary] = [
+	{"id": "property_service", "title": "Hausverwaltungs-Service", "client": "Hausverwaltung Nord", "description": "Regelmäßige Kleinreparaturen in Mietobjekten", "level": 3, "reputation": 35, "payout": 180.0, "interval": 60.0, "code": "HV"},
+	{"id": "gastronomy_service", "title": "Gastro-Wartungsvertrag", "client": "Morgenrot Gastronomie", "description": "Sanitär- und Heizungsbereitschaft für drei Filialen", "level": 5, "reputation": 110, "payout": 520.0, "interval": 90.0, "code": "GW"},
+	{"id": "premium_estates", "title": "Premium-Objektbetreuung", "client": "Residenz Bellevue", "description": "Exklusive Anlagenbetreuung im Villenviertel", "level": 8, "reputation": 260, "payout": 1450.0, "interval": 120.0, "code": "PO"},
+	{"id": "industrial_maintenance", "title": "Industrie-Rahmenvertrag", "client": "Kraftwerk Technik AG", "description": "Langfristige Wartung kritischer Großanlagen", "level": 12, "reputation": 600, "payout": 4800.0, "interval": 180.0, "code": "IR"},
+]
+
+const REPUTATION_RANKS: Array[Dictionary] = [
+	{"title": "Neuer Betrieb", "minimum": 0, "code": "R1"},
+	{"title": "Lokaler Profi", "minimum": 50, "code": "R2"},
+	{"title": "Gefragter Meisterbetrieb", "minimum": 150, "code": "R3"},
+	{"title": "Regionale Größe", "minimum": 350, "code": "R4"},
+	{"title": "Industrie-Partner", "minimum": 700, "code": "R5"},
 ]
 
 const UPGRADES: Array[Dictionary] = [

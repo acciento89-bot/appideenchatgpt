@@ -35,6 +35,7 @@ func _ready() -> void:
 	add_child(sfx)
 	game.job_completed.connect(_on_job_completed)
 	game.job_event_started.connect(_on_job_event_started)
+	game.contract_signed.connect(_on_contract_signed)
 	game.level_up.connect(_on_level_up)
 	game.notice.connect(_show_toast)
 	_build_shell()
@@ -133,7 +134,7 @@ func _build_nav() -> Control:
 		["betrieb", "Betrieb", "BT"],
 		["auftraege", "Jobs", "AU"],
 		["ausbau", "Ausbau", "UP"],
-		["team", "Team", "TE"],
+		["team", "Firma", "FI"],
 		["ziele", "Ziele", "ZL"],
 	]
 	for item in items:
@@ -194,7 +195,7 @@ func _build_dashboard() -> void:
 	workshop_visual = WorkshopVisual.new()
 	workshop_visual.custom_minimum_size = Vector2(162, 112)
 	workshop_visual.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	workshop_visual.set_progression(game.upgrades, game.employees, game.level, game.current_location_id)
+	workshop_visual.set_progression(game.upgrades, game.employees, game.level, game.current_location_id, game.active_contracts)
 	scene_row.add_child(workshop_visual)
 	hero_v.add_child(scene_row)
 
@@ -233,6 +234,7 @@ func _build_dashboard() -> void:
 
 	var location := game.current_location()
 	content.add_child(_highlight_card("AKTIVER STANDORT · %s" % location.code, str(location.title), "+%d %% Auftragswert · %d/3 Tagesziele" % [int((float(location.multiplier) - 1.0) * 100.0), game.completed_daily_missions()]))
+	content.add_child(_reputation_card())
 	if game.active_job_id != "" and not game.active_event().is_empty():
 		var event := game.active_event()
 		content.add_child(_event_card(event))
@@ -259,9 +261,13 @@ func _build_upgrades() -> void:
 
 
 func _build_team() -> void:
-	content.add_child(_page_intro("Dein Team", "Mitarbeiter arbeiten weiter – auch wenn du nicht spielst."))
-	var passive := _highlight_card("PASSIVES EINKOMMEN", GameData.format_money(game.passive_income_per_second(), true) + " / Sek.", "Offline bis zu 8 Stunden")
+	content.add_child(_page_intro("Firma & Stammkunden", "Baue dein Team auf und sichere dir dauerhafte Wartungsverträge."))
+	var passive := _highlight_card("PASSIVES EINKOMMEN", GameData.format_money(game.passive_income_per_second(), true) + " / Sek.", "Team + Verträge · offline bis zu 8 Stunden")
 	content.add_child(passive)
+	content.add_child(_section_title("Stammkundenverträge", "%d / %d AKTIV" % [game.active_contracts.size(), GameData.CONTRACTS.size()]))
+	for contract in GameData.CONTRACTS:
+		content.add_child(_contract_card(contract))
+	content.add_child(_section_title("Mitarbeiter", "%d IM TEAM" % game.total_employees()))
 	for employee in GameData.EMPLOYEES:
 		content.add_child(_employee_card(employee))
 
@@ -382,6 +388,59 @@ func _event_card(event: Dictionary) -> Control:
 	return card
 
 
+func _reputation_card() -> Control:
+	var rank := game.reputation_rank()
+	var next_rank := game.next_reputation_rank()
+	var card := _card_container()
+	var box: VBoxContainer = card.get_child(0).get_child(0)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 12)
+	row.add_child(_icon_box(str(rank.code), GOLD))
+	var copy := VBoxContainer.new()
+	copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	copy.add_child(_label("REPUTATION", 10, GREEN, true))
+	copy.add_child(_label(str(rank.title), 15, TEXT, true))
+	var status := "%d Rufpunkte · Höchster Rang" % game.reputation if next_rank.is_empty() else "%d / %d bis %s" % [game.reputation, int(next_rank.minimum), str(next_rank.title)]
+	copy.add_child(_label(status, 10, MUTED))
+	row.add_child(copy)
+	box.add_child(row)
+	var bar := ProgressBar.new()
+	bar.show_percentage = false
+	bar.custom_minimum_size.y = 7
+	bar.value = 100.0 if next_rank.is_empty() else float(game.reputation) / maxf(1.0, float(next_rank.minimum)) * 100.0
+	bar.add_theme_stylebox_override("background", _box(Color("0a1713"), 4))
+	bar.add_theme_stylebox_override("fill", _box(GOLD, 4))
+	box.add_child(bar)
+	return card
+
+
+func _contract_card(contract: Dictionary) -> Control:
+	var active := bool(game.active_contracts.get(contract.id, false))
+	var unlocked := game.level >= int(contract.level) and game.reputation >= int(contract.reputation)
+	var card := _card_container()
+	if active:
+		card.add_theme_stylebox_override("panel", UiSkin.hero())
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 12)
+	card.get_child(0).get_child(0).add_child(row)
+	row.add_child(_icon_box(str(contract.code), GOLD if active else GREEN))
+	var copy := VBoxContainer.new()
+	copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	copy.add_child(_label(str(contract.title), 14, TEXT, true))
+	copy.add_child(_label(str(contract.client), 10, GOLD, true))
+	copy.add_child(_label(str(contract.description), 10, MUTED))
+	copy.add_child(_label("%s je %d Sek.  ·  %s/s" % [GameData.format_money(float(contract.payout)), int(contract.interval), GameData.format_money(float(contract.payout) / float(contract.interval), true)], 10, GREEN, true))
+	row.add_child(copy)
+	var button := Button.new()
+	button.text = "Aktiv" if active else ("Vertrag" if unlocked else "St. %d\n%d Ruf" % [int(contract.level), int(contract.reputation)])
+	button.disabled = active or not unlocked
+	button.custom_minimum_size = Vector2(84, 48)
+	_style_small_button(button)
+	button.pressed.connect(_sign_contract.bind(str(contract.id), button))
+	row.add_child(button)
+	return card
+
+
 func _workshop_progress_card() -> Control:
 	var card := _card_container()
 	var box: VBoxContainer = card.get_child(0).get_child(0)
@@ -389,7 +448,7 @@ func _workshop_progress_card() -> Control:
 	row.add_theme_constant_override("separation", 12)
 	var preview := WorkshopVisual.new()
 	preview.custom_minimum_size = Vector2(150, 112)
-	preview.set_progression(game.upgrades, game.employees, game.level, game.current_location_id)
+	preview.set_progression(game.upgrades, game.employees, game.level, game.current_location_id, game.active_contracts)
 	row.add_child(preview)
 	var copy := VBoxContainer.new()
 	copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -478,6 +537,14 @@ func _claim_goal(goal_id: String, daily: bool, source: Control) -> void:
 		_refresh_current_tab()
 
 
+func _sign_contract(contract_id: String, source: Control) -> void:
+	if game.sign_contract(contract_id):
+		sfx.play_cue("contract")
+		_haptic(95, 0.9)
+		_punch(source)
+		_refresh_current_tab()
+
+
 func _start_job(job_id: String, source: Control) -> void:
 	if game.start_job(job_id):
 		sfx.play_cue("start")
@@ -546,13 +613,18 @@ func _on_job_completed(job: Dictionary, reward: float) -> void:
 		if workshop_visual:
 			workshop_visual.celebrate(game.current_streak)
 	_show_reward_burst("+" + GameData.format_money(reward), job.color)
-	_show_toast("Auftrag erledigt · Serie %d×" % game.current_streak)
+	_show_toast("Auftrag erledigt · Serie %d× · %d Ruf" % [game.current_streak, game.reputation])
 
 
 func _on_job_event_started(event: Dictionary) -> void:
 	sfx.play_cue("event")
 	_haptic(45, 0.65)
 	_show_event_reveal(event)
+
+
+func _on_contract_signed(contract: Dictionary) -> void:
+	_show_reward_burst("NEUER STAMMKUNDE", GOLD)
+	_show_toast("%s zahlt jetzt dauerhaft" % contract.client)
 
 
 func _show_event_reveal(event: Dictionary) -> void:
