@@ -3,7 +3,8 @@ name: Idle Handwerker Validate
 on:
   push:
     branches:
-      - codex/idle-handwerker-mvp
+      - main
+      - 'codex/idle-handwerker-*'
     paths:
       - 'apps/005-idle-handwerker/**'
       - '.github/workflows/idle-handwerker-validate.yml'
@@ -47,6 +48,33 @@ jobs:
           if grep -E "SCRIPT ERROR|Parse Error|Compile Error|Failed to load script|Failed loading resource" godot-import.log; then
             exit 1
           fi
+
+      - name: Validate iOS release metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          PRESET="$PROJECT_DIR/export_presets.cfg"
+          PROJECT="$PROJECT_DIR/project.godot"
+          ICON="$PROJECT_DIR/assets/branding/app_icon.svg"
+          test -f "$PRESET"
+          test -f "$ICON"
+          grep -Fx 'platform="iOS"' "$PRESET"
+          grep -Fx 'application/app_store_team_id="TKG684N5GL"' "$PRESET"
+          grep -Fx 'application/bundle_identifier="de.kamilunavo.idlehandwerker"' "$PRESET"
+          grep -Fx 'application/short_version="1.0.0"' "$PRESET"
+          grep -Fx 'application/export_project_only=true' "$PRESET"
+          grep -Fx 'privacy/tracking_enabled=false' "$PRESET"
+          grep -Fx 'config/version="1.0.0"' "$PROJECT"
+          grep -Fx 'config/icon="res://assets/branding/app_icon.svg"' "$PROJECT"
+          python3 - <<'PY'
+          from pathlib import Path
+          import xml.etree.ElementTree as ET
+          icon = Path('apps/005-idle-handwerker/assets/branding/app_icon.svg')
+          root = ET.parse(icon).getroot()
+          assert root.attrib['width'] == '1024'
+          assert root.attrib['height'] == '1024'
+          assert root.attrib['viewBox'] == '0 0 1024 1024'
+          PY
 
       - name: Run economy tests
         shell: bash

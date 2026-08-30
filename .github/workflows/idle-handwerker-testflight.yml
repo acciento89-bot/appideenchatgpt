@@ -1,0 +1,346 @@
+name: Idle Handwerker TestFlight
+
+on:
+  workflow_dispatch:
+    inputs:
+      build:
+        description: App Store Connect build number
+        required: true
+        default: '1'
+      create_app_record:
+        description: App-Datensatz bei Bedarf anlegen
+        required: true
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: idle-handwerker-testflight
+  cancel-in-progress: false
+
+env:
+  GODOT_TAG: 4.7.1-stable
+  GODOT_TEMPLATE_VERSION: 4.7.1.stable
+  PROJECT_DIR: apps/005-idle-handwerker
+  TEAM_ID: TKG684N5GL
+  BUNDLE_ID: de.kamilunavo.idlehandwerker
+  APP_NAME: Idle Handwerker
+  APP_VERSION: 1.0.0
+  APP_SKU: KAMILUNAVO-IDLE-HANDWERKER-IOS
+
+jobs:
+  upload:
+    name: Build, sign and upload
+    runs-on: macos-26
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Preflight
+        shell: bash
+        env:
+          REQUESTED_BUILD: ${{ inputs.build }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_PRIVATE_KEY_B64: ${{ secrets.ASC_PRIVATE_KEY_B64 }}
+        run: |
+          set -euo pipefail
+          [[ "$REQUESTED_BUILD" =~ ^[1-9][0-9]*$ ]]
+          test -n "$ASC_ISSUER_ID"
+          test -n "$ASC_KEY_ID"
+          test -n "$ASC_PRIVATE_KEY_B64"
+          echo "BUILD_NUMBER=$REQUESTED_BUILD" >> "$GITHUB_ENV"
+          PRESET="$PROJECT_DIR/export_presets.cfg"
+          grep -Fx 'name="iOS TestFlight"' "$PRESET"
+          grep -Fx "application/app_store_team_id=\"$TEAM_ID\"" "$PRESET"
+          grep -Fx "application/bundle_identifier=\"$BUNDLE_ID\"" "$PRESET"
+          grep -Fx "application/short_version=\"$APP_VERSION\"" "$PRESET"
+          grep -Fx 'application/export_project_only=true' "$PRESET"
+          grep -Fx 'privacy/tracking_enabled=false' "$PRESET"
+          test -f "$PROJECT_DIR/assets/branding/app_icon.svg"
+          test -f "$PROJECT_DIR/assets/branding/launch_badge.svg"
+          xcodebuild -version | tee "$RUNNER_TEMP/xcode-version.txt"
+          grep -Eq '^Xcode 26([.]|$)' "$RUNNER_TEMP/xcode-version.txt"
+
+      - name: Install Godot and iOS templates
+        shell: bash
+        run: |
+          set -euo pipefail
+          RELEASE="https://github.com/godotengine/godot/releases/download/$GODOT_TAG"
+          curl -L --fail --retry 3 -o "$RUNNER_TEMP/godot.zip" \
+            "$RELEASE/Godot_v${GODOT_TAG}_macos.universal.zip"
+          unzip -q "$RUNNER_TEMP/godot.zip" -d "$RUNNER_TEMP/godot"
+          GODOT=$(find "$RUNNER_TEMP/godot" -type f -path '*/Godot.app/Contents/MacOS/Godot' -print -quit)
+          test -x "$GODOT"
+          "$GODOT" --version
+          echo "GODOT=$GODOT" >> "$GITHUB_ENV"
+
+          curl -L --fail --retry 3 -o "$RUNNER_TEMP/templates.tpz" \
+            "$RELEASE/Godot_v${GODOT_TAG}_export_templates.tpz"
+          mkdir -p "$RUNNER_TEMP/templates"
+          unzip -q "$RUNNER_TEMP/templates.tpz" -d "$RUNNER_TEMP/templates"
+          IOS_TEMPLATE=$(find "$RUNNER_TEMP/templates" -type f -name ios.zip -print -quit)
+          test -s "$IOS_TEMPLATE"
+          TEMPLATE_DIR="$HOME/Library/Application Support/Godot/export_templates/$GODOT_TEMPLATE_VERSION"
+          mkdir -p "$TEMPLATE_DIR"
+          cp "$IOS_TEMPLATE" "$TEMPLATE_DIR/ios.zip"
+
+      - name: Compile and test Godot project
+        shell: bash
+        run: |
+          set -o pipefail
+          "$GODOT" --headless --editor --path "$PROJECT_DIR" --quit 2>&1 | tee "$RUNNER_TEMP/godot-import.log"
+          if grep -E 'SCRIPT ERROR|Parse Error|Compile Error|Failed to load script|Failed loading resource' "$RUNNER_TEMP/godot-import.log"; then
+            exit 1
+          fi
+          "$GODOT" --headless --path "$PROJECT_DIR" --script res://tests/test_economy.gd 2>&1 | tee "$RUNNER_TEMP/godot-tests.log"
+          grep -q 'All economy tests passed.' "$RUNNER_TEMP/godot-tests.log"
+          "$GODOT" --headless --path "$PROJECT_DIR" --script res://tests/test_ui_smoke.gd 2>&1 | tee "$RUNNER_TEMP/godot-ui-tests.log"
+          grep -q 'All responsive UI smoke tests passed.' "$RUNNER_TEMP/godot-ui-tests.log"
+
+      - name: Export native Xcode project
+        shell: bash
+        run: |
+          set -euo pipefail
+          WORK_PROJECT="$RUNNER_TEMP/idle-handwerker-project"
+          rsync -a --exclude '.godot' "$PROJECT_DIR/" "$WORK_PROJECT/"
+          python3 - "$WORK_PROJECT/export_presets.cfg" "$BUILD_NUMBER" <<'PY'
+          from pathlib import Path
+          import re
+          import sys
+          path = Path(sys.argv[1])
+          text = path.read_text()
+          text, count = re.subn(r'^application/version="[^"]+"$', f'application/version="{sys.argv[2]}"', text, count=1, flags=re.M)
+          if count != 1:
+              raise SystemExit('Could not update iOS build number')
+          path.write_text(text)
+          PY
+          EXPORT_ZIP="$RUNNER_TEMP/IdleHandwerker.zip"
+          "$GODOT" --headless --editor --path "$WORK_PROJECT" --quit
+          "$GODOT" --headless --path "$WORK_PROJECT" --export-release "iOS TestFlight" "$EXPORT_ZIP" 2>&1 | tee "$RUNNER_TEMP/godot-export.log"
+          test -s "$EXPORT_ZIP"
+          mkdir -p "$RUNNER_TEMP/ios-export"
+          unzip -q "$EXPORT_ZIP" -d "$RUNNER_TEMP/ios-export"
+          XCODE_PROJECT=$(find "$RUNNER_TEMP/ios-export" -type d -name '*.xcodeproj' -print -quit)
+          test -d "$XCODE_PROJECT"
+          xcodebuild -project "$XCODE_PROJECT" -list -json > "$RUNNER_TEMP/xcode-list.json"
+          XCODE_SCHEME=$(jq -r '.project.schemes[0] // empty' "$RUNNER_TEMP/xcode-list.json")
+          test -n "$XCODE_SCHEME"
+          echo "XCODE_PROJECT=$XCODE_PROJECT" >> "$GITHUB_ENV"
+          echo "XCODE_SCHEME=$XCODE_SCHEME" >> "$GITHUB_ENV"
+
+      - name: Simulator release gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          xcodebuild -project "$XCODE_PROJECT" -scheme "$XCODE_SCHEME" \
+            -configuration Release -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            PRODUCT_BUNDLE_IDENTIFIER="$BUNDLE_ID" \
+            MARKETING_VERSION="$APP_VERSION" \
+            CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
+            CODE_SIGNING_ALLOWED=NO build
+
+      - name: Prepare App Store Connect key
+        shell: bash
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_PRIVATE_KEY_B64: ${{ secrets.ASC_PRIVATE_KEY_B64 }}
+        run: |
+          set -euo pipefail
+          KEY_PATH="$RUNNER_TEMP/AuthKey_$ASC_KEY_ID.p8"
+          printf '%s' "$ASC_PRIVATE_KEY_B64" | base64 --decode > "$KEY_PATH"
+          chmod 600 "$KEY_PATH"
+          grep -q 'BEGIN PRIVATE KEY' "$KEY_PATH"
+          mkdir -p "$HOME/.appstoreconnect/private_keys"
+          cp "$KEY_PATH" "$HOME/.appstoreconnect/private_keys/AuthKey_$ASC_KEY_ID.p8"
+          echo "ASC_KEY_PATH=$KEY_PATH" >> "$GITHUB_ENV"
+
+      - name: Resolve Apple app record
+        shell: bash
+        env:
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          CREATE_APP_RECORD: ${{ inputs.create_app_record }}
+        run: |
+          set -euo pipefail
+          JWT=$(ruby <<'RUBY'
+          require 'openssl'; require 'base64'; require 'json'
+          def b(v); Base64.urlsafe_encode64(v, padding: false); end
+          key = OpenSSL::PKey.read(File.read(ENV.fetch('ASC_KEY_PATH')))
+          now = Time.now.to_i
+          h = b(JSON.generate({alg:'ES256',kid:ENV.fetch('ASC_KEY_ID'),typ:'JWT'}))
+          p = b(JSON.generate({iss:ENV.fetch('ASC_ISSUER_ID'),iat:now,exp:now+900,aud:'appstoreconnect-v1'}))
+          input = "#{h}.#{p}"
+          seq = OpenSSL::ASN1.decode(key.sign(OpenSSL::Digest::SHA256.new,input))
+          raw = seq.value.map { |i| [i.value.to_i.to_s(16).rjust(64,'0')].pack('H*') }.join
+          puts "#{input}.#{b(raw)}"
+          RUBY
+          )
+          BUNDLES=$(curl --fail-with-body -sS -G -H "Authorization: Bearer $JWT" \
+            --data-urlencode "filter[identifier]=$BUNDLE_ID" --data-urlencode 'limit=10' \
+            'https://api.appstoreconnect.apple.com/v1/bundleIds')
+          BUNDLE_RESOURCE_ID=$(jq -r '.data[0].id // empty' <<<"$BUNDLES")
+          if [[ -z "$BUNDLE_RESOURCE_ID" ]]; then
+            [[ "$CREATE_APP_RECORD" == 'true' ]]
+            BODY=$(jq -n --arg identifier "$BUNDLE_ID" --arg name "$APP_NAME" \
+              '{data:{type:"bundleIds",attributes:{identifier:$identifier,name:$name,platform:"IOS"}}}')
+            CREATED=$(curl --fail-with-body -sS -X POST -H "Authorization: Bearer $JWT" \
+              -H 'Content-Type: application/json' -d "$BODY" \
+              'https://api.appstoreconnect.apple.com/v1/bundleIds')
+            test -n "$(jq -r '.data.id // empty' <<<"$CREATED")"
+          fi
+          APPS=$(curl --fail-with-body -sS -G -H "Authorization: Bearer $JWT" \
+            --data-urlencode "filter[bundleId]=$BUNDLE_ID" --data-urlencode 'limit=10' \
+            'https://api.appstoreconnect.apple.com/v1/apps')
+          APP_ID=$(jq -r '.data[0].id // empty' <<<"$APPS")
+          if [[ -z "$APP_ID" ]]; then
+            [[ "$CREATE_APP_RECORD" == 'true' ]]
+            BODY=$(jq -n --arg bundle "$BUNDLE_ID" --arg name "$APP_NAME" --arg sku "$APP_SKU" \
+              '{data:{type:"apps",attributes:{bundleId:$bundle,name:$name,primaryLocale:"de-DE",sku:$sku}}}')
+            CREATED=$(curl --fail-with-body -sS -X POST -H "Authorization: Bearer $JWT" \
+              -H 'Content-Type: application/json' -d "$BODY" \
+              'https://api.appstoreconnect.apple.com/v1/apps')
+            APP_ID=$(jq -r '.data.id // empty' <<<"$CREATED")
+          fi
+          test -n "$APP_ID"
+          echo "ASC_APP_ID=$APP_ID" >> "$GITHUB_ENV"
+
+      - name: Create unsigned archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          ARCHIVE="$RUNNER_TEMP/IdleHandwerker.xcarchive"
+          xcodebuild -project "$XCODE_PROJECT" -scheme "$XCODE_SCHEME" \
+            -configuration Release -destination 'generic/platform=iOS' \
+            -archivePath "$ARCHIVE" \
+            DEVELOPMENT_TEAM="$TEAM_ID" PRODUCT_BUNDLE_IDENTIFIER="$BUNDLE_ID" \
+            MARKETING_VERSION="$APP_VERSION" CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
+            INFOPLIST_KEY_ITSAppUsesNonExemptEncryption=NO \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY='' archive
+          APP=$(find "$ARCHIVE/Products/Applications" -maxdepth 1 -type d -name '*.app' -print -quit)
+          test -d "$APP"
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP/Info.plist" | grep -Fx "$BUNDLE_ID"
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$APP/Info.plist" | grep -Fx "$APP_VERSION"
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$APP/Info.plist" | grep -Fx "$BUILD_NUMBER"
+          /usr/libexec/PlistBuddy -c 'Print :ITSAppUsesNonExemptEncryption' "$APP/Info.plist" | grep -Fx 'false'
+          test -f "$APP/PrivacyInfo.xcprivacy"
+          echo "ARCHIVE=$ARCHIVE" >> "$GITHUB_ENV"
+
+      - name: Cloud-sign IPA
+        shell: bash
+        env:
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+        run: |
+          set -euo pipefail
+          cat > "$RUNNER_TEMP/ExportOptions.plist" <<PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+          <key>method</key><string>app-store-connect</string>
+          <key>destination</key><string>export</string>
+          <key>signingStyle</key><string>automatic</string>
+          <key>teamID</key><string>$TEAM_ID</string>
+          <key>uploadSymbols</key><true/>
+          <key>manageAppVersionAndBuildNumber</key><false/>
+          </dict></plist>
+          PLIST
+          EXPORT_PATH="$RUNNER_TEMP/TestFlightExport"
+          xcodebuild -exportArchive -archivePath "$ARCHIVE" -exportPath "$EXPORT_PATH" \
+            -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" \
+            -allowProvisioningUpdates -authenticationKeyPath "$ASC_KEY_PATH" \
+            -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
+            2>&1 | tee "$RUNNER_TEMP/export.log"
+          IPA=$(find "$EXPORT_PATH" -maxdepth 2 -type f -name '*.ipa' -print -quit)
+          test -s "$IPA"
+          echo "SIGNED_IPA=$IPA" >> "$GITHUB_ENV"
+
+      - name: Verify and upload IPA
+        shell: bash
+        env:
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+        run: |
+          set -euo pipefail
+          PAYLOAD="$RUNNER_TEMP/SignedPayload"
+          mkdir -p "$PAYLOAD"
+          unzip -q "$SIGNED_IPA" -d "$PAYLOAD"
+          APP=$(find "$PAYLOAD/Payload" -maxdepth 1 -type d -name '*.app' -print -quit)
+          test -d "$APP"
+          codesign --verify --deep --strict --verbose=2 "$APP"
+          grep -q '^Authority=Apple Distribution' < <(codesign -dvv "$APP" 2>&1)
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP/Info.plist" | grep -Fx "$BUNDLE_ID"
+          codesign -d --entitlements :- "$APP" 2>/dev/null | grep -q "$TEAM_ID.$BUNDLE_ID"
+          xcrun altool --upload-app --type ios -f "$SIGNED_IPA" \
+            --apiKey "$ASC_KEY_ID" --apiIssuer "$ASC_ISSUER_ID" \
+            2>&1 | tee "$RUNNER_TEMP/upload.log"
+
+      - name: Confirm TestFlight receipt
+        shell: bash
+        env:
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+        run: |
+          set -euo pipefail
+          for _ in $(seq 1 30); do
+            JWT=$(ruby <<'RUBY'
+          require 'openssl'; require 'base64'; require 'json'
+          def b(v); Base64.urlsafe_encode64(v, padding: false); end
+          key = OpenSSL::PKey.read(File.read(ENV.fetch('ASC_KEY_PATH')))
+          now = Time.now.to_i
+          h = b(JSON.generate({alg:'ES256',kid:ENV.fetch('ASC_KEY_ID'),typ:'JWT'}))
+          p = b(JSON.generate({iss:ENV.fetch('ASC_ISSUER_ID'),iat:now,exp:now+900,aud:'appstoreconnect-v1'}))
+          input = "#{h}.#{p}"
+          seq = OpenSSL::ASN1.decode(key.sign(OpenSSL::Digest::SHA256.new,input))
+          raw = seq.value.map { |i| [i.value.to_i.to_s(16).rjust(64,'0')].pack('H*') }.join
+          puts "#{input}.#{b(raw)}"
+          RUBY
+          )
+            BUILDS=$(curl --fail-with-body -sS -G -H "Authorization: Bearer $JWT" \
+              --data-urlencode "filter[app]=$ASC_APP_ID" \
+              --data-urlencode "filter[version]=$BUILD_NUMBER" \
+              --data-urlencode 'sort=-uploadedDate' --data-urlencode 'limit=10' \
+              --data-urlencode 'fields[builds]=version,uploadedDate,processingState' \
+              'https://api.appstoreconnect.apple.com/v1/builds')
+            if test "$(jq '.data | length' <<<"$BUILDS")" -gt 0; then
+              STATE=$(jq -r '.data[0].attributes.processingState // "UNKNOWN"' <<<"$BUILDS")
+              echo "Idle Handwerker $APP_VERSION ($BUILD_NUMBER) reached TestFlight: $STATE"
+              exit 0
+            fi
+            sleep 10
+          done
+          echo 'Upload accepted, but the build is not visible through the API yet.'
+          exit 1
+
+      - name: Upload diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: idle-handwerker-testflight-diagnostics-${{ env.BUILD_NUMBER }}
+          path: |
+            ${{ runner.temp }}/godot-import.log
+            ${{ runner.temp }}/godot-tests.log
+            ${{ runner.temp }}/godot-ui-tests.log
+            ${{ runner.temp }}/godot-export.log
+            ${{ runner.temp }}/xcode-version.txt
+            ${{ runner.temp }}/xcode-list.json
+            ${{ runner.temp }}/export.log
+            ${{ runner.temp }}/upload.log
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Remove App Store Connect key
+        if: always()
+        shell: bash
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+        run: |
+          rm -f "$RUNNER_TEMP"/AuthKey_*.p8
+          if [[ -n "$ASC_KEY_ID" ]]; then
+            rm -f "$HOME/.appstoreconnect/private_keys/AuthKey_$ASC_KEY_ID.p8"
+          fi

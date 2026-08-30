@@ -1,8 +1,8 @@
 .godot/
 builds/
 export/
+.godot/export_credentials.cfg
 *.ipa
 *.apk
 *.aab
 *.pck
-
