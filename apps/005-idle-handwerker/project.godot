@@ -1,7 +1,7 @@
 [application]
 config/name="Idle Handwerker"
 config/description="Baue deinen eigenen Handwerksbetrieb auf."
-config/version="1.2.2"
+config/version="1.2.3"
 config/icon="res://assets/branding/app_icon.svg"
 run/main_scene="res://main.tscn"
 
