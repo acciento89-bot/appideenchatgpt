@@ -6,12 +6,17 @@ on:
       build:
         description: App Store Connect build number
         required: true
-        default: '1'
+        default: '8'
       create_app_record:
         description: App-Datensatz bei Bedarf anlegen
         required: true
         type: boolean
         default: true
+      production_ads:
+        description: Echte Anzeigen statt Google-Testanzeigen aktivieren
+        required: true
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -27,8 +32,9 @@ env:
   TEAM_ID: TKG684N5GL
   BUNDLE_ID: de.kamilunavo.idlehandwerker
   APP_NAME: Idle Handwerker
-  APP_VERSION: 1.0.0
+  APP_VERSION: 1.1.0
   APP_SKU: KAMILUNAVO-IDLE-HANDWERKER-IOS
+  PRODUCTION_ADS: ${{ inputs.production_ads }}
 
 jobs:
   upload:
