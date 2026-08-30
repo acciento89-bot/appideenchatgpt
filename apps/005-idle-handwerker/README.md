@@ -41,6 +41,8 @@ Ein mobiles Idle-Game von Kamilunavo Games: Vom tropfenden Wasserhahn zum eigene
 - gespeicherte Optionen für Sound, Haptik und reduzierte Bewegung
 - flüssige, optional deaktivierbare Menüübergänge
 - automatischer UI-Smoke-Test über vier relevante Displaygrößen und alle Hauptbereiche
+- natives iOS-Export-Preset mit eigenem App-Icon, Launch-Badge und Privacy-Manifest-Angaben
+- manueller TestFlight-Workflow für Xcode 26 und App-Store-Connect-Cloud-Signierung
 
 ## Start
 
@@ -61,6 +63,10 @@ godot --path .
 ```bash
 godot --headless --path . --script tests/test_economy.gd
 ```
+
+## iOS und TestFlight
+
+Das Projekt ist für den nativen Godot-iOS-Export vorbereitet. Bundle-ID, Version, Datenschutzangaben und der manuell auslösbare Release-Ablauf sind in [IOS_RELEASE.md](IOS_RELEASE.md) dokumentiert.
 
 ## Produktstrategie
 

@@ -1,7 +1,15 @@
 [application]
 config/name="Idle Handwerker"
 config/description="Baue deinen eigenen Handwerksbetrieb auf."
+config/version="1.0.0"
+config/icon="res://assets/branding/app_icon.svg"
 run/main_scene="res://main.tscn"
+
+[boot_splash]
+bg_color=Color(0.027, 0.063, 0.055, 1)
+image="res://assets/branding/launch_badge.svg"
+fullsize=false
+use_filter=true
 
 [display]
 window/size/viewport_width=430
