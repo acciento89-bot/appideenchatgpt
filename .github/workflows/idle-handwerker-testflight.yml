@@ -9,7 +9,7 @@ on:
       build:
         description: App Store Connect build number
         required: true
-        default: '14'
+        default: '15'
       create_app_record:
         description: App-Datensatz bei Bedarf anlegen
         required: true
@@ -66,7 +66,7 @@ jobs:
       - name: Preflight
         shell: bash
         env:
-          REQUESTED_BUILD: ${{ inputs.build || '14' }}
+          REQUESTED_BUILD: ${{ inputs.build || '15' }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_PRIVATE_KEY_B64: ${{ secrets.ASC_PRIVATE_KEY_B64 }}
@@ -157,6 +157,13 @@ jobs:
             "$HOME/.cache/idle-handwerker-storekit/inappstore.xcframework"
           cp "$STOREKIT_SOURCE/plugins/inappstore/inappstore.gdip" \
             "$HOME/.cache/idle-handwerker-storekit/inappstore.gdip"
+
+      - name: Save native StoreKit plugin cache
+        if: steps.storekit-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ~/.cache/idle-handwerker-storekit
+          key: idle-handwerker-storekit-godot-4.7.1-caafb2c7
 
       - name: Install native StoreKit plugin
         shell: bash
@@ -317,8 +324,11 @@ jobs:
           test -n "$APP_ID"
           echo "ASC_APP_ID=$APP_ID" >> "$GITHUB_ENV"
 
-      - name: Create unsigned archive
+      - name: Create signed archive
         shell: bash
+        env:
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
         run: |
           set -euo pipefail
           ARCHIVE="$RUNNER_TEMP/IdleHandwerker.xcarchive"
@@ -328,7 +338,9 @@ jobs:
             DEVELOPMENT_TEAM="$TEAM_ID" PRODUCT_BUNDLE_IDENTIFIER="$BUNDLE_ID" \
             MARKETING_VERSION="$APP_VERSION" CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
             INFOPLIST_KEY_ITSAppUsesNonExemptEncryption=NO \
-            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY='' archive
+            CODE_SIGN_STYLE=Automatic \
+            -allowProvisioningUpdates -authenticationKeyPath "$ASC_KEY_PATH" \
+            -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID" archive
           APP=$(find "$ARCHIVE/Products/Applications" -maxdepth 1 -type d -name '*.app' -print -quit)
           test -d "$APP"
           /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP/Info.plist" | grep -Fx "$BUNDLE_ID"
@@ -365,43 +377,6 @@ jobs:
             2>&1 | tee "$RUNNER_TEMP/export.log"
           IPA=$(find "$EXPORT_PATH" -maxdepth 2 -type f -name '*.ipa' -print -quit)
           test -s "$IPA"
-
-          # Godot's embedded-framework export leaves the Google SDK binaries with
-          # their vendor signature.  App Store Connect requires every nested
-          # executable to be signed by the same distribution identity as the app.
-          SIGNING_IDENTITY=$(security find-identity -v -p codesigning | \
-            sed -n 's/.*"\(Apple Distribution:[^"]*\)".*/\1/p' | head -1)
-          test -n "$SIGNING_IDENTITY"
-          echo "Re-signing embedded code with $SIGNING_IDENTITY"
-
-          RESIGN_DIR="$RUNNER_TEMP/ResignPayload"
-          rm -rf "$RESIGN_DIR"
-          mkdir -p "$RESIGN_DIR"
-          ditto -x -k "$IPA" "$RESIGN_DIR"
-          SIGNED_APP=$(find "$RESIGN_DIR/Payload" -maxdepth 1 -type d -name '*.app' -print -quit)
-          test -d "$SIGNED_APP"
-
-          if [[ -d "$SIGNED_APP/Frameworks" ]]; then
-            while IFS= read -r -d '' NESTED; do
-              codesign --force --sign "$SIGNING_IDENTITY" --timestamp \
-                --preserve-metadata=identifier,entitlements,flags,runtime "$NESTED"
-            done < <(find "$SIGNED_APP/Frameworks" -depth \
-              \( -type d -name '*.framework' -o -type f -name '*.dylib' \) -print0)
-          fi
-
-          while IFS= read -r -d '' EXTENSION; do
-            codesign --force --sign "$SIGNING_IDENTITY" --timestamp \
-              --preserve-metadata=identifier,entitlements,flags,runtime "$EXTENSION"
-          done < <(find "$SIGNED_APP" -depth -type d -name '*.appex' -print0)
-
-          codesign --force --sign "$SIGNING_IDENTITY" --timestamp \
-            --preserve-metadata=identifier,entitlements,flags,runtime "$SIGNED_APP"
-
-          RESIGNED_IPA="$EXPORT_PATH/IdleHandwerker-resigned.ipa"
-          rm -f "$RESIGNED_IPA"
-          (cd "$RESIGN_DIR" && ditto -c -k --sequesterRsrc --keepParent Payload "$RESIGNED_IPA")
-          test -s "$RESIGNED_IPA"
-          IPA="$RESIGNED_IPA"
           echo "SIGNED_IPA=$IPA" >> "$GITHUB_ENV"
 
       - name: Verify and upload IPA
