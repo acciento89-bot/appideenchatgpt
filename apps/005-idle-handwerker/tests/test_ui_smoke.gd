@@ -104,6 +104,10 @@ func _run() -> void:
 		if not has_settings_scroll:
 			failures += 1
 			printerr("FAIL: settings are not touch-scrollable at %s" % device_size)
+		var sound_action := _find_button_prefix(app, "SOUND\n")
+		if not _has_scroll_safe_button_skin(sound_action):
+			failures += 1
+			printerr("FAIL: settings action shows false pressed feedback while scrolling at %s" % device_size)
 		for forbidden_shop_button in ["WERBEFREI KAUFEN", "STARTERPAKET", "250 BONUSMARKEN"]:
 			if _has_button(app, forbidden_shop_button):
 				failures += 1
@@ -124,6 +128,9 @@ func _run() -> void:
 			if not _has_button(app, expected_shop_button):
 				failures += 1
 				printerr("FAIL: separate shop action '%s' is missing at %s" % [expected_shop_button, device_size])
+		if not _has_scroll_safe_button_skin(_find_button(app, "STARTERPAKET")):
+			failures += 1
+			printerr("FAIL: shop action shows false pressed feedback while scrolling at %s" % device_size)
 		var shop_close := _find_button(app, "SHOP SCHLIESSEN")
 		if shop_close:
 			shop_close.pressed.emit()
@@ -189,6 +196,26 @@ func _find_button(node: Node, text: String) -> Button:
 		if nested:
 			return nested
 	return null
+
+
+func _find_button_prefix(node: Node, prefix: String) -> Button:
+	for child in node.get_children():
+		if child is Button and child.text.begins_with(prefix):
+			return child
+		var nested := _find_button_prefix(child, prefix)
+		if nested:
+			return nested
+	return null
+
+
+func _has_scroll_safe_button_skin(button: Button) -> bool:
+	if not button or button.focus_mode != Control.FOCUS_NONE:
+		return false
+	var normal := button.get_theme_stylebox("normal")
+	var pressed := button.get_theme_stylebox("pressed")
+	if not normal is StyleBoxTexture or not pressed is StyleBoxTexture:
+		return false
+	return normal.texture == pressed.texture
 
 
 func _has_label(node: Node, text: String) -> bool:
