@@ -35,6 +35,7 @@ var header_row: HBoxContainer
 var brand_eyebrow: Label
 var brand_title: Label
 var settings_button: Button
+var store_button: Button
 var main_scroll: ScrollContainer
 var app_font: FontFile
 var rewarded_context := "boost"
@@ -160,17 +161,32 @@ func _build_header() -> Control:
 	balance.add_child(reputation_label)
 	header_row.add_child(balance)
 
+	var header_actions := VBoxContainer.new()
+	header_actions.add_theme_constant_override("separation", 4)
 	settings_button = Button.new()
-	settings_button.text = "OPT"
+	settings_button.text = ""
+	settings_button.icon = load("res://assets/ui/icon_settings.svg")
+	settings_button.expand_icon = true
 	settings_button.tooltip_text = "Einstellungen"
-	settings_button.custom_minimum_size = Vector2(44, 44)
-	settings_button.add_theme_font_size_override("font_size", 11)
+	settings_button.custom_minimum_size = Vector2(48, 34)
 	settings_button.add_theme_color_override("font_color", GREEN)
 	settings_button.add_theme_stylebox_override("normal", UiSkin.dark_button())
 	settings_button.add_theme_stylebox_override("hover", UiSkin.active_nav())
 	settings_button.add_theme_stylebox_override("pressed", UiSkin.pressed_button())
 	settings_button.pressed.connect(_show_settings)
-	header_row.add_child(settings_button)
+	header_actions.add_child(settings_button)
+	store_button = Button.new()
+	store_button.text = "SHOP"
+	store_button.tooltip_text = "Shop & Bonusse"
+	store_button.custom_minimum_size = Vector2(48, 34)
+	store_button.add_theme_font_size_override("font_size", 9)
+	store_button.add_theme_color_override("font_color", GOLD)
+	store_button.add_theme_stylebox_override("normal", UiSkin.dark_button())
+	store_button.add_theme_stylebox_override("hover", UiSkin.active_nav())
+	store_button.add_theme_stylebox_override("pressed", UiSkin.pressed_button())
+	store_button.pressed.connect(_show_store)
+	header_actions.add_child(store_button)
+	header_row.add_child(header_actions)
 	return header_row
 
 
@@ -272,7 +288,9 @@ func _apply_responsive_layout() -> void:
 	money_label.add_theme_font_size_override("font_size", 16 if compact else 20)
 	income_label.add_theme_font_size_override("font_size", 9 if compact else 11)
 	reputation_label.add_theme_font_size_override("font_size", 9 if compact else 11)
-	settings_button.custom_minimum_size = Vector2(40, 40) if compact else Vector2(44, 44)
+	settings_button.custom_minimum_size = Vector2(42, 30) if compact else Vector2(48, 34)
+	store_button.custom_minimum_size = Vector2(42, 30) if compact else Vector2(48, 34)
+	store_button.add_theme_font_size_override("font_size", 8 if compact else 9)
 
 
 func _build_dashboard() -> void:
@@ -1148,19 +1166,39 @@ func _show_settings() -> void:
 	panel.add_theme_stylebox_override("panel", UiSkin.hero())
 	center.add_child(panel)
 	var margin := MarginContainer.new()
-	_set_margins(margin, 24, 24, 26, 22)
+	_set_margins(margin, 22, 22, 22, 20)
 	panel.add_child(margin)
+	var modal_layout := VBoxContainer.new()
+	modal_layout.add_theme_constant_override("separation", 14)
+	margin.add_child(modal_layout)
+	var title_row := HBoxContainer.new()
+	title_row.add_theme_constant_override("separation", 12)
+	modal_layout.add_child(title_row)
+	var title_copy := VBoxContainer.new()
+	title_copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	title_copy.add_child(_label("SPIELEINSTELLUNGEN", 10, GREEN, true))
+	title_copy.add_child(_label("Optionen", 22, TEXT, true))
+	title_row.add_child(title_copy)
+	var top_close := Button.new()
+	top_close.text = "X"
+	top_close.tooltip_text = "Optionen schließen"
+	top_close.custom_minimum_size = Vector2(48, 48)
+	top_close.add_theme_font_size_override("font_size", 20)
+	top_close.add_theme_color_override("font_color", TEXT)
+	top_close.add_theme_stylebox_override("normal", UiSkin.dark_button())
+	top_close.add_theme_stylebox_override("hover", UiSkin.active_nav())
+	top_close.add_theme_stylebox_override("pressed", UiSkin.pressed_button())
+	top_close.pressed.connect(overlay.queue_free)
+	title_row.add_child(top_close)
 	var scroll := ScrollContainer.new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	scroll.scroll_deadzone = 8
-	margin.add_child(scroll)
+	modal_layout.add_child(scroll)
 	var box := VBoxContainer.new()
 	box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	box.add_theme_constant_override("separation", 14)
 	scroll.add_child(box)
-	box.add_child(_label("SPIELEINSTELLUNGEN", 10, GREEN, true))
-	box.add_child(_label("Dein Betrieb, dein Spielgefühl", 22, TEXT, true))
 	var description := _label("Diese Optionen werden lokal im Spielstand gespeichert.", 11, MUTED)
 	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	box.add_child(description)
@@ -1198,30 +1236,8 @@ func _show_settings() -> void:
 		_show_tutorial()
 	)
 	box.add_child(tutorial_button)
-	box.add_child(_label("SHOP & OPTIONALE BONUSSE", 10, GOLD, true))
-	var ad_boost := _settings_button("2× EINNAHMEN · 10 MIN.", "Optionales Belohnungsvideo – kein Zwang, keine Unterbrecherwerbung")
-	ad_boost.pressed.connect(func() -> void:
-		ad_boost.disabled = true
-		rewarded_context = "boost"
-		monetization.show_rewarded_ad()
-	)
-	box.add_child(ad_boost)
-	var no_ads_button := _settings_button("WERBEFREI KAUFEN", "Entfernt optionale Werbeangebote dauerhaft")
-	no_ads_button.disabled = game.no_ads
-	no_ads_button.pressed.connect(monetization.purchase.bind("de.kamilunavo.idlehandwerker.noads"))
-	box.add_child(no_ads_button)
-	var starter_button := _settings_button("STARTERPAKET", "2.500 € und 500 Bonusmarken – einmalig")
-	starter_button.disabled = game.starter_pack_claimed
-	starter_button.pressed.connect(monetization.purchase.bind("de.kamilunavo.idlehandwerker.starter"))
-	box.add_child(starter_button)
-	var token_button := _settings_button("250 BONUSMARKEN", "Kleines Markenpaket")
-	token_button.pressed.connect(monetization.purchase.bind("de.kamilunavo.idlehandwerker.tokens.small"))
-	box.add_child(token_button)
-	var restore_button := _settings_button("KÄUFE WIEDERHERSTELLEN", "Frühere nicht verbrauchbare Käufe wiederherstellen")
-	restore_button.pressed.connect(monetization.restore_purchases)
-	box.add_child(restore_button)
 	var version := str(ProjectSettings.get_setting("application/config/version", "1.0.0"))
-	var privacy := _label("VERSION %s\nLokal gespeichert · keine Anmeldung · Werbung nur nach deiner Auswahl" % version, 10, MUTED)
+	var privacy := _label("VERSION %s\nLokal gespeichert · keine Anmeldung" % version, 10, MUTED)
 	privacy.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	privacy.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
 	box.add_child(privacy)
@@ -1243,7 +1259,96 @@ func _show_settings() -> void:
 		sfx.play_cue("click")
 		overlay.queue_free()
 	)
-	box.add_child(close)
+	modal_layout.add_child(close)
+	_forward_touch_scrolling(box)
+
+
+func _show_store() -> void:
+	sfx.play_cue("click")
+	var overlay := ColorRect.new()
+	overlay.color = Color("030b12e8")
+	overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	overlay.z_index = 60
+	add_child(overlay)
+	var center := CenterContainer.new()
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	overlay.add_child(center)
+	var panel := PanelContainer.new()
+	panel.custom_minimum_size = Vector2(minf(390.0, size.x - 28.0), minf(650.0, size.y - 36.0))
+	panel.add_theme_stylebox_override("panel", UiSkin.hero())
+	center.add_child(panel)
+	var margin := MarginContainer.new()
+	_set_margins(margin, 22, 22, 22, 20)
+	panel.add_child(margin)
+	var modal_layout := VBoxContainer.new()
+	modal_layout.add_theme_constant_override("separation", 14)
+	margin.add_child(modal_layout)
+	var title_row := HBoxContainer.new()
+	title_row.add_theme_constant_override("separation", 12)
+	modal_layout.add_child(title_row)
+	var title_copy := VBoxContainer.new()
+	title_copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	title_copy.add_child(_label("SHK-SHOP", 10, GOLD, true))
+	title_copy.add_child(_label("Bonus & Käufe", 22, TEXT, true))
+	title_row.add_child(title_copy)
+	var top_close := Button.new()
+	top_close.text = "X"
+	top_close.tooltip_text = "Shop schließen"
+	top_close.custom_minimum_size = Vector2(48, 48)
+	top_close.add_theme_font_size_override("font_size", 20)
+	top_close.add_theme_color_override("font_color", TEXT)
+	top_close.add_theme_stylebox_override("normal", UiSkin.dark_button())
+	top_close.add_theme_stylebox_override("hover", UiSkin.active_nav())
+	top_close.add_theme_stylebox_override("pressed", UiSkin.pressed_button())
+	top_close.pressed.connect(overlay.queue_free)
+	title_row.add_child(top_close)
+	var scroll := ScrollContainer.new()
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.scroll_deadzone = 8
+	modal_layout.add_child(scroll)
+	var box := VBoxContainer.new()
+	box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	box.add_theme_constant_override("separation", 14)
+	scroll.add_child(box)
+	var description := _label("Optionale Vorteile. Kein Kauf ist für den Spielfortschritt erforderlich.", 11, MUTED)
+	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	box.add_child(description)
+	var ad_boost := _settings_button("2× EINNAHMEN · 10 MIN.", "Optionales Belohnungsvideo – kein Zwang, keine Unterbrecherwerbung")
+	ad_boost.pressed.connect(func() -> void:
+		ad_boost.disabled = true
+		rewarded_context = "boost"
+		monetization.show_rewarded_ad()
+	)
+	box.add_child(ad_boost)
+	var no_ads_button := _settings_button("WERBEFREI KAUFEN", "Entfernt optionale Werbeangebote dauerhaft")
+	no_ads_button.disabled = game.no_ads
+	no_ads_button.pressed.connect(monetization.purchase.bind("de.kamilunavo.idlehandwerker.noads"))
+	box.add_child(no_ads_button)
+	var starter_button := _settings_button("STARTERPAKET", "2.500 € und 500 Bonusmarken – einmalig")
+	starter_button.disabled = game.starter_pack_claimed
+	starter_button.pressed.connect(monetization.purchase.bind("de.kamilunavo.idlehandwerker.starter"))
+	box.add_child(starter_button)
+	var token_button := _settings_button("250 BONUSMARKEN", "Kleines Markenpaket")
+	token_button.pressed.connect(monetization.purchase.bind("de.kamilunavo.idlehandwerker.tokens.small"))
+	box.add_child(token_button)
+	var restore_button := _settings_button("KÄUFE WIEDERHERSTELLEN", "Frühere nicht verbrauchbare Käufe wiederherstellen")
+	restore_button.pressed.connect(monetization.restore_purchases)
+	box.add_child(restore_button)
+	var close := Button.new()
+	close.text = "SHOP SCHLIESSEN"
+	close.custom_minimum_size.y = 56
+	close.add_theme_font_size_override("font_size", 14)
+	close.add_theme_color_override("font_color", Color("ffffff"))
+	close.add_theme_stylebox_override("normal", UiSkin.primary_button())
+	close.add_theme_stylebox_override("hover", UiSkin.primary_button())
+	close.add_theme_stylebox_override("pressed", UiSkin.pressed_button())
+	close.pressed.connect(func() -> void:
+		sfx.play_cue("click")
+		overlay.queue_free()
+	)
+	modal_layout.add_child(close)
 	_forward_touch_scrolling(box)
 
 
