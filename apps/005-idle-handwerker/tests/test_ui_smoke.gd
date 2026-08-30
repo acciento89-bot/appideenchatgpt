@@ -31,6 +31,14 @@ func _run() -> void:
 		if not brand_title or brand_title.get_combined_minimum_size().x <= 0.0:
 			failures += 1
 			printerr("FAIL: header text has no measurable width at %s" % device_size)
+		for property in ["money_label", "income_label", "reputation_label"]:
+			var status_label: Label = app.get(property)
+			if not status_label or status_label.text == "" or status_label.text.contains("..."):
+				failures += 1
+				printerr("FAIL: header status '%s' is missing or truncated at %s" % [property, device_size])
+			elif status_label.text_overrun_behavior != TextServer.OVERRUN_NO_TRIMMING:
+				failures += 1
+				printerr("FAIL: header status '%s' allows ellipsis at %s" % [property, device_size])
 		var app_font: FontFile = app.get("app_font")
 		if not app.theme or not app_font or app_font.data.is_empty() or app.theme.default_font != app_font:
 			failures += 1
