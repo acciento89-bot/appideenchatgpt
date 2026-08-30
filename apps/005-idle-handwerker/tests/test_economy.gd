@@ -24,6 +24,9 @@ func _init() -> void:
 	if GameData.LOCATIONS.size() != 4:
 		failures += 1
 		printerr("FAIL: expected four progression locations")
+	if GameData.JOB_EVENTS.size() < 3:
+		failures += 1
+		printerr("FAIL: expected varied bonus events")
 	var game := GameState.new()
 	game.current_streak = 5
 	if not is_equal_approx(game.streak_reward_multiplier(), 1.15):
@@ -50,6 +53,16 @@ func _init() -> void:
 	if not game.claim_daily_mission("jobs") or game.money <= money_before:
 		failures += 1
 		printerr("FAIL: completed daily mission reward")
+	game.active_event_id = "premium_material"
+	if not is_equal_approx(game.active_event_reward_multiplier(), 1.55):
+		failures += 1
+		printerr("FAIL: premium material event reward")
+	if game.active_event_duration_multiplier() <= 1.0:
+		failures += 1
+		printerr("FAIL: premium material event duration tradeoff")
+	if game.company_value() < game.money:
+		failures += 1
+		printerr("FAIL: company value should include liquid funds")
 	game.free()
 	if failures == 0:
 		print("All economy tests passed.")

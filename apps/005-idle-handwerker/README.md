@@ -21,6 +21,11 @@ Ein mobiles Idle-Game von Kamilunavo Games: Vom tropfenden Wasserhahn zum eigene
 - vierstufiges Ingame-Tutorial für den ersten Start
 - vollständig eigenes Premium-Menüsystem aus Godot-kompatiblen SVG-Skins
 - Metallrahmen, Einlagen, Nieten, Glanzkanten und Medaillons ohne generierte Bilder
+- zufällige Bonusereignisse: Express-Auftrag, Premium-Material und Kundenempfehlung
+- sichtbarer Werkstattfortschritt durch Werkzeugwand, Digitalbüro, Fuhrpark und Teamhelme
+- dynamische Auftragsboni für Lohn, Dauer und XP
+- Firmenwert als zusätzlicher langfristiger Fortschrittsindikator
+- intensivierte Serienfeiern mit wachsendem Partikeleffekt
 
 ## Start
 

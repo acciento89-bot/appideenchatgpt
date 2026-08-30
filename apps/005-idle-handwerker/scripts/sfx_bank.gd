@@ -16,6 +16,7 @@ func _ready() -> void:
 	_streams.coin = _make_tone([660.0, 880.0, 1100.0], 0.085, 0.24)
 	_streams.upgrade = _make_tone([440.0, 660.0, 920.0], 0.095, 0.24)
 	_streams.level = _make_tone([523.25, 659.25, 783.99, 1046.5], 0.12, 0.26)
+	_streams.event = _make_tone([392.0, 587.33, 783.99], 0.11, 0.25)
 
 
 func play_cue(cue: String) -> void:
@@ -45,4 +46,3 @@ func _make_tone(frequencies: Array[float], note_duration: float, volume: float) 
 	stream.stereo = false
 	stream.data = data
 	return stream
-

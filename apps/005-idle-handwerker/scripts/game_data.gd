@@ -172,6 +172,36 @@ const ACHIEVEMENTS: Array[Dictionary] = [
 	{"id": "streak_five", "title": "Läuft bei dir", "description": "Eine 5er-Auftragsserie erreichen", "target": 5.0, "metric": "streak", "reward": 450.0},
 ]
 
+const JOB_EVENTS: Array[Dictionary] = [
+	{
+		"id": "express",
+		"title": "Express-Auftrag",
+		"description": "Der Kunde braucht sofort Hilfe.",
+		"reward_multiplier": 1.35,
+		"duration_multiplier": 0.72,
+		"xp_multiplier": 1.15,
+		"code": "EX",
+	},
+	{
+		"id": "premium_material",
+		"title": "Premium-Material",
+		"description": "Hochwertige Teile erhöhen den Auftragswert.",
+		"reward_multiplier": 1.55,
+		"duration_multiplier": 1.18,
+		"xp_multiplier": 1.25,
+		"code": "PM",
+	},
+	{
+		"id": "recommendation",
+		"title": "Kundenempfehlung",
+		"description": "Gute Arbeit spricht sich herum.",
+		"reward_multiplier": 1.2,
+		"duration_multiplier": 1.0,
+		"xp_multiplier": 1.75,
+		"code": "KE",
+	},
+]
+
 const UPGRADES: Array[Dictionary] = [
 	{
 		"id": "tools",
@@ -231,7 +261,7 @@ static func upgrade_cost(upgrade: Dictionary, current_level: int) -> float:
 
 
 static func employee_cost(employee: Dictionary, owned: int) -> float:
-	return round(float(employee.base_cost) * pow(1.58, owned))
+	return round(float(employee.base_cost) * pow(1.52, owned))
 
 
 static func xp_for_level(level: int) -> int:
