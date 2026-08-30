@@ -31,7 +31,7 @@ func _run() -> void:
 			if content.get_child_count() == 0:
 				failures += 1
 				printerr("FAIL: empty tab %s at %s" % [tab_id, device_size])
-			var logical_width := app.size.x
+			var logical_width: float = float(app.size.x)
 			if content.size.x > logical_width + 1.0:
 				failures += 1
 				printerr("FAIL: horizontal overflow in %s at %s: %.1f > %.1f logical" % [tab_id, device_size, content.size.x, logical_width])
