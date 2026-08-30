@@ -269,10 +269,10 @@ const JOB_EVENTS: Array[Dictionary] = [
 ]
 
 const CONTRACTS: Array[Dictionary] = [
-	{"id": "property_service", "title": "Hausverwaltungs-Service", "client": "Hausverwaltung Nord", "description": "Regelmäßige Kleinreparaturen in Mietobjekten", "level": 3, "reputation": 35, "payout": 180.0, "interval": 60.0, "code": "HV"},
-	{"id": "gastronomy_service", "title": "Gastro-Wartungsvertrag", "client": "Morgenrot Gastronomie", "description": "Sanitär- und Heizungsbereitschaft für drei Filialen", "level": 5, "reputation": 110, "payout": 520.0, "interval": 90.0, "code": "GW"},
-	{"id": "premium_estates", "title": "Premium-Objektbetreuung", "client": "Residenz Bellevue", "description": "Exklusive Anlagenbetreuung im Villenviertel", "level": 8, "reputation": 260, "payout": 1450.0, "interval": 120.0, "code": "PO"},
-	{"id": "industrial_maintenance", "title": "Industrie-Rahmenvertrag", "client": "Kraftwerk Technik AG", "description": "Langfristige Wartung kritischer Großanlagen", "level": 12, "reputation": 600, "payout": 4800.0, "interval": 180.0, "code": "IR"},
+	{"id": "property_service", "title": "Hausverwaltungs-Service", "client": "Hausverwaltung Nord", "description": "Regelmäßige Kleinreparaturen in Mietobjekten", "level": 3, "reputation": 35, "payout": 180.0, "interval": 1800.0, "code": "HV"},
+	{"id": "gastronomy_service", "title": "Gastro-Wartungsvertrag", "client": "Morgenrot Gastronomie", "description": "Sanitär- und Heizungsbereitschaft für drei Filialen", "level": 5, "reputation": 110, "payout": 520.0, "interval": 2400.0, "code": "GW"},
+	{"id": "premium_estates", "title": "Premium-Objektbetreuung", "client": "Residenz Bellevue", "description": "Exklusive Anlagenbetreuung im Villenviertel", "level": 8, "reputation": 260, "payout": 1450.0, "interval": 3600.0, "code": "PO"},
+	{"id": "industrial_maintenance", "title": "Industrie-Rahmenvertrag", "client": "Kraftwerk Technik AG", "description": "Langfristige Wartung kritischer Großanlagen", "level": 12, "reputation": 600, "payout": 4800.0, "interval": 5400.0, "code": "IR"},
 ]
 
 const REPUTATION_RANKS: Array[Dictionary] = [
@@ -315,7 +315,7 @@ const EMPLOYEES: Array[Dictionary] = [
 		"id": "azubi",
 		"title": "Azubi Alex",
 		"trade": "Sanitär",
-		"income": 1.2,
+		"income": 0.08,
 		"base_cost": 350.0,
 		"color": Color("55c890"),
 	},
@@ -323,7 +323,7 @@ const EMPLOYEES: Array[Dictionary] = [
 		"id": "monteur",
 		"title": "Monteur Mo",
 		"trade": "Heizung",
-		"income": 4.8,
+		"income": 0.32,
 		"base_cost": 1350.0,
 		"color": Color("f2a649"),
 	},
@@ -331,7 +331,7 @@ const EMPLOYEES: Array[Dictionary] = [
 		"id": "meisterin",
 		"title": "Meisterin Mia",
 		"trade": "Projektleitung",
-		"income": 14.0,
+		"income": 1.1,
 		"base_cost": 4800.0,
 		"color": Color("7591f7"),
 	},
