@@ -31,7 +31,8 @@ func _run() -> void:
 		if not brand_title or brand_title.get_combined_minimum_size().x <= 0.0:
 			failures += 1
 			printerr("FAIL: header text has no measurable width at %s" % device_size)
-		if not app.theme or not app.theme.default_font or not app.theme.default_font.resource_path.ends_with("KamilunavoSans.ttf"):
+		var app_font: FontFile = app.get("app_font")
+		if not app.theme or not app_font or app_font.data.is_empty() or app.theme.default_font != app_font:
 			failures += 1
 			printerr("FAIL: embedded app font is not active at %s" % device_size)
 		var nav_buttons: Dictionary = app.get("nav_buttons")
@@ -55,7 +56,7 @@ func _run() -> void:
 					printerr("FAIL: %s blocks touch scrolling in %s at %s" % [control.name, tab_id, device_size])
 			for label in _all_labels(content):
 				var font := label.get_theme_font("font")
-				if not font or not font.resource_path.ends_with("KamilunavoSans.ttf"):
+				if not font or font != app_font:
 					failures += 1
 					printerr("FAIL: label '%s' has no embedded font in %s at %s" % [label.text, tab_id, device_size])
 				if label.text != "" and label.get_combined_minimum_size().y <= 0.0:
