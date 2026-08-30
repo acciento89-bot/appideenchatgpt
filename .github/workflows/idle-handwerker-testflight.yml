@@ -149,6 +149,7 @@ jobs:
           "$RUNNER_TEMP/storekit-venv/bin/scons" -C "$STOREKIT_SOURCE/godot" platform=ios target=editor -j3
           (
             cd "$STOREKIT_SOURCE"
+            export PATH="$RUNNER_TEMP/storekit-venv/bin:$PATH"
             ./scripts/generate_xcframework.sh inappstore release 4.0
           )
           mkdir -p "$HOME/.cache/idle-handwerker-storekit"
