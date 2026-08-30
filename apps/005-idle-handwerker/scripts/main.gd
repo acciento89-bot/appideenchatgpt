@@ -412,7 +412,10 @@ func _job_card(job: Dictionary) -> Control:
 	copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	if is_major:
 		copy.add_child(_label("GROSSPROJEKT", 9, GOLD, true))
-	copy.add_child(_label(str(job.title), 16, TEXT, true))
+	var job_title := _label(str(job.title), 16, TEXT, true)
+	job_title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	job_title.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
+	copy.add_child(job_title)
 	copy.add_child(_label(str(job.customer) + "  •  " + str(int(job.duration)) + " Sek.", 11, MUTED))
 	var reward := float(job.reward) * game.job_reward_multiplier() * game.streak_reward_multiplier() * game.location_reward_multiplier()
 	copy.add_child(_label("Basis %s  +%d XP" % [GameData.format_money(reward), int(job.xp)], 12, GREEN, true))
@@ -453,10 +456,12 @@ func _location_selector() -> Control:
 		copy.add_child(_label(str(location.title), 15, TEXT, true))
 		var subtitle := str(location.subtitle) if unlocked else "Freischaltung ab Stufe %d" % int(location.level)
 		var subtitle_label := _label(subtitle, 10, MUTED)
+		subtitle_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		subtitle_label.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
 		copy.add_child(subtitle_label)
 		if unlocked and game.requires_location_restart(str(location.id)):
 			var restart_hint := _label("NEUER BETRIEB · OPERATIVER NEUSTART", 9, GOLD, true)
+			restart_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 			restart_hint.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
 			copy.add_child(restart_hint)
 		copy.add_child(_label("+%d %% Auftragswert" % int((float(location.multiplier) - 1.0) * 100.0), 10, GOLD, true))
@@ -483,8 +488,14 @@ func _goal_card(item: Dictionary, daily: bool) -> Control:
 	row.add_child(_icon_box("✓" if claimed else ("!" if ready else "•"), GOLD if ready else GREEN))
 	var copy := VBoxContainer.new()
 	copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	copy.add_child(_label(str(item.title), 15, TEXT, true))
-	copy.add_child(_label(str(item.description), 10, MUTED))
+	var goal_title := _label(str(item.title), 15, TEXT, true)
+	goal_title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	goal_title.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
+	copy.add_child(goal_title)
+	var goal_description := _label(str(item.description), 10, MUTED)
+	goal_description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	goal_description.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
+	copy.add_child(goal_description)
 	copy.add_child(_label("Belohnung  " + GameData.format_money(float(item.reward)), 10, GOLD, true))
 	row.add_child(copy)
 	var button := Button.new()
@@ -516,8 +527,14 @@ func _event_card(event: Dictionary) -> Control:
 	row.add_child(_icon_box(str(event.code), GOLD))
 	var copy := VBoxContainer.new()
 	copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	copy.add_child(_label("BONUSEREIGNIS · " + str(event.title), 13, GOLD, true))
-	copy.add_child(_label(str(event.description), 10, MUTED))
+	var event_title := _label("BONUSEREIGNIS · " + str(event.title), 13, GOLD, true)
+	event_title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	event_title.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
+	copy.add_child(event_title)
+	var event_description := _label(str(event.description), 10, MUTED)
+	event_description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	event_description.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
+	copy.add_child(event_description)
 	copy.add_child(_label("+%d %% Lohn  ·  +%d %% XP" % [int((float(event.reward_multiplier) - 1.0) * 100.0), int((float(event.xp_multiplier) - 1.0) * 100.0)], 11, GREEN, true))
 	row.add_child(copy)
 	return card
@@ -536,7 +553,10 @@ func _reputation_card() -> Control:
 	copy.add_child(_label("REPUTATION", 10, GREEN, true))
 	copy.add_child(_label(str(rank.title), 15, TEXT, true))
 	var status := "%d Rufpunkte · Höchster Rang" % game.reputation if next_rank.is_empty() else "%d / %d bis %s" % [game.reputation, int(next_rank.minimum), str(next_rank.title)]
-	copy.add_child(_label(status, 10, MUTED))
+	var status_label := _label(status, 10, MUTED)
+	status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	status_label.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
+	copy.add_child(status_label)
 	row.add_child(copy)
 	box.add_child(row)
 	var bar := ProgressBar.new()
@@ -595,12 +615,17 @@ func _contract_card(contract: Dictionary) -> Control:
 	row.add_child(_icon_box(str(contract.code), GOLD if active else GREEN))
 	var copy := VBoxContainer.new()
 	copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	copy.add_child(_label(str(contract.title), 14, TEXT, true))
+	var contract_title := _label(str(contract.title), 14, TEXT, true)
+	contract_title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	contract_title.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
+	copy.add_child(contract_title)
 	copy.add_child(_label(str(contract.client), 10, GOLD, true))
 	var description := _label(str(contract.description), 10, MUTED)
+	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	description.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
 	copy.add_child(description)
 	var payout := _label("%s je %s  ·  %s/s" % [GameData.format_money(float(contract.payout)), _format_income_interval(float(contract.interval)), GameData.format_money(float(contract.payout) / float(contract.interval), true)], 10, GREEN, true)
+	payout.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	payout.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
 	copy.add_child(payout)
 	row.add_child(copy)
@@ -670,6 +695,7 @@ func _workshop_progress_card() -> Control:
 	workshop_copy.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
 	copy.add_child(workshop_copy)
 	var workshop_levels := _label("Werkzeug %d  ·  Fuhrpark %d  ·  Büro %d" % [int(game.upgrades.tools), int(game.upgrades.van), int(game.upgrades.office)], 11, GREEN, true)
+	workshop_levels.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	workshop_levels.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
 	copy.add_child(workshop_levels)
 	copy.add_child(_label("Team vor Ort: %d" % game.total_employees(), 11, TEXT, true))
@@ -690,6 +716,7 @@ func _upgrade_card(upgrade: Dictionary) -> Control:
 	copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	copy.add_child(_label(str(upgrade.title), 15, TEXT, true))
 	var description := _label(str(upgrade.description), 11, MUTED)
+	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	description.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
 	copy.add_child(description)
 	copy.add_child(_label("Stufe %d" % level, 11, GOLD, true))
@@ -955,6 +982,8 @@ func _show_event_reveal(event: Dictionary) -> void:
 	box.add_child(title)
 	var description := _label(str(event.description), 11, MUTED)
 	description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	description.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
 	box.add_child(description)
 	panel.add_child(box)
 	toast_layer.add_child(panel)
@@ -1345,14 +1374,16 @@ func _page_intro(title: String, subtitle: String) -> Control:
 
 
 func _section_title(title: String, action: String) -> Control:
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 10)
+	var row: BoxContainer = VBoxContainer.new() if _is_compact() else HBoxContainer.new()
+	row.add_theme_constant_override("separation", 2 if _is_compact() else 10)
 	var heading := _label(title, 17, TEXT, true)
 	heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	heading.autowrap_mode = TextServer.AUTOWRAP_OFF
 	heading.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
 	row.add_child(heading)
 	var action_label := _label(action, 10, GREEN, true)
-	action_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	action_label.autowrap_mode = TextServer.AUTOWRAP_OFF
+	action_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT if _is_compact() else HORIZONTAL_ALIGNMENT_RIGHT
 	action_label.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
 	row.add_child(action_label)
 	return row
@@ -1439,7 +1470,7 @@ func _label(value: String, font_size: int, color: Color, bold := false) -> Label
 	var label := Label.new()
 	label.text = value
 	label.custom_minimum_size.y = ceilf(float(font_size) * 1.45)
-	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	label.autowrap_mode = TextServer.AUTOWRAP_OFF
 	label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	label.add_theme_font_override("font", app_font)
 	label.add_theme_font_size_override("font_size", font_size)
