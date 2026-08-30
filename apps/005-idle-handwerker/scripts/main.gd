@@ -71,6 +71,13 @@ func _process(_delta: float) -> void:
 	_update_active_job()
 
 
+func _notification(what: int) -> void:
+	if not game:
+		return
+	if what == NOTIFICATION_APPLICATION_PAUSED or what == NOTIFICATION_WM_CLOSE_REQUEST:
+		game.save_game()
+
+
 func _build_shell() -> void:
 	var background := ColorRect.new()
 	background.color = BG
@@ -144,7 +151,7 @@ func _build_header() -> Control:
 	header_row.add_child(balance)
 
 	settings_button = Button.new()
-	settings_button.text = "OP"
+	settings_button.text = "OPT"
 	settings_button.tooltip_text = "Einstellungen"
 	settings_button.custom_minimum_size = Vector2(44, 44)
 	settings_button.add_theme_font_size_override("font_size", 11)
@@ -578,7 +585,7 @@ func _contract_card(contract: Dictionary) -> Control:
 	copy.add_child(_label(str(contract.title), 14, TEXT, true))
 	copy.add_child(_label(str(contract.client), 10, GOLD, true))
 	copy.add_child(_label(str(contract.description), 10, MUTED))
-	copy.add_child(_label("%s je %d Sek.  ·  %s/s" % [GameData.format_money(float(contract.payout)), int(contract.interval), GameData.format_money(float(contract.payout) / float(contract.interval), true)], 10, GREEN, true))
+	copy.add_child(_label("%s je %s  ·  %s/s" % [GameData.format_money(float(contract.payout)), _format_income_interval(float(contract.interval)), GameData.format_money(float(contract.payout) / float(contract.interval), true)], 10, GREEN, true))
 	row.add_child(copy)
 	var button := Button.new()
 	button.text = "Aktiv" if active else ("Vertrag" if unlocked else "St. %d\n%d Ruf" % [int(contract.level), int(contract.reputation)])
@@ -859,14 +866,93 @@ func _on_level_up(new_level: int) -> void:
 
 
 func _show_offline_dialog() -> void:
-	var reward := game.claim_offline_reward()
-	var dialog := AcceptDialog.new()
-	dialog.title = "Dein Team war fleißig"
-	dialog.dialog_text = "Während deiner Abwesenheit hat dein Betrieb\n%s erwirtschaftet." % GameData.format_money(reward, true)
-	dialog.ok_button_text = "Einnahmen einsammeln"
-	add_child(dialog)
-	dialog.popup_centered(Vector2i(350, 180))
-	dialog.confirmed.connect(dialog.queue_free)
+	var pending_reward := game.offline_reward
+	var overlay := ColorRect.new()
+	overlay.color = Color("07100ef2")
+	overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	overlay.z_index = 70
+	add_child(overlay)
+	var center := CenterContainer.new()
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	overlay.add_child(center)
+	var panel := PanelContainer.new()
+	panel.custom_minimum_size = Vector2(minf(370.0, size.x - 28.0), minf(500.0, size.y - 44.0))
+	panel.add_theme_stylebox_override("panel", UiSkin.hero())
+	center.add_child(panel)
+	var margin := MarginContainer.new()
+	_set_margins(margin, 26, 26, 28, 24)
+	panel.add_child(margin)
+	var box := VBoxContainer.new()
+	box.alignment = BoxContainer.ALIGNMENT_CENTER
+	box.add_theme_constant_override("separation", 16)
+	margin.add_child(box)
+	var eyebrow := _label("WILLKOMMEN ZURÜCK", 10, GREEN, true)
+	eyebrow.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	box.add_child(eyebrow)
+	var medallion := PanelContainer.new()
+	medallion.custom_minimum_size = Vector2(84, 84)
+	medallion.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	medallion.add_theme_stylebox_override("panel", UiSkin.medallion())
+	var medallion_text := _label("OFF", 17, GOLD, true)
+	medallion_text.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	medallion_text.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	medallion.add_child(medallion_text)
+	box.add_child(medallion)
+	var title := _label("Dein Team war fleißig", 22, TEXT, true)
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	box.add_child(title)
+	var duration := _format_offline_duration(game.offline_elapsed_seconds)
+	var body := _label("Während deiner Abwesenheit von %s lief dein Betrieb weiter." % duration, 12, MUTED)
+	body.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	body.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
+	box.add_child(body)
+	var reward_label := _label(GameData.format_money(pending_reward, true), 30, GOLD, true)
+	reward_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	box.add_child(reward_label)
+	var detail := _label("50 % Offline-Effizienz · maximal 8 Stunden", 10, GREEN, true)
+	detail.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	box.add_child(detail)
+	var collect := Button.new()
+	collect.text = "EINNAHMEN EINSAMMELN"
+	collect.custom_minimum_size.y = 60
+	collect.add_theme_font_size_override("font_size", 14)
+	collect.add_theme_color_override("font_color", Color("071811"))
+	collect.add_theme_stylebox_override("normal", UiSkin.primary_button())
+	collect.add_theme_stylebox_override("hover", UiSkin.primary_button())
+	collect.add_theme_stylebox_override("pressed", UiSkin.pressed_button())
+	collect.pressed.connect(func() -> void:
+		var collected := game.claim_offline_reward()
+		sfx.play_cue("coin")
+		_haptic(55, 0.7)
+		overlay.queue_free()
+		_update_live_header()
+		_show_toast("Offline-Ertrag: +%s" % GameData.format_money(collected, true))
+	)
+	box.add_child(collect)
+
+
+func _format_offline_duration(seconds: float) -> String:
+	var total_minutes := maxi(1, int(round(seconds / 60.0)))
+	var hours := int(total_minutes / 60)
+	var minutes := total_minutes % 60
+	if hours <= 0:
+		return "%d Minuten" % minutes
+	if minutes == 0:
+		return "%d Stunden" % hours
+	return "%d Std. %d Min." % [hours, minutes]
+
+
+func _format_income_interval(seconds: float) -> String:
+	var minutes := int(round(seconds / 60.0))
+	if minutes < 60:
+		return "%d Min." % minutes
+	var hours := int(minutes / 60)
+	var remainder := minutes % 60
+	if remainder == 0:
+		return "%d Std." % hours
+	return "%d Std. %d Min." % [hours, remainder]
 
 
 func _show_settings() -> void:
@@ -880,15 +966,21 @@ func _show_settings() -> void:
 	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	overlay.add_child(center)
 	var panel := PanelContainer.new()
-	panel.custom_minimum_size = Vector2(minf(370.0, size.x - 28.0), 450)
+	panel.custom_minimum_size = Vector2(minf(390.0, size.x - 28.0), minf(650.0, size.y - 36.0))
 	panel.add_theme_stylebox_override("panel", UiSkin.hero())
 	center.add_child(panel)
 	var margin := MarginContainer.new()
 	_set_margins(margin, 24, 24, 26, 22)
 	panel.add_child(margin)
+	var scroll := ScrollContainer.new()
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.scroll_deadzone = 8
+	margin.add_child(scroll)
 	var box := VBoxContainer.new()
+	box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	box.add_theme_constant_override("separation", 14)
-	margin.add_child(box)
+	scroll.add_child(box)
 	box.add_child(_label("SPIELEINSTELLUNGEN", 10, GREEN, true))
 	box.add_child(_label("Dein Betrieb, dein Spielgefühl", 22, TEXT, true))
 	var description := _label("Diese Optionen werden lokal im Spielstand gespeichert.", 11, MUTED)
@@ -921,6 +1013,24 @@ func _show_settings() -> void:
 		game.set_preference("reduced_motion", not game.reduced_motion)
 		refresh.call()
 	)
+	var tutorial_button := _settings_button("TUTORIAL ERNEUT ANSEHEN", "Die vier Schnellstart-Schritte erneut öffnen")
+	tutorial_button.pressed.connect(func() -> void:
+		sfx.play_cue("click")
+		overlay.queue_free()
+		_show_tutorial()
+	)
+	box.add_child(tutorial_button)
+	var version := str(ProjectSettings.get_setting("application/config/version", "1.0.0"))
+	var privacy := _label("VERSION %s\nLokal gespeichert · keine Anmeldung · keine Werbung · kein Tracking" % version, 10, MUTED)
+	privacy.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	privacy.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
+	box.add_child(privacy)
+	var reset_button := _settings_button("SPIELSTAND ZURÜCKSETZEN", "Alle lokalen Fortschritte dauerhaft löschen")
+	reset_button.add_theme_color_override("font_color", RED)
+	reset_button.pressed.connect(func() -> void:
+		_show_reset_confirmation(overlay)
+	)
+	box.add_child(reset_button)
 	var close := Button.new()
 	close.text = "FERTIG"
 	close.custom_minimum_size.y = 56
@@ -934,6 +1044,30 @@ func _show_settings() -> void:
 		overlay.queue_free()
 	)
 	box.add_child(close)
+	_forward_touch_scrolling(box)
+
+
+func _show_reset_confirmation(settings_overlay: Control) -> void:
+	var dialog := ConfirmationDialog.new()
+	dialog.title = "Spielstand zurücksetzen?"
+	dialog.dialog_text = "Geld, Ruf, Aufträge, Team und alle Verbesserungen werden dauerhaft gelöscht."
+	dialog.ok_button_text = "Zurücksetzen"
+	dialog.cancel_button_text = "Abbrechen"
+	dialog.initial_position = Window.WINDOW_INITIAL_POSITION_CENTER_PRIMARY_SCREEN
+	add_child(dialog)
+	dialog.confirmed.connect(func() -> void:
+		game.set_process(false)
+		if game.delete_save():
+			if is_instance_valid(settings_overlay):
+				settings_overlay.queue_free()
+			get_tree().reload_current_scene()
+		else:
+			game.set_process(true)
+			_show_toast("Spielstand konnte nicht gelöscht werden.")
+		dialog.queue_free()
+	)
+	dialog.canceled.connect(dialog.queue_free)
+	dialog.popup_centered(Vector2i(360, 220))
 
 
 func _settings_button(title: String, description: String) -> Button:
