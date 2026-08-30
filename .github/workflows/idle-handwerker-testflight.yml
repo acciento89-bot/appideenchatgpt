@@ -9,7 +9,7 @@ on:
       build:
         description: App Store Connect build number
         required: true
-        default: '13'
+        default: '14'
       create_app_record:
         description: App-Datensatz bei Bedarf anlegen
         required: true
@@ -37,7 +37,7 @@ env:
   APP_NAME: Idle Handwerker
   APP_VERSION: 1.3.0
   APP_SKU: KAMILUNAVO-IDLE-HANDWERKER-IOS
-  PRODUCTION_ADS: ${{ inputs.production_ads || false }}
+  PRODUCTION_ADS: ${{ github.event_name == 'push' || inputs.production_ads }}
 
 jobs:
   upload:
@@ -66,7 +66,7 @@ jobs:
       - name: Preflight
         shell: bash
         env:
-          REQUESTED_BUILD: ${{ inputs.build || '13' }}
+          REQUESTED_BUILD: ${{ inputs.build || '14' }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_PRIVATE_KEY_B64: ${{ secrets.ASC_PRIVATE_KEY_B64 }}
@@ -365,6 +365,43 @@ jobs:
             2>&1 | tee "$RUNNER_TEMP/export.log"
           IPA=$(find "$EXPORT_PATH" -maxdepth 2 -type f -name '*.ipa' -print -quit)
           test -s "$IPA"
+
+          # Godot's embedded-framework export leaves the Google SDK binaries with
+          # their vendor signature.  App Store Connect requires every nested
+          # executable to be signed by the same distribution identity as the app.
+          SIGNING_IDENTITY=$(security find-identity -v -p codesigning | \
+            sed -n 's/.*"\(Apple Distribution:[^"]*\)".*/\1/p' | head -1)
+          test -n "$SIGNING_IDENTITY"
+          echo "Re-signing embedded code with $SIGNING_IDENTITY"
+
+          RESIGN_DIR="$RUNNER_TEMP/ResignPayload"
+          rm -rf "$RESIGN_DIR"
+          mkdir -p "$RESIGN_DIR"
+          ditto -x -k "$IPA" "$RESIGN_DIR"
+          SIGNED_APP=$(find "$RESIGN_DIR/Payload" -maxdepth 1 -type d -name '*.app' -print -quit)
+          test -d "$SIGNED_APP"
+
+          if [[ -d "$SIGNED_APP/Frameworks" ]]; then
+            while IFS= read -r -d '' NESTED; do
+              codesign --force --sign "$SIGNING_IDENTITY" --timestamp \
+                --preserve-metadata=identifier,entitlements,flags,runtime "$NESTED"
+            done < <(find "$SIGNED_APP/Frameworks" -depth \
+              \( -type d -name '*.framework' -o -type f -name '*.dylib' \) -print0)
+          fi
+
+          while IFS= read -r -d '' EXTENSION; do
+            codesign --force --sign "$SIGNING_IDENTITY" --timestamp \
+              --preserve-metadata=identifier,entitlements,flags,runtime "$EXTENSION"
+          done < <(find "$SIGNED_APP" -depth -type d -name '*.appex' -print0)
+
+          codesign --force --sign "$SIGNING_IDENTITY" --timestamp \
+            --preserve-metadata=identifier,entitlements,flags,runtime "$SIGNED_APP"
+
+          RESIGNED_IPA="$EXPORT_PATH/IdleHandwerker-resigned.ipa"
+          rm -f "$RESIGNED_IPA"
+          (cd "$RESIGN_DIR" && ditto -c -k --sequesterRsrc --keepParent Payload "$RESIGNED_IPA")
+          test -s "$RESIGNED_IPA"
+          IPA="$RESIGNED_IPA"
           echo "SIGNED_IPA=$IPA" >> "$GITHUB_ENV"
 
       - name: Verify and upload IPA
@@ -379,6 +416,13 @@ jobs:
           unzip -q "$SIGNED_IPA" -d "$PAYLOAD"
           APP=$(find "$PAYLOAD/Payload" -maxdepth 1 -type d -name '*.app' -print -quit)
           test -d "$APP"
+          if [[ -d "$APP/Frameworks" ]]; then
+            while IFS= read -r -d '' NESTED; do
+              codesign --verify --strict --verbose=2 "$NESTED"
+              grep -q '^Authority=Apple Distribution' < <(codesign -dvv "$NESTED" 2>&1)
+            done < <(find "$APP/Frameworks" -depth \
+              \( -type d -name '*.framework' -o -type f -name '*.dylib' \) -print0)
+          fi
           codesign --verify --deep --strict --verbose=2 "$APP"
           grep -q '^Authority=Apple Distribution' < <(codesign -dvv "$APP" 2>&1)
           /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP/Info.plist" | grep -Fx "$BUNDLE_ID"

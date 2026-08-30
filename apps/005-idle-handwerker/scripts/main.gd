@@ -39,6 +39,9 @@ var store_button: Button
 var main_scroll: ScrollContainer
 var app_font: FontFile
 var rewarded_context := "boost"
+var offline_reward_doubled := false
+var offline_reward_label: Label
+var offline_double_button: Button
 
 
 func _ready() -> void:
@@ -58,7 +61,7 @@ func _ready() -> void:
 	monetization.purchase_failed.connect(_show_toast)
 	monetization.restore_completed.connect(_show_toast)
 	monetization.rewarded_completed.connect(_on_rewarded_completed)
-	monetization.rewarded_unavailable.connect(_show_toast)
+	monetization.rewarded_unavailable.connect(_on_rewarded_unavailable)
 	sfx.set_enabled(game.sound_enabled)
 	game.job_completed.connect(_on_job_completed)
 	game.job_event_started.connect(_on_job_event_started)
@@ -1055,6 +1058,9 @@ func _on_level_up(new_level: int) -> void:
 
 func _show_offline_dialog() -> void:
 	var pending_reward := game.offline_reward
+	offline_reward_doubled = false
+	offline_reward_label = null
+	offline_double_button = null
 	var overlay := ColorRect.new()
 	overlay.color = Color("030b12f2")
 	overlay.mouse_filter = Control.MOUSE_FILTER_STOP
@@ -1099,6 +1105,7 @@ func _show_offline_dialog() -> void:
 	var reward_label := _label(GameData.format_money(pending_reward, true), 30, GOLD, true)
 	reward_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(reward_label)
+	offline_reward_label = reward_label
 	var detail := _label("35 % Offline-Effizienz · maximal 8 Stunden", 10, GREEN, true)
 	detail.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(detail)
@@ -1122,10 +1129,15 @@ func _show_offline_dialog() -> void:
 	if not game.no_ads:
 		var double_button := _settings_button("2× OFFLINE-ERTRAG", "Optionales Werbevideo ansehen und Ertrag verdoppeln")
 		double_button.pressed.connect(func() -> void:
+			if offline_reward_doubled:
+				return
+			double_button.disabled = true
+			double_button.text = "VIDEO WIRD GELADEN …"
 			rewarded_context = "offline"
 			monetization.show_rewarded_ad("offline")
 		)
 		box.add_child(double_button)
+		offline_double_button = double_button
 
 
 func _format_offline_duration(seconds: float) -> String:
@@ -1316,12 +1328,13 @@ func _show_store() -> void:
 	var description := _label("Optionale Vorteile. Kein Kauf ist für den Spielfortschritt erforderlich.", 11, MUTED)
 	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	box.add_child(description)
-	var ad_boost := _settings_button("2× EINNAHMEN · 10 MIN.", "Optionales Belohnungsvideo – kein Zwang, keine Unterbrecherwerbung")
-	ad_boost.pressed.connect(func() -> void:
-		rewarded_context = "boost"
-		monetization.show_rewarded_ad("boost")
-	)
-	box.add_child(ad_boost)
+	if not game.no_ads:
+		var ad_boost := _settings_button("2× EINNAHMEN · 10 MIN.", "Optionales Belohnungsvideo – kein Zwang, keine Unterbrecherwerbung")
+		ad_boost.pressed.connect(func() -> void:
+			rewarded_context = "boost"
+			monetization.show_rewarded_ad("boost")
+		)
+		box.add_child(ad_boost)
 	var no_ads_price := monetization.get_localized_price("de.kamilunavo.idlehandwerker.noads", "3,99 €")
 	var no_ads_button := _settings_button("WERBEFREI · %s" % no_ads_price, "Entfernt optionale Werbeangebote dauerhaft")
 	no_ads_button.disabled = game.no_ads
@@ -1367,14 +1380,31 @@ func _on_purchase_completed(product_id: String, transaction_id: String) -> void:
 
 
 func _on_rewarded_completed() -> void:
-	if rewarded_context == "offline" and game.offline_reward > 0.0:
+	if rewarded_context == "offline":
+		if game.offline_reward <= 0.0 or offline_reward_doubled:
+			rewarded_context = "boost"
+			return
+		offline_reward_doubled = true
 		game.offline_reward *= 2.0
+		game.save_game()
+		if is_instance_valid(offline_reward_label):
+			offline_reward_label.text = GameData.format_money(game.offline_reward, true)
+		if is_instance_valid(offline_double_button):
+			offline_double_button.visible = false
 		_show_toast("Offline-Ertrag wurde verdoppelt.")
 	else:
 		game.activate_rewarded_boost(600)
 		_show_toast("Bonus aktiv: 2× Einnahmen für 10 Minuten.")
 	rewarded_context = "boost"
 	sfx.play_cue("coin")
+
+
+func _on_rewarded_unavailable(message: String) -> void:
+	if rewarded_context == "offline" and is_instance_valid(offline_double_button) and not offline_reward_doubled:
+		offline_double_button.disabled = false
+		offline_double_button.text = "2× OFFLINE-ERTRAG"
+	rewarded_context = "boost"
+	_show_toast(message)
 
 
 func _show_reset_confirmation(settings_overlay: Control) -> void:
