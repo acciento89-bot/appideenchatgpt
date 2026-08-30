@@ -128,13 +128,13 @@ jobs:
           echo "XCODE_PROJECT=$XCODE_PROJECT" >> "$GITHUB_ENV"
           echo "XCODE_SCHEME=$XCODE_SCHEME" >> "$GITHUB_ENV"
 
-      - name: Simulator release gate
+      - name: Native iPhone release gate
         shell: bash
         run: |
           set -euo pipefail
           xcodebuild -project "$XCODE_PROJECT" -scheme "$XCODE_SCHEME" \
-            -configuration Release -sdk iphonesimulator \
-            -destination 'generic/platform=iOS Simulator' \
+            -configuration Release -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
             PRODUCT_BUNDLE_IDENTIFIER="$BUNDLE_ID" \
             MARKETING_VERSION="$APP_VERSION" \
             CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \

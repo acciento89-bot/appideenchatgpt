@@ -34,7 +34,7 @@ Die private `.p8`-Datei wird nur temporär auf dem macOS-Runner erzeugt und am E
 1. In GitHub **Actions → Idle Handwerker TestFlight → Run workflow** öffnen.
 2. Eine bisher unbenutzte positive Buildnummer eintragen.
 3. Beim ersten Lauf `App-Datensatz bei Bedarf anlegen` aktiviert lassen.
-4. Der Workflow validiert Godot, erzeugt das native Xcode-Projekt, baut den Simulator-Gate, archiviert ohne lokale Zertifikate, signiert über App Store Connect und lädt die IPA hoch.
+4. Der Workflow validiert Godot, erzeugt das native Xcode-Projekt, baut einen unsignierten nativen iPhone-Release-Gate, archiviert ohne lokale Zertifikate, signiert über App Store Connect und lädt die IPA hoch.
 5. Nach der Verarbeitung in App Store Connect Export-Compliance, Altersfreigabe, Datenschutzangaben und interne Tester prüfen.
 
 Jeder erneute Upload derselben Version braucht eine höhere Buildnummer.
