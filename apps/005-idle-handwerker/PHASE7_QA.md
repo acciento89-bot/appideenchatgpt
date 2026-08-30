@@ -8,6 +8,7 @@
 - 440 × 956 – maximales Portraitformat
 - Aufbau aller fünf Hauptbereiche
 - horizontale Inhaltsbreite
+- korrekte Prüfung gegen Godots logische Viewportbreite bei `canvas_items`-Skalierung
 - Sound-, Haptik- und Bewegungsoptionen im Savegame
 
 ## TestFlight-Checkliste
