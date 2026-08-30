@@ -67,7 +67,7 @@ func _run() -> void:
 				failures += 1
 				printerr("FAIL: horizontal overflow in %s at %s: %.1f > %.1f logical" % [tab_id, device_size, content.size.x, logical_width])
 			for control in _all_controls(content):
-				if not control is BaseButton and control.mouse_filter == Control.MOUSE_FILTER_STOP:
+				if control.mouse_filter == Control.MOUSE_FILTER_STOP:
 					failures += 1
 					printerr("FAIL: %s blocks touch scrolling in %s at %s" % [control.name, tab_id, device_size])
 			for label in _all_labels(content):
@@ -209,13 +209,14 @@ func _find_button_prefix(node: Node, prefix: String) -> Button:
 
 
 func _has_scroll_safe_button_skin(button: Button) -> bool:
-	if not button or button.focus_mode != Control.FOCUS_NONE:
+	if not button or button.focus_mode != Control.FOCUS_NONE or button.mouse_filter != Control.MOUSE_FILTER_PASS:
 		return false
 	var normal := button.get_theme_stylebox("normal")
+	var hover := button.get_theme_stylebox("hover")
 	var pressed := button.get_theme_stylebox("pressed")
-	if not normal is StyleBoxTexture or not pressed is StyleBoxTexture:
+	if not normal is StyleBoxTexture or not hover is StyleBoxTexture or not pressed is StyleBoxTexture:
 		return false
-	return normal.texture == pressed.texture
+	return normal.texture == hover.texture and normal.texture == pressed.texture
 
 
 func _has_label(node: Node, text: String) -> bool:
