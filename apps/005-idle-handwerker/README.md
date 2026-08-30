@@ -107,3 +107,9 @@ Das Projekt nutzt Godot und GDScript ohne Expo. Für den späteren iOS-Export ka
 
 - Einträge in Optionen und Shop zeigen beim vertikalen Scrollen keinen falschen gedrückten Zustand mehr
 - Touch-Fokus bleibt nicht mehr als scheinbare Auswahl auf einem Shop- oder Optionspunkt stehen
+
+## Build 12 – echtes Touch-Scrolling
+
+- Ziehen funktioniert nun über die gesamte Fläche der Karten in Optionen, Shop und Hauptansichten
+- Buttons reichen Touch-Gesten an den umgebenden Scrollbereich weiter, bleiben aber normal antippbar
+- Niedrigere Drag-Schwelle und neutrale Hover-/Pressed-Darstellung verhindern blockiertes Scrollen und kurzes Aufblitzen
