@@ -30,7 +30,16 @@ func _init() -> void:
 	if GameData.CONTRACTS.size() != 4 or GameData.REPUTATION_RANKS.size() < 5:
 		failures += 1
 		printerr("FAIL: contract and reputation progression data")
+	for employee in GameData.EMPLOYEES:
+		var payback_seconds := float(employee.base_cost) / float(employee.income)
+		if payback_seconds < 3600.0:
+			failures += 1
+			printerr("FAIL: employee '%s' pays for itself in under one hour" % employee.id)
+	if not is_equal_approx(GameState.OFFLINE_EFFICIENCY, 0.5):
+		failures += 1
+		printerr("FAIL: offline income must use the balanced efficiency factor")
 	var game := GameState.new()
+	game.save_path = "user://idle_handwerker_test_save.json"
 	game.current_streak = 5
 	if not is_equal_approx(game.streak_reward_multiplier(), 1.15):
 		failures += 1
@@ -107,6 +116,25 @@ func _init() -> void:
 	if game.sound_enabled or game.haptics_enabled or not game.reduced_motion:
 		failures += 1
 		printerr("FAIL: accessibility preferences should persist in state")
+	var before_offline_claim := game.money
+	game.offline_reward = 125.0
+	game.offline_elapsed_seconds = 3600.0
+	if not is_equal_approx(game.claim_offline_reward(), 125.0) or not is_equal_approx(game.money, before_offline_claim + 125.0):
+		failures += 1
+		printerr("FAIL: offline earnings must be credited only when claimed")
+	if game.offline_reward != 0.0 or game.offline_elapsed_seconds != 0.0:
+		failures += 1
+		printerr("FAIL: claimed offline earnings must clear pending state")
+	game.money = 4321.0
+	game.save_game()
+	game.money = 0.0
+	game.load_game()
+	if not is_equal_approx(game.money, 4321.0):
+		failures += 1
+		printerr("FAIL: explicit lifecycle save must restore progress")
+	if not game.delete_save() or FileAccess.file_exists(game.save_path):
+		failures += 1
+		printerr("FAIL: confirmed reset must delete the local save")
 	game.free()
 	if failures == 0:
 		print("All economy tests passed.")

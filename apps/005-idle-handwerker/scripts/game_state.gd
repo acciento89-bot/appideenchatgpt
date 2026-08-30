@@ -12,6 +12,7 @@ signal notice(message: String)
 
 const SAVE_PATH := "user://idle_handwerker_save.json"
 const OFFLINE_CAP_SECONDS := 8.0 * 60.0 * 60.0
+const OFFLINE_EFFICIENCY := 0.5
 
 var money := 120.0
 var lifetime_earnings := 0.0
@@ -28,6 +29,7 @@ var active_job_remaining := 0.0
 var active_job_total := 0.0
 var active_event_id := ""
 var offline_reward := 0.0
+var offline_elapsed_seconds := 0.0
 var last_saved_unix := 0
 var current_location_id := "neighborhood"
 var tutorial_completed := false
@@ -45,6 +47,7 @@ var recent_reviews: Array = []
 var sound_enabled := true
 var haptics_enabled := true
 var reduced_motion := false
+var save_path := SAVE_PATH
 var _autosave_elapsed := 0.0
 
 
@@ -366,14 +369,14 @@ func passive_income_per_second() -> float:
 	var base := 0.0
 	for employee in GameData.EMPLOYEES:
 		base += float(employee.income) * int(employees.get(employee.id, 0))
-	return base * (1.0 + float(upgrades.office) * 0.22) + contract_income_per_second()
+	return base * (1.0 + float(upgrades.office) * 0.25) + contract_income_per_second()
 
 
 func employee_income_per_second() -> float:
 	var base := 0.0
 	for employee in GameData.EMPLOYEES:
 		base += float(employee.income) * int(employees.get(employee.id, 0))
-	return base * (1.0 + float(upgrades.office) * 0.22)
+	return base * (1.0 + float(upgrades.office) * 0.25)
 
 
 func contract_income_per_second() -> float:
@@ -475,8 +478,12 @@ func active_job_progress() -> float:
 
 func claim_offline_reward() -> float:
 	var reward := offline_reward
+	money += reward
+	lifetime_earnings += reward
 	offline_reward = 0.0
+	offline_elapsed_seconds = 0.0
 	changed.emit()
+	save_game()
 	return reward
 
 
@@ -498,6 +505,8 @@ func save_game() -> void:
 		"active_job_remaining": active_job_remaining,
 		"active_job_total": active_job_total,
 		"active_event_id": active_event_id,
+		"offline_reward": offline_reward,
+		"offline_elapsed_seconds": offline_elapsed_seconds,
 		"last_saved_unix": last_saved_unix,
 		"current_location_id": current_location_id,
 		"tutorial_completed": tutorial_completed,
@@ -516,16 +525,22 @@ func save_game() -> void:
 		"haptics_enabled": haptics_enabled,
 		"reduced_motion": reduced_motion,
 	}
-	var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
+	var file := FileAccess.open(save_path, FileAccess.WRITE)
 	if file:
 		file.store_string(JSON.stringify(payload))
 
 
+func delete_save() -> bool:
+	if not FileAccess.file_exists(save_path):
+		return true
+	return DirAccess.remove_absolute(ProjectSettings.globalize_path(save_path)) == OK
+
+
 func load_game() -> void:
-	if not FileAccess.file_exists(SAVE_PATH):
+	if not FileAccess.file_exists(save_path):
 		last_saved_unix = int(Time.get_unix_time_from_system())
 		return
-	var file := FileAccess.open(SAVE_PATH, FileAccess.READ)
+	var file := FileAccess.open(save_path, FileAccess.READ)
 	if not file:
 		return
 	var parsed = JSON.parse_string(file.get_as_text())
@@ -545,6 +560,8 @@ func load_game() -> void:
 	active_job_remaining = maxf(0.0, float(parsed.get("active_job_remaining", 0.0)))
 	active_job_total = maxf(0.0, float(parsed.get("active_job_total", 0.0)))
 	active_event_id = str(parsed.get("active_event_id", ""))
+	offline_reward = maxf(0.0, float(parsed.get("offline_reward", 0.0)))
+	offline_elapsed_seconds = maxf(0.0, float(parsed.get("offline_elapsed_seconds", 0.0)))
 	if active_job_id == "":
 		active_event_id = ""
 	last_saved_unix = int(parsed.get("last_saved_unix", Time.get_unix_time_from_system()))
@@ -566,9 +583,8 @@ func load_game() -> void:
 	reduced_motion = bool(parsed.get("reduced_motion", false))
 	var elapsed := clampf(float(Time.get_unix_time_from_system() - last_saved_unix), 0.0, OFFLINE_CAP_SECONDS)
 	if elapsed > 10.0:
-		offline_reward = passive_income_per_second() * elapsed
-		money += offline_reward
-		lifetime_earnings += offline_reward
+		offline_reward += passive_income_per_second() * elapsed * OFFLINE_EFFICIENCY
+		offline_elapsed_seconds = minf(OFFLINE_CAP_SECONDS, offline_elapsed_seconds + elapsed)
 		if active_job_id != "":
 			active_job_remaining = maxf(0.0, active_job_remaining - elapsed)
 			if active_job_remaining <= 0.0:
