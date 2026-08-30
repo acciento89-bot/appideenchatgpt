@@ -70,6 +70,11 @@ func _run() -> void:
 				if label.text != "" and label.get_combined_minimum_size().y <= 0.0:
 					failures += 1
 					printerr("FAIL: label '%s' has no measurable height in %s at %s" % [label.text, tab_id, device_size])
+			if tab_id == "team":
+				for expected_text in ["TEAMRANG", "Mitarbeiter", "Azubi", "Monteur", "Meisterin"]:
+					if not _has_label(content, expected_text):
+						failures += 1
+						printerr("FAIL: team progression label '%s' is missing at %s" % [expected_text, device_size])
 		app.call("_show_settings")
 		await process_frame
 		for expected_button in ["TUTORIAL ERNEUT ANSEHEN", "SPIELSTAND ZURÜCKSETZEN", "FERTIG"]:
@@ -121,5 +126,14 @@ func _has_button(node: Node, text: String) -> bool:
 		if child is Button and child.text == text:
 			return true
 		if _has_button(child, text):
+			return true
+	return false
+
+
+func _has_label(node: Node, text: String) -> bool:
+	for child in node.get_children():
+		if child is Label and child.text == text:
+			return true
+		if _has_label(child, text):
 			return true
 	return false

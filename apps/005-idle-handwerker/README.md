@@ -7,8 +7,10 @@ Ein mobiles Idle-Game von Kamilunavo Games: Vom tropfenden Wasserhahn zum eigene
 - zehn freischaltbare Auftragstypen mit Echtzeit-Fortschritt
 - vier Einsatzgebiete mit Standortboni und eigener Auftragsauswahl
 - Betriebsstufen, XP und steigende Belohnungen
+- sichtbare Wiederholsperren pro Auftrag gegen das Spammen besonders lukrativer Arbeiten
 - Werkzeug-, Transporter- und Büro-Upgrades
 - drei Mitarbeitertypen mit passivem Einkommen
+- fünf Teamränge mit Personal-Meilensteinen und moderatem Qualitätsbonus
 - Offline-Einnahmen für bis zu acht Stunden
 - gebremste Offline-Ökonomie mit 50 Prozent Effizienz und bewusstem Einsammeln
 - lokaler Spielstand mit Autosave
@@ -18,7 +20,8 @@ Ein mobiles Idle-Game von Kamilunavo Games: Vom tropfenden Wasserhahn zum eigene
 - animierter Handwerker mit jobabhängigen Arbeitseffekten
 - prozedural erzeugte Soundeffekte und mobile Haptik
 - Auftragsserien mit Bonusbelohnung und Bestwert
-- drei rotierende Tagesziele und vier dauerhafte Karriere-Erfolge
+- fünf Tagesziele und achtzehn gestaffelte Karriere-Erfolge für längere Motivation
+- neue Einsatzgebiete als bestätigte Betriebsneustarts mit zurückgesetzter operativer Wirtschaft
 - vierstufiges Ingame-Tutorial für den ersten Start
 - vollständig eigenes Premium-Menüsystem aus Godot-kompatiblen SVG-Skins
 - Metallrahmen, Einlagen, Nieten, Glanzkanten und Medaillons ohne generierte Bilder

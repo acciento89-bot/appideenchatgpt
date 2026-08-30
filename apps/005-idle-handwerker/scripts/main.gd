@@ -26,6 +26,7 @@ var workshop_visual: WorkshopVisual
 var toast_layer: Control
 var last_money_display := -1.0
 var nav_buttons: Dictionary = {}
+var job_buttons: Dictionary = {}
 var header_margin: MarginContainer
 var body_margin: MarginContainer
 var nav_margin: MarginContainer
@@ -69,6 +70,7 @@ func _ready() -> void:
 func _process(_delta: float) -> void:
 	_update_live_header()
 	_update_active_job()
+	_update_job_cooldowns()
 
 
 func _notification(what: int) -> void:
@@ -198,6 +200,7 @@ func _build_nav() -> Control:
 
 func _switch_tab(tab_id: String) -> void:
 	current_tab = tab_id
+	job_buttons.clear()
 	for child in content.get_children():
 		child.queue_free()
 	for id in ["betrieb", "auftraege", "ausbau", "team", "ziele"]:
@@ -331,7 +334,7 @@ func _build_dashboard() -> void:
 	content.add_child(stat_row)
 
 	var location := game.current_location()
-	content.add_child(_highlight_card("AKTIVER STANDORT · %s" % location.code, str(location.title), "+%d %% Auftragswert · %d/3 Tagesziele" % [int((float(location.multiplier) - 1.0) * 100.0), game.completed_daily_missions()]))
+	content.add_child(_highlight_card("AKTIVER STANDORT · %s" % location.code, str(location.title), "+%d %% Auftragswert · %d/%d Tagesziele" % [int((float(location.multiplier) - 1.0) * 100.0), game.completed_daily_missions(), GameData.DAILY_MISSIONS.size()]))
 	content.add_child(_reputation_card())
 	content.add_child(_review_summary_card())
 	if game.active_job_id != "" and not game.active_event().is_empty():
@@ -372,6 +375,7 @@ func _build_team() -> void:
 	content.add_child(_page_intro("Firma & Stammkunden", "Baue dein Team auf und sichere dir dauerhafte Wartungsverträge."))
 	var passive := _highlight_card("PASSIVES EINKOMMEN", GameData.format_money(game.passive_income_per_second(), true) + " / Sek.", "Team + Verträge · offline bis zu 8 Stunden")
 	content.add_child(passive)
+	content.add_child(_team_progress_card())
 	content.add_child(_section_title("Stammkundenverträge", "%d / %d AKTIV" % [game.active_contracts.size(), GameData.CONTRACTS.size()]))
 	for contract in GameData.CONTRACTS:
 		content.add_child(_contract_card(contract))
@@ -417,14 +421,17 @@ func _job_card(job: Dictionary) -> Control:
 	button.text = "Start"
 	button.custom_minimum_size = Vector2(76, 44)
 	var required_reputation := int(job.get("reputation", 0))
-	button.disabled = game.level < int(job.level) or game.reputation < required_reputation or game.active_job_id != ""
+	button.disabled = game.level < int(job.level) or game.reputation < required_reputation or game.active_job_id != "" or game.job_cooldown_remaining(str(job.id)) > 0.0
 	if game.level < int(job.level):
 		button.text = "St. %d" % int(job.level)
 	elif game.reputation < required_reputation:
 		button.text = "%d Ruf" % required_reputation
+	elif game.job_cooldown_remaining(str(job.id)) > 0.0:
+		button.text = "Warten\n%s" % game.format_cooldown(game.job_cooldown_remaining(str(job.id)))
 	_style_small_button(button)
 	button.pressed.connect(_start_job.bind(str(job.id), button))
 	row.add_child(button)
+	job_buttons[str(job.id)] = button
 	return card
 
 
@@ -445,11 +452,17 @@ func _location_selector() -> Control:
 		copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		copy.add_child(_label(str(location.title), 15, TEXT, true))
 		var subtitle := str(location.subtitle) if unlocked else "Freischaltung ab Stufe %d" % int(location.level)
-		copy.add_child(_label(subtitle, 10, MUTED))
+		var subtitle_label := _label(subtitle, 10, MUTED)
+		subtitle_label.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
+		copy.add_child(subtitle_label)
+		if unlocked and game.requires_location_restart(str(location.id)):
+			var restart_hint := _label("NEUER BETRIEB · OPERATIVER NEUSTART", 9, GOLD, true)
+			restart_hint.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
+			copy.add_child(restart_hint)
 		copy.add_child(_label("+%d %% Auftragswert" % int((float(location.multiplier) - 1.0) * 100.0), 10, GOLD, true))
 		row.add_child(copy)
 		var button := Button.new()
-		button.text = "Aktiv" if selected else ("Wählen" if unlocked else "St. %d" % int(location.level))
+		button.text = "Aktiv" if selected else (("Eröffnen" if game.requires_location_restart(str(location.id)) else "Wählen") if unlocked else "St. %d" % int(location.level))
 		button.disabled = selected or not unlocked or game.active_job_id != ""
 		button.custom_minimum_size = Vector2(76, 44)
 		_style_small_button(button)
@@ -584,8 +597,12 @@ func _contract_card(contract: Dictionary) -> Control:
 	copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	copy.add_child(_label(str(contract.title), 14, TEXT, true))
 	copy.add_child(_label(str(contract.client), 10, GOLD, true))
-	copy.add_child(_label(str(contract.description), 10, MUTED))
-	copy.add_child(_label("%s je %s  ·  %s/s" % [GameData.format_money(float(contract.payout)), _format_income_interval(float(contract.interval)), GameData.format_money(float(contract.payout) / float(contract.interval), true)], 10, GREEN, true))
+	var description := _label(str(contract.description), 10, MUTED)
+	description.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
+	copy.add_child(description)
+	var payout := _label("%s je %s  ·  %s/s" % [GameData.format_money(float(contract.payout)), _format_income_interval(float(contract.interval)), GameData.format_money(float(contract.payout) / float(contract.interval), true)], 10, GREEN, true)
+	payout.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
+	copy.add_child(payout)
 	row.add_child(copy)
 	var button := Button.new()
 	button.text = "Aktiv" if active else ("Vertrag" if unlocked else "St. %d\n%d Ruf" % [int(contract.level), int(contract.reputation)])
@@ -594,6 +611,46 @@ func _contract_card(contract: Dictionary) -> Control:
 	_style_small_button(button)
 	button.pressed.connect(_sign_contract.bind(str(contract.id), button))
 	row.add_child(button)
+	return card
+
+
+func _team_progress_card() -> Control:
+	var rank := game.team_rank()
+	var next_rank := game.next_team_rank()
+	var team_size := game.total_employees()
+	var card := _card_container()
+	card.add_theme_stylebox_override("panel", UiSkin.hero())
+	var box: VBoxContainer = card.get_child(0).get_child(0)
+	var top := HBoxContainer.new()
+	top.add_theme_constant_override("separation", 12)
+	top.add_child(_icon_box(str(rank.code), GREEN))
+	var copy := VBoxContainer.new()
+	copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	copy.add_child(_label("TEAMRANG", 9, GREEN, true))
+	copy.add_child(_label(str(rank.title), 16, TEXT, true))
+	var bonus := _label("%d Mitarbeiter · +%d Qualität" % [team_size, int(rank.quality_bonus)], 10, GOLD, true)
+	bonus.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
+	copy.add_child(bonus)
+	top.add_child(copy)
+	box.add_child(top)
+	var progress := ProgressBar.new()
+	progress.show_percentage = false
+	progress.custom_minimum_size.y = 8
+	progress.add_theme_stylebox_override("background", _box(Color("0d1916"), 5))
+	progress.add_theme_stylebox_override("fill", _box(GREEN, 5))
+	var caption: String
+	if next_rank.is_empty():
+		progress.value = 100.0
+		caption = "Höchster Teamrang erreicht"
+	else:
+		var current_minimum := int(rank.minimum)
+		var next_minimum := int(next_rank.minimum)
+		progress.value = float(team_size - current_minimum) / float(next_minimum - current_minimum) * 100.0
+		caption = "Noch %d Einstellungen bis %s" % [next_minimum - team_size, str(next_rank.title)]
+	box.add_child(progress)
+	var progress_copy := _label(caption, 10, MUTED)
+	progress_copy.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
+	box.add_child(progress_copy)
 	return card
 
 
@@ -682,11 +739,42 @@ func _primary_action() -> void:
 
 
 func _select_location(location_id: String, source: Control) -> void:
+	if game.requires_location_restart(location_id):
+		_show_location_restart_confirmation(location_id)
+		return
+	_apply_location_selection(location_id, source)
+
+
+func _apply_location_selection(location_id: String, source: Control = null) -> void:
 	if game.select_location(location_id):
 		sfx.play_cue("upgrade")
 		_haptic(30, 0.5)
-		_punch(source)
+		if is_instance_valid(source):
+			_punch(source)
 		_refresh_current_tab()
+
+
+func _show_location_restart_confirmation(location_id: String) -> void:
+	var location: Dictionary = {}
+	for candidate in GameData.LOCATIONS:
+		if str(candidate.id) == location_id:
+			location = candidate
+			break
+	if location.is_empty():
+		return
+	var dialog := ConfirmationDialog.new()
+	dialog.title = "Neuen Betrieb eröffnen?"
+	dialog.dialog_text = "%s ist ein neuer Karriereabschnitt. Geld, Ausbau, Personal, Verträge und Serie starten dort bei null. Stufe, Ruf, Bewertungen und Erfolge bleiben erhalten." % str(location.title)
+	dialog.ok_button_text = "Betrieb eröffnen"
+	dialog.cancel_button_text = "Noch nicht"
+	dialog.initial_position = Window.WINDOW_INITIAL_POSITION_CENTER_PRIMARY_SCREEN
+	add_child(dialog)
+	dialog.confirmed.connect(func() -> void:
+		_apply_location_selection(location_id)
+		dialog.queue_free()
+	)
+	dialog.canceled.connect(dialog.queue_free)
+	dialog.popup_centered(Vector2i(380, 250))
 
 
 func _claim_goal(goal_id: String, daily: bool, source: Control) -> void:
@@ -766,6 +854,29 @@ func _update_active_job() -> void:
 	job_label.text = str(job.title) if event.is_empty() else "%s  ·  %s" % [job.title, event.code]
 	job_time_label.text = "%.1f s" % game.active_job_remaining
 	primary_button.text = "AUFTRAG LÄUFT  •  %d %%" % int(game.active_job_progress() * 100.0)
+
+
+func _update_job_cooldowns() -> void:
+	if job_buttons.is_empty():
+		return
+	for job_id in job_buttons:
+		var button: Button = job_buttons[job_id]
+		if not is_instance_valid(button):
+			continue
+		var job := game.get_job(str(job_id))
+		if job.is_empty():
+			continue
+		var remaining := game.job_cooldown_remaining(str(job_id))
+		var required_reputation := int(job.get("reputation", 0))
+		button.disabled = game.level < int(job.level) or game.reputation < required_reputation or game.active_job_id != "" or remaining > 0.0
+		if game.level < int(job.level):
+			button.text = "St. %d" % int(job.level)
+		elif game.reputation < required_reputation:
+			button.text = "%d Ruf" % required_reputation
+		elif remaining > 0.0:
+			button.text = "Warten\n%s" % game.format_cooldown(remaining)
+		else:
+			button.text = "Start"
 
 
 func _on_job_completed(job: Dictionary, reward: float) -> void:
@@ -1235,9 +1346,15 @@ func _page_intro(title: String, subtitle: String) -> Control:
 
 func _section_title(title: String, action: String) -> Control:
 	var row := HBoxContainer.new()
-	row.add_child(_label(title, 17, TEXT, true))
-	row.add_spacer(false)
-	row.add_child(_label(action, 10, GREEN, true))
+	row.add_theme_constant_override("separation", 10)
+	var heading := _label(title, 17, TEXT, true)
+	heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	heading.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
+	row.add_child(heading)
+	var action_label := _label(action, 10, GREEN, true)
+	action_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	action_label.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
+	row.add_child(action_label)
 	return row
 
 
