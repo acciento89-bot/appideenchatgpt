@@ -24,6 +24,7 @@ var office_level := 0
 var team_size := 0
 var business_level := 1
 var location_id := "neighborhood"
+var contract_count := 0
 
 
 func _ready() -> void:
@@ -48,7 +49,7 @@ func set_job(job_id: String, progress: float) -> void:
 	job_progress = clampf(progress, 0.0, 1.0)
 
 
-func set_progression(upgrades: Dictionary, employees: Dictionary, level: int, current_location_id: String) -> void:
+func set_progression(upgrades: Dictionary, employees: Dictionary, level: int, current_location_id: String, contracts: Dictionary = {}) -> void:
 	tool_level = int(upgrades.get("tools", 0))
 	van_level = int(upgrades.get("van", 0))
 	office_level = int(upgrades.get("office", 0))
@@ -57,6 +58,7 @@ func set_progression(upgrades: Dictionary, employees: Dictionary, level: int, cu
 		team_size += int(value)
 	business_level = level
 	location_id = current_location_id
+	contract_count = contracts.size()
 	queue_redraw()
 
 
@@ -154,6 +156,8 @@ func _draw_progression_details(width: float, height: float, bench_y: float) -> v
 	if location_id != "neighborhood":
 		draw_style_box(_flat_box(Color("d6e7df"), 2, INK, 1), Rect2(width * 0.77, height * 0.1, width * 0.17, height * 0.19))
 		draw_string(ThemeDB.fallback_font, Vector2(width * 0.79, height * 0.17), "AUFTRÄGE", HORIZONTAL_ALIGNMENT_LEFT, -1, 7, WALL)
+		for index in range(mini(contract_count, 4)):
+			draw_circle(Vector2(width * 0.79 + index * 6.0, height * 0.24), 2.0, GOLD)
 	if business_level >= 9:
 		draw_string(ThemeDB.fallback_font, Vector2(width * 0.36, height * 0.1), "MEISTERBETRIEB", HORIZONTAL_ALIGNMENT_LEFT, -1, 8, GOLD)
 

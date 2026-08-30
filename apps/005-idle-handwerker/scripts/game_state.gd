@@ -5,6 +5,7 @@ signal changed
 signal job_started(job: Dictionary)
 signal job_completed(job: Dictionary, reward: float)
 signal job_event_started(event: Dictionary)
+signal contract_signed(contract: Dictionary)
 signal level_up(new_level: int)
 signal notice(message: String)
 
@@ -33,6 +34,8 @@ var daily_key := ""
 var daily_progress := {"jobs": 0.0, "earnings": 0.0, "upgrades": 0.0}
 var daily_claimed := {"jobs": false, "earnings": false, "invest": false}
 var achievements_claimed: Dictionary = {}
+var reputation := 0
+var active_contracts: Dictionary = {}
 var _autosave_elapsed := 0.0
 
 
@@ -102,6 +105,10 @@ func complete_active_job() -> void:
 	money += reward
 	lifetime_earnings += reward
 	completed_jobs += 1
+	var reputation_gain := maxi(2, int(round(float(job.xp) / 8.0)))
+	if active_event_id == "recommendation":
+		reputation_gain *= 2
+	reputation += reputation_gain
 	daily_progress.jobs = float(daily_progress.jobs) + 1.0
 	daily_progress.earnings = float(daily_progress.earnings) + reward
 	add_xp(int(round(float(job.xp) * active_event_xp_multiplier())))
@@ -257,6 +264,8 @@ func achievement_progress(achievement: Dictionary) -> float:
 		"team": return minf(float(total_employees()), float(achievement.target))
 		"lifetime": return minf(lifetime_earnings, float(achievement.target))
 		"streak": return minf(float(best_streak), float(achievement.target))
+		"contracts": return minf(float(active_contracts.size()), float(achievement.target))
+		"reputation": return minf(float(reputation), float(achievement.target))
 	return 0.0
 
 
@@ -326,7 +335,58 @@ func passive_income_per_second() -> float:
 	var base := 0.0
 	for employee in GameData.EMPLOYEES:
 		base += float(employee.income) * int(employees.get(employee.id, 0))
+	return base * (1.0 + float(upgrades.office) * 0.22) + contract_income_per_second()
+
+
+func employee_income_per_second() -> float:
+	var base := 0.0
+	for employee in GameData.EMPLOYEES:
+		base += float(employee.income) * int(employees.get(employee.id, 0))
 	return base * (1.0 + float(upgrades.office) * 0.22)
+
+
+func contract_income_per_second() -> float:
+	var income := 0.0
+	for contract in GameData.CONTRACTS:
+		if bool(active_contracts.get(contract.id, false)):
+			income += float(contract.payout) / float(contract.interval)
+	return income
+
+
+func sign_contract(contract_id: String) -> bool:
+	for contract in GameData.CONTRACTS:
+		if contract.id != contract_id:
+			continue
+		if bool(active_contracts.get(contract_id, false)):
+			return false
+		if level < int(contract.level):
+			notice.emit("Vertrag ab Betriebsstufe %d verfügbar." % int(contract.level))
+			return false
+		if reputation < int(contract.reputation):
+			notice.emit("Noch %d Reputation bis zum Vertrag." % (int(contract.reputation) - reputation))
+			return false
+		active_contracts[contract_id] = true
+		contract_signed.emit(contract)
+		notice.emit("Neuer Stammkunde: %s" % contract.client)
+		changed.emit()
+		save_game()
+		return true
+	return false
+
+
+func reputation_rank() -> Dictionary:
+	var rank: Dictionary = GameData.REPUTATION_RANKS[0]
+	for candidate in GameData.REPUTATION_RANKS:
+		if reputation >= int(candidate.minimum):
+			rank = candidate
+	return rank
+
+
+func next_reputation_rank() -> Dictionary:
+	for candidate in GameData.REPUTATION_RANKS:
+		if reputation < int(candidate.minimum):
+			return candidate
+	return {}
 
 
 func company_value() -> float:
@@ -358,7 +418,7 @@ func claim_offline_reward() -> float:
 func save_game() -> void:
 	last_saved_unix = int(Time.get_unix_time_from_system())
 	var payload := {
-		"version": 2,
+		"version": 3,
 		"money": money,
 		"lifetime_earnings": lifetime_earnings,
 		"level": level,
@@ -380,6 +440,8 @@ func save_game() -> void:
 		"daily_progress": daily_progress,
 		"daily_claimed": daily_claimed,
 		"achievements_claimed": achievements_claimed,
+		"reputation": reputation,
+		"active_contracts": active_contracts,
 	}
 	var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if file:
@@ -419,6 +481,8 @@ func load_game() -> void:
 	daily_progress.merge(parsed.get("daily_progress", {}), true)
 	daily_claimed.merge(parsed.get("daily_claimed", {}), true)
 	achievements_claimed = parsed.get("achievements_claimed", {})
+	reputation = maxi(0, int(parsed.get("reputation", completed_jobs * 4)))
+	active_contracts = parsed.get("active_contracts", {})
 	var elapsed := clampf(float(Time.get_unix_time_from_system() - last_saved_unix), 0.0, OFFLINE_CAP_SECONDS)
 	if elapsed > 10.0:
 		offline_reward = passive_income_per_second() * elapsed

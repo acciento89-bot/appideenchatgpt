@@ -27,6 +27,9 @@ func _init() -> void:
 	if GameData.JOB_EVENTS.size() < 3:
 		failures += 1
 		printerr("FAIL: expected varied bonus events")
+	if GameData.CONTRACTS.size() != 4 or GameData.REPUTATION_RANKS.size() < 5:
+		failures += 1
+		printerr("FAIL: contract and reputation progression data")
 	var game := GameState.new()
 	game.current_streak = 5
 	if not is_equal_approx(game.streak_reward_multiplier(), 1.15):
@@ -63,6 +66,22 @@ func _init() -> void:
 	if game.company_value() < game.money:
 		failures += 1
 		printerr("FAIL: company value should include liquid funds")
+	game.level = 3
+	game.reputation = 34
+	if game.sign_contract("property_service"):
+		failures += 1
+		printerr("FAIL: contract must respect reputation gate")
+	game.reputation = 35
+	if not game.sign_contract("property_service"):
+		failures += 1
+		printerr("FAIL: eligible contract should be signed")
+	if game.contract_income_per_second() <= 0.0:
+		failures += 1
+		printerr("FAIL: active contract passive income")
+	game.reputation = 160
+	if str(game.reputation_rank().code) != "R3":
+		failures += 1
+		printerr("FAIL: reputation rank progression")
 	game.free()
 	if failures == 0:
 		print("All economy tests passed.")
