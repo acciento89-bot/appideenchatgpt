@@ -4,17 +4,6 @@
       <stop stop-color="#f5f0df"/><stop offset=".48" stop-color="#9ca99f"/><stop offset="1" stop-color="#e0e4d7"/>
     </linearGradient>
   </defs>
-  <circle cx="256" cy="256" r="214" fill="#0b211b" stroke="#53655a" stroke-width="14"/>
-  <circle cx="256" cy="256" r="190" fill="none" stroke="#55d45b" stroke-width="5" opacity=".55"/>
-  <path d="M345 137a72 72 0 0 0-90 91L150 333a24 24 0 0 0 34 34l105-105a72 72 0 0 0 91-90l-43 43-39-11-11-39 43-43c6 4 11 9 15 15Z" fill="url(#metal)" stroke="#eef2e5" stroke-width="5" stroke-linejoin="round"/>
-  <path d="M204 199h35v114h-35V199Zm70 0h35v41h35v-41h35v114h-35v-41h-35v41h-35V199Z" fill="#55d45b" stroke="#07120f" stroke-width="7" stroke-linejoin="round"/>
-</svg>
-<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
-  <defs>
-    <linearGradient id="metal" x1="130" y1="105" x2="384" y2="413" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#f5f0df"/><stop offset=".48" stop-color="#9ca99f"/><stop offset="1" stop-color="#e0e4d7"/>
-    </linearGradient>
-  </defs>
   <circle cx="256" cy="256" r="214" fill="#0b2a40" stroke="#587286" stroke-width="14"/>
   <circle cx="256" cy="256" r="190" fill="none" stroke="#35b9e6" stroke-width="5" opacity=".72"/>
   <path d="M345 137a72 72 0 0 0-90 91L150 333a24 24 0 0 0 34 34l105-105a72 72 0 0 0 91-90l-43 43-39-11-11-39 43-43c6 4 11 9 15 15Z" fill="url(#metal)" stroke="#eef2e5" stroke-width="5" stroke-linejoin="round"/>
