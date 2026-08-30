@@ -241,7 +241,7 @@ func _apply_responsive_layout() -> void:
 
 func _build_dashboard() -> void:
 	var hero := PanelContainer.new()
-	hero.custom_minimum_size.y = 238
+	hero.custom_minimum_size.y = 330 if _is_compact() else 238
 	hero.add_theme_stylebox_override("panel", UiSkin.hero())
 	var hero_margin := MarginContainer.new()
 	_set_margins(hero_margin, 20, 20, 18, 18)
@@ -257,7 +257,7 @@ func _build_dashboard() -> void:
 	top.add_child(level_label)
 	hero_v.add_child(top)
 
-	var scene_row := HBoxContainer.new()
+	var scene_row: BoxContainer = VBoxContainer.new() if _is_compact() else HBoxContainer.new()
 	scene_row.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	var copy := VBoxContainer.new()
 	copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -1162,12 +1162,18 @@ func _pill(text: String, bg: Color, fg: Color) -> Control:
 func _label(value: String, font_size: int, color: Color, bold := false) -> Label:
 	var label := Label.new()
 	label.text = value
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	label.add_theme_font_size_override("font_size", font_size)
 	label.add_theme_color_override("font_color", color)
 	if bold:
 		label.add_theme_constant_override("outline_size", 1)
 		label.add_theme_color_override("font_outline_color", Color(color, 0.2))
 	return label
+
+
+func _is_compact() -> bool:
+	return get_viewport_rect().size.x <= 370.0
 
 
 func _box(color: Color, radius: int, border_color := Color.TRANSPARENT, border_width := 0) -> StyleBoxFlat:
