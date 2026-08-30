@@ -121,8 +121,18 @@ jobs:
           PY
           EXPORT_ZIP="$RUNNER_TEMP/IdleHandwerker.zip"
           "$GODOT" --headless --editor --path "$WORK_PROJECT" --quit
+          set +e
           "$GODOT" --headless --path "$WORK_PROJECT" --export-release "iOS TestFlight" "$EXPORT_ZIP" 2>&1 | tee "$RUNNER_TEMP/godot-export.log"
+          GODOT_EXPORT_EXIT=${PIPESTATUS[0]}
+          set -e
+          if (( GODOT_EXPORT_EXIT != 0 )); then
+            if grep -Eq 'ERROR:|Project export .* failed|configuration errors' "$RUNNER_TEMP/godot-export.log"; then
+              exit "$GODOT_EXPORT_EXIT"
+            fi
+            echo "Godot returned $GODOT_EXPORT_EXIT after exporting the Xcode project; validating the artifact."
+          fi
           test -s "$EXPORT_ZIP"
+          grep -Eq '\[ DONE \].*export' "$RUNNER_TEMP/godot-export.log"
           mkdir -p "$RUNNER_TEMP/ios-export"
           unzip -q "$EXPORT_ZIP" -d "$RUNNER_TEMP/ios-export"
           XCODE_PROJECT=$(find "$RUNNER_TEMP/ios-export" -type d -name '*.xcodeproj' -print -quit)
