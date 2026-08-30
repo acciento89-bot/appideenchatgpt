@@ -6,6 +6,7 @@ signal job_started(job: Dictionary)
 signal job_completed(job: Dictionary, reward: float)
 signal job_event_started(event: Dictionary)
 signal contract_signed(contract: Dictionary)
+signal review_created(review: Dictionary)
 signal level_up(new_level: int)
 signal notice(message: String)
 
@@ -36,6 +37,11 @@ var daily_claimed := {"jobs": false, "earnings": false, "invest": false}
 var achievements_claimed: Dictionary = {}
 var reputation := 0
 var active_contracts: Dictionary = {}
+var customer_rating := 4.0
+var quality_samples := 0
+var last_job_quality := 0
+var completed_major_projects := 0
+var recent_reviews: Array = []
 var _autosave_elapsed := 0.0
 
 
@@ -82,6 +88,10 @@ func start_job(job_id: String) -> bool:
 	if str(job.location) != current_location_id:
 		notice.emit("Dieser Auftrag gehört zu einem anderen Standort.")
 		return false
+	var required_reputation := int(job.get("reputation", 0))
+	if reputation < required_reputation:
+		notice.emit("Für dieses Großprojekt fehlen noch %d Rufpunkte." % (required_reputation - reputation))
+		return false
 	active_job_id = job_id
 	active_event_id = _roll_job_event()
 	active_job_total = maxf(1.0, float(job.duration) * job_duration_multiplier() * active_event_duration_multiplier())
@@ -101,14 +111,19 @@ func complete_active_job() -> void:
 		active_job_id = ""
 		return
 	_update_streak()
-	var reward := float(job.reward) * job_reward_multiplier() * streak_reward_multiplier() * location_reward_multiplier() * active_event_reward_multiplier()
+	last_job_quality = _calculate_job_quality(job)
+	var quality_multiplier := 0.75 + float(last_job_quality) / 100.0 * 0.4
+	var reward := float(job.reward) * job_reward_multiplier() * streak_reward_multiplier() * location_reward_multiplier() * active_event_reward_multiplier() * quality_multiplier
 	money += reward
 	lifetime_earnings += reward
 	completed_jobs += 1
-	var reputation_gain := maxi(2, int(round(float(job.xp) / 8.0)))
+	var reputation_gain := maxi(2, int(round(float(job.xp) / 8.0 * float(last_job_quality) / 80.0)))
 	if active_event_id == "recommendation":
 		reputation_gain *= 2
 	reputation += reputation_gain
+	if bool(job.get("major", false)):
+		completed_major_projects += 1
+	var review := _create_review(job, last_job_quality)
 	daily_progress.jobs = float(daily_progress.jobs) + 1.0
 	daily_progress.earnings = float(daily_progress.earnings) + reward
 	add_xp(int(round(float(job.xp) * active_event_xp_multiplier())))
@@ -117,6 +132,7 @@ func complete_active_job() -> void:
 	active_job_remaining = 0.0
 	active_job_total = 0.0
 	job_completed.emit(job, reward)
+	review_created.emit(review)
 	changed.emit()
 	save_game()
 
@@ -266,6 +282,8 @@ func achievement_progress(achievement: Dictionary) -> float:
 		"streak": return minf(float(best_streak), float(achievement.target))
 		"contracts": return minf(float(active_contracts.size()), float(achievement.target))
 		"reputation": return minf(float(reputation), float(achievement.target))
+		"major": return minf(float(completed_major_projects), float(achievement.target))
+		"rating": return minf(customer_rating, float(achievement.target))
 	return 0.0
 
 
@@ -389,6 +407,40 @@ func next_reputation_rank() -> Dictionary:
 	return {}
 
 
+func _calculate_job_quality(job: Dictionary) -> int:
+	var score := 70.0
+	score += float(upgrades.tools) * 4.0
+	score += float(upgrades.office) * 2.0
+	score += float(mini(current_streak, 5)) * 1.5
+	score += float(randi_range(-6, 8))
+	if active_event_id == "premium_material":
+		score += 7.0
+	elif active_event_id == "express":
+		score -= 4.0
+	if bool(job.get("major", false)):
+		score -= 5.0
+	return int(round(clampf(score, 50.0, 100.0)))
+
+
+func _create_review(job: Dictionary, quality: int) -> Dictionary:
+	var stars := clampi(int(round(float(quality) / 20.0)), 3, 5)
+	var group := "excellent" if stars == 5 else ("good" if stars == 4 else "mixed")
+	var texts: Array = GameData.REVIEW_TEXTS[group]
+	var review := {
+		"customer": str(job.customer),
+		"job": str(job.title),
+		"quality": quality,
+		"stars": stars,
+		"text": str(texts[randi() % texts.size()]),
+	}
+	customer_rating = (customer_rating * float(quality_samples) + float(stars)) / float(quality_samples + 1)
+	quality_samples += 1
+	recent_reviews.push_front(review)
+	if recent_reviews.size() > 5:
+		recent_reviews.resize(5)
+	return review
+
+
 func company_value() -> float:
 	var value := lifetime_earnings + money
 	for upgrade in GameData.UPGRADES:
@@ -418,7 +470,7 @@ func claim_offline_reward() -> float:
 func save_game() -> void:
 	last_saved_unix = int(Time.get_unix_time_from_system())
 	var payload := {
-		"version": 3,
+		"version": 4,
 		"money": money,
 		"lifetime_earnings": lifetime_earnings,
 		"level": level,
@@ -442,6 +494,11 @@ func save_game() -> void:
 		"achievements_claimed": achievements_claimed,
 		"reputation": reputation,
 		"active_contracts": active_contracts,
+		"customer_rating": customer_rating,
+		"quality_samples": quality_samples,
+		"last_job_quality": last_job_quality,
+		"completed_major_projects": completed_major_projects,
+		"recent_reviews": recent_reviews,
 	}
 	var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if file:
@@ -483,6 +540,11 @@ func load_game() -> void:
 	achievements_claimed = parsed.get("achievements_claimed", {})
 	reputation = maxi(0, int(parsed.get("reputation", completed_jobs * 4)))
 	active_contracts = parsed.get("active_contracts", {})
+	customer_rating = clampf(float(parsed.get("customer_rating", 4.0)), 1.0, 5.0)
+	quality_samples = maxi(0, int(parsed.get("quality_samples", 0)))
+	last_job_quality = clampi(int(parsed.get("last_job_quality", 0)), 0, 100)
+	completed_major_projects = maxi(0, int(parsed.get("completed_major_projects", 0)))
+	recent_reviews = parsed.get("recent_reviews", [])
 	var elapsed := clampf(float(Time.get_unix_time_from_system() - last_saved_unix), 0.0, OFFLINE_CAP_SECONDS)
 	if elapsed > 10.0:
 		offline_reward = passive_income_per_second() * elapsed

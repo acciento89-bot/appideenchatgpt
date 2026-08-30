@@ -122,7 +122,69 @@ const JOBS: Array[Dictionary] = [
 		"location": "industrial_park",
 		"color": Color("e0a83c"),
 	},
+	{
+		"id": "school_heating",
+		"title": "Schulheizung modernisieren",
+		"customer": "Stadtwerke Bildungsbau",
+		"icon": "GP",
+		"duration": 55.0,
+		"reward": 6800.0,
+		"xp": 520,
+		"level": 8,
+		"reputation": 220,
+		"major": true,
+		"location": "downtown",
+		"color": Color("edbd4f"),
+	},
+	{
+		"id": "villa_energy",
+		"title": "Villa energetisch sanieren",
+		"customer": "Architekturbüro Kronberg",
+		"icon": "GP",
+		"duration": 72.0,
+		"reward": 11500.0,
+		"xp": 760,
+		"level": 10,
+		"reputation": 380,
+		"major": true,
+		"location": "villa_district",
+		"color": Color("e4c166"),
+	},
+	{
+		"id": "production_hall",
+		"title": "Produktionshalle umrüsten",
+		"customer": "Rheinwerk Produktion",
+		"icon": "GP",
+		"duration": 95.0,
+		"reward": 22000.0,
+		"xp": 1200,
+		"level": 14,
+		"reputation": 750,
+		"major": true,
+		"location": "industrial_park",
+		"color": Color("dcab45"),
+	},
+	{
+		"id": "clinic_energy_center",
+		"title": "Klinik-Energiezentrale erneuern",
+		"customer": "Klinikum West",
+		"icon": "GP",
+		"duration": 130.0,
+		"reward": 48000.0,
+		"xp": 2100,
+		"level": 18,
+		"reputation": 1200,
+		"major": true,
+		"location": "industrial_park",
+		"color": Color("f0c85c"),
+	},
 ]
+
+const REVIEW_TEXTS: Dictionary = {
+	"excellent": ["Außergewöhnlich sauber gearbeitet – klare Empfehlung!", "Perfekte Ausführung und ein sehr professionelles Team.", "Schnell, zuverlässig und besser als erwartet."],
+	"good": ["Gute Arbeit, wir sind zufrieden.", "Termin und Ausführung haben gepasst.", "Ordentlich erledigt – gerne wieder."],
+	"mixed": ["Das Ergebnis stimmt, bei den Details ist noch Luft nach oben.", "Insgesamt okay, die Ausführung könnte sorgfältiger sein.", "Auftrag erledigt, aber nicht ganz ohne Nacharbeit."],
+}
 
 const LOCATIONS: Array[Dictionary] = [
 	{
@@ -172,6 +234,8 @@ const ACHIEVEMENTS: Array[Dictionary] = [
 	{"id": "streak_five", "title": "Läuft bei dir", "description": "Eine 5er-Auftragsserie erreichen", "target": 5.0, "metric": "streak", "reward": 450.0},
 	{"id": "first_contract", "title": "Fester Partner", "description": "Ersten Stammkundenvertrag abschließen", "target": 1.0, "metric": "contracts", "reward": 650.0},
 	{"id": "reputation_350", "title": "In aller Munde", "description": "350 Reputation erreichen", "target": 350.0, "metric": "reputation", "reward": 1250.0},
+	{"id": "first_major", "title": "Große Baustelle", "description": "Erstes Großprojekt abschließen", "target": 1.0, "metric": "major", "reward": 1800.0},
+	{"id": "quality_master", "title": "Qualitätsbetrieb", "description": "Eine Kundenbewertung von 4,8 erreichen", "target": 4.8, "metric": "rating", "reward": 2400.0},
 ]
 
 const JOB_EVENTS: Array[Dictionary] = [

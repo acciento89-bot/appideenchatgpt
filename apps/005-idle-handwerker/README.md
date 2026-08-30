@@ -31,6 +31,11 @@ Ein mobiles Idle-Game von Kamilunavo Games: Vom tropfenden Wasserhahn zum eigene
 - dauerhafte Vertragseinnahmen inklusive Offline-Fortschritt
 - Empfehlungsevents bringen doppelte Reputation
 - aktive Verträge werden auf der Werkstatt-Auftragstafel sichtbar
+- dynamische Arbeitsqualität von 50 bis 100 Prozent
+- Kundenbewertungen mit Sternen, Kommentaren und gespeichertem Verlauf
+- Qualitätsbonus auf Lohn und Reputation
+- vier mehrstufig gesperrte Großprojekte bis zur Klinik-Energiezentrale
+- eigene Großprojekt-Darstellung in Auftragsbörse und Werkstattszene
 
 ## Start
 
