@@ -33,10 +33,16 @@ var brand_eyebrow: Label
 var brand_title: Label
 var settings_button: Button
 var main_scroll: ScrollContainer
+var app_font: FontFile
 
 
 func _ready() -> void:
 	set_process(false)
+	app_font = FontFile.new()
+	app_font.data = Marshalls.base64_to_raw(EmbeddedFont.DATA)
+	var app_theme := Theme.new()
+	app_theme.default_font = app_font
+	theme = app_theme
 	game = GameState.new()
 	add_child(game)
 	sfx = SfxBank.new()
@@ -1165,8 +1171,10 @@ func _pill(text: String, bg: Color, fg: Color) -> Control:
 func _label(value: String, font_size: int, color: Color, bold := false) -> Label:
 	var label := Label.new()
 	label.text = value
+	label.custom_minimum_size.y = ceilf(float(font_size) * 1.45)
 	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	label.add_theme_font_override("font", app_font)
 	label.add_theme_font_size_override("font_size", font_size)
 	label.add_theme_color_override("font_color", color)
 	if bold:
