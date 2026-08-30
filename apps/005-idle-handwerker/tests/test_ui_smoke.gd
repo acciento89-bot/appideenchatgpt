@@ -70,6 +70,27 @@ func _run() -> void:
 				if label.text != "" and label.get_combined_minimum_size().y <= 0.0:
 					failures += 1
 					printerr("FAIL: label '%s' has no measurable height in %s at %s" % [label.text, tab_id, device_size])
+		app.call("_show_settings")
+		await process_frame
+		for expected_button in ["TUTORIAL ERNEUT ANSEHEN", "SPIELSTAND ZURÜCKSETZEN", "FERTIG"]:
+			if not _has_button(app, expected_button):
+				failures += 1
+				printerr("FAIL: release setting '%s' is missing at %s" % [expected_button, device_size])
+		var has_settings_scroll := false
+		for control in _all_controls(app):
+			if control is ScrollContainer and control != main_scroll and control.scroll_deadzone >= 1:
+				has_settings_scroll = true
+		if not has_settings_scroll:
+			failures += 1
+			printerr("FAIL: settings are not touch-scrollable at %s" % device_size)
+		var game = app.get("game")
+		game.offline_reward = 125.0
+		game.offline_elapsed_seconds = 3600.0
+		app.call("_show_offline_dialog")
+		await process_frame
+		if not _has_button(app, "EINNAHMEN EINSAMMELN"):
+			failures += 1
+			printerr("FAIL: themed offline return screen is missing at %s" % device_size)
 		app.queue_free()
 		await process_frame
 	if failures == 0:
@@ -93,3 +114,12 @@ func _all_labels(node: Node) -> Array[Label]:
 			labels.append(child)
 		labels.append_array(_all_labels(child))
 	return labels
+
+
+func _has_button(node: Node, text: String) -> bool:
+	for child in node.get_children():
+		if child is Button and child.text == text:
+			return true
+		if _has_button(child, text):
+			return true
+	return false
