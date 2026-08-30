@@ -96,3 +96,9 @@ Das Projekt nutzt Godot und GDScript ohne Expo. Für den späteren iOS-Export ka
 - eigene lesbare In-App-Dialoge für Standortwechsel und Spielstand-Reset
 - überarbeitete Panels, Navigation, Buttons, Werkstattgrafik, App-Icon und Startgrafik
 - native graue Systemdialoge entfernt; Kontrast und mobile Lesbarkeit verbessert
+
+## Build 10 – Shop und Optionen getrennt
+
+- Zahnrad statt `OPT`, eigener `SHOP`-Button im Header
+- Shop vollständig aus den Spieleinstellungen entfernt und als eigenes SHK-Fenster umgesetzt
+- Optionen und Shop besitzen jeweils dauerhaft sichtbare obere und untere Schließen-Aktionen
