@@ -110,8 +110,7 @@ func _build_shell() -> void:
 
 	main_scroll = ScrollContainer.new()
 	main_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	main_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	main_scroll.scroll_deadzone = 6
+	_configure_touch_scroll(main_scroll)
 	root.add_child(main_scroll)
 	body_margin = MarginContainer.new()
 	body_margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -1192,8 +1191,7 @@ func _show_settings() -> void:
 	title_row.add_child(top_close)
 	var scroll := ScrollContainer.new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	scroll.scroll_deadzone = 8
+	_configure_touch_scroll(scroll)
 	modal_layout.add_child(scroll)
 	var box := VBoxContainer.new()
 	box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -1305,8 +1303,7 @@ func _show_store() -> void:
 	title_row.add_child(top_close)
 	var scroll := ScrollContainer.new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	scroll.scroll_deadzone = 8
+	_configure_touch_scroll(scroll)
 	modal_layout.add_child(scroll)
 	var box := VBoxContainer.new()
 	box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -1458,9 +1455,10 @@ func _settings_button(title: String, description: String) -> Button:
 	button.add_theme_color_override("font_hover_color", TEXT)
 	button.add_theme_color_override("font_pressed_color", TEXT)
 	button.add_theme_stylebox_override("normal", UiSkin.panel())
-	button.add_theme_stylebox_override("hover", UiSkin.active_nav())
-	# A ScrollContainer initially sends the touch to the child button. Keeping the
-	# pressed skin identical prevents false tap feedback while the finger drags.
+	# Touchscreens can briefly report hover/pressed while a ScrollContainer decides
+	# whether the gesture is a tap or a drag. Keep both states neutral so scrolling
+	# never flashes a fake activation. The real action still runs on release.
+	button.add_theme_stylebox_override("hover", UiSkin.panel())
 	button.add_theme_stylebox_override("pressed", UiSkin.panel())
 	button.text = title
 	return button
@@ -1723,9 +1721,17 @@ func _label(value: String, font_size: int, color: Color, bold := false) -> Label
 	return label
 
 
+func _configure_touch_scroll(scroll: ScrollContainer) -> void:
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	# Start dragging quickly on iPhone without making normal taps unreliable.
+	scroll.scroll_deadzone = 3
+
+
 func _forward_touch_scrolling(node: Node) -> void:
 	for child in node.get_children():
-		if child is Control and not child is BaseButton:
+		# PASS is essential for buttons too: they still receive a tap, while the
+		# surrounding ScrollContainer can claim a drag that begins on the card.
+		if child is Control:
 			child.mouse_filter = Control.MOUSE_FILTER_PASS
 		_forward_touch_scrolling(child)
 
