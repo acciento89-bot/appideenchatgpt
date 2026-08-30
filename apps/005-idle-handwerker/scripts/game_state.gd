@@ -12,7 +12,10 @@ signal notice(message: String)
 
 const SAVE_PATH := "user://idle_handwerker_save.json"
 const OFFLINE_CAP_SECONDS := 8.0 * 60.0 * 60.0
-const OFFLINE_EFFICIENCY := 0.5
+const OFFLINE_EFFICIENCY := 0.35
+const BASE_REWARD_SCALE := 0.62
+const PRESTIGE_LEVEL := 20
+const PRESTIGE_VALUE := 250000.0
 
 var money := 120.0
 var lifetime_earnings := 0.0
@@ -49,6 +52,13 @@ var recent_reviews: Array = []
 var sound_enabled := true
 var haptics_enabled := true
 var reduced_motion := false
+var mastery_points := 0
+var prestige_count := 0
+var bonus_tokens := 0
+var no_ads := false
+var starter_pack_claimed := false
+var processed_transactions: Dictionary = {}
+var rewarded_boost_until := 0
 var save_path := SAVE_PATH
 var _autosave_elapsed := 0.0
 
@@ -125,7 +135,7 @@ func complete_active_job(cooldown_elapsed := 0.0) -> void:
 	_update_streak()
 	last_job_quality = _calculate_job_quality(job)
 	var quality_multiplier := 0.75 + float(last_job_quality) / 100.0 * 0.4
-	var reward := float(job.reward) * job_reward_multiplier() * streak_reward_multiplier() * location_reward_multiplier() * active_event_reward_multiplier() * quality_multiplier
+	var reward := float(job.reward) * BASE_REWARD_SCALE * job_reward_multiplier() * streak_reward_multiplier() * location_reward_multiplier() * active_event_reward_multiplier() * quality_multiplier
 	money += reward
 	lifetime_earnings += reward
 	completed_jobs += 1
@@ -199,7 +209,81 @@ func hire_employee(employee_id: String) -> bool:
 
 
 func job_reward_multiplier() -> float:
-	return 1.0 + float(upgrades.tools) * 0.18
+	return (1.0 + float(upgrades.tools) * 0.16) * mastery_multiplier() * rewarded_income_multiplier()
+
+
+func mastery_multiplier() -> float:
+	return 1.0 + float(mastery_points) * 0.04
+
+
+func rewarded_income_multiplier() -> float:
+	return 2.0 if int(Time.get_unix_time_from_system()) < rewarded_boost_until else 1.0
+
+
+func can_prestige() -> bool:
+	return level >= PRESTIGE_LEVEL and company_value() >= PRESTIGE_VALUE and active_job_id == ""
+
+
+func prestige_reward() -> int:
+	return maxi(1, int(floor(company_value() / PRESTIGE_VALUE)) + int(floor(float(level - PRESTIGE_LEVEL) / 5.0)))
+
+
+func perform_prestige() -> bool:
+	if not can_prestige():
+		notice.emit("Meisterbrief ab Stufe %d und %s Firmenwert." % [PRESTIGE_LEVEL, GameData.format_money(PRESTIGE_VALUE)])
+		return false
+	var gained := prestige_reward()
+	mastery_points += gained
+	prestige_count += 1
+	money = 120.0
+	level = 1
+	xp = 0
+	completed_jobs = 0
+	current_streak = 0
+	best_streak = 0
+	upgrades = {"tools": 0, "van": 0, "office": 0}
+	employees = {"azubi": 0, "monteur": 0, "meisterin": 0}
+	active_contracts.clear()
+	job_cooldowns.clear()
+	current_location_id = "neighborhood"
+	visited_locations = {"neighborhood": true}
+	reputation = 0
+	customer_rating = 4.0
+	quality_samples = 0
+	recent_reviews.clear()
+	notice.emit("Meisterbrief erhalten: +%d Meisterpunkte!" % gained)
+	changed.emit()
+	save_game()
+	return true
+
+
+func activate_rewarded_boost(seconds := 600) -> void:
+	rewarded_boost_until = maxi(rewarded_boost_until, int(Time.get_unix_time_from_system())) + seconds
+	notice.emit("2× Einnahmen für %d Minuten aktiviert." % int(seconds / 60))
+	changed.emit()
+	save_game()
+
+
+func apply_purchase(product_id: String, transaction_id: String) -> bool:
+	if transaction_id != "" and bool(processed_transactions.get(transaction_id, false)):
+		return false
+	match product_id:
+		"de.kamilunavo.idlehandwerker.noads": no_ads = true
+		"de.kamilunavo.idlehandwerker.starter":
+			if starter_pack_claimed:
+				return false
+			starter_pack_claimed = true
+			bonus_tokens += 500
+			money += 2500.0
+		"de.kamilunavo.idlehandwerker.tokens.small": bonus_tokens += 250
+		"de.kamilunavo.idlehandwerker.tokens.large": bonus_tokens += 1200
+		_: return false
+	if transaction_id != "":
+		processed_transactions[transaction_id] = true
+	notice.emit("Kauf erfolgreich gutgeschrieben.")
+	changed.emit()
+	save_game()
+	return true
 
 
 func streak_reward_multiplier() -> float:
@@ -319,6 +403,8 @@ func achievement_progress(achievement: Dictionary) -> float:
 		"reputation": return minf(float(reputation), float(achievement.target))
 		"major": return minf(float(completed_major_projects), float(achievement.target))
 		"rating": return minf(customer_rating, float(achievement.target))
+		"mastery": return minf(float(mastery_points), float(achievement.target))
+		"prestige": return minf(float(prestige_count), float(achievement.target))
 	return 0.0
 
 
@@ -419,7 +505,7 @@ func passive_income_per_second() -> float:
 	var base := 0.0
 	for employee in GameData.EMPLOYEES:
 		base += float(employee.income) * int(employees.get(employee.id, 0))
-	return base * (1.0 + float(upgrades.office) * 0.25) + contract_income_per_second()
+	return (base * (1.0 + float(upgrades.office) * 0.22) + contract_income_per_second()) * mastery_multiplier() * rewarded_income_multiplier()
 
 
 func employee_income_per_second() -> float:
@@ -558,7 +644,7 @@ func claim_offline_reward() -> float:
 func save_game() -> void:
 	last_saved_unix = int(Time.get_unix_time_from_system())
 	var payload := {
-		"version": 6,
+		"version": 8,
 		"money": money,
 		"lifetime_earnings": lifetime_earnings,
 		"level": level,
@@ -594,6 +680,13 @@ func save_game() -> void:
 		"sound_enabled": sound_enabled,
 		"haptics_enabled": haptics_enabled,
 		"reduced_motion": reduced_motion,
+		"mastery_points": mastery_points,
+		"prestige_count": prestige_count,
+		"bonus_tokens": bonus_tokens,
+		"no_ads": no_ads,
+		"starter_pack_claimed": starter_pack_claimed,
+		"processed_transactions": processed_transactions,
+		"rewarded_boost_until": rewarded_boost_until,
 	}
 	var file := FileAccess.open(save_path, FileAccess.WRITE)
 	if file:
@@ -654,6 +747,13 @@ func load_game() -> void:
 	sound_enabled = bool(parsed.get("sound_enabled", true))
 	haptics_enabled = bool(parsed.get("haptics_enabled", true))
 	reduced_motion = bool(parsed.get("reduced_motion", false))
+	mastery_points = maxi(0, int(parsed.get("mastery_points", 0)))
+	prestige_count = maxi(0, int(parsed.get("prestige_count", 0)))
+	bonus_tokens = maxi(0, int(parsed.get("bonus_tokens", 0)))
+	no_ads = bool(parsed.get("no_ads", false))
+	starter_pack_claimed = bool(parsed.get("starter_pack_claimed", false))
+	processed_transactions = parsed.get("processed_transactions", {})
+	rewarded_boost_until = maxi(0, int(parsed.get("rewarded_boost_until", 0)))
 	var elapsed := clampf(float(Time.get_unix_time_from_system() - last_saved_unix), 0.0, OFFLINE_CAP_SECONDS)
 	if elapsed > 10.0:
 		offline_reward += passive_income_per_second() * elapsed * OFFLINE_EFFICIENCY
