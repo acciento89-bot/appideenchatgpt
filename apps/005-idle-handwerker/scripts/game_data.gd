@@ -7,7 +7,8 @@ const JOBS: Array[Dictionary] = [
 		"title": "Tropfender Wasserhahn",
 		"customer": "Familie Krüger",
 		"icon": "W",
-		"duration": 4.0,
+		"duration": 15.0,
+		"cooldown": 20.0,
 		"reward": 75.0,
 		"xp": 18,
 		"level": 1,
@@ -19,7 +20,8 @@ const JOBS: Array[Dictionary] = [
 		"title": "Abfluss verstopft",
 		"customer": "Café Morgenrot",
 		"icon": "A",
-		"duration": 7.0,
+		"duration": 30.0,
+		"cooldown": 45.0,
 		"reward": 145.0,
 		"xp": 32,
 		"level": 2,
@@ -31,7 +33,8 @@ const JOBS: Array[Dictionary] = [
 		"title": "Heizung ohne Funktion",
 		"customer": "Hausverwaltung Nord",
 		"icon": "H",
-		"duration": 12.0,
+		"duration": 60.0,
+		"cooldown": 90.0,
 		"reward": 310.0,
 		"xp": 58,
 		"level": 3,
@@ -43,7 +46,8 @@ const JOBS: Array[Dictionary] = [
 		"title": "Bad modernisieren",
 		"customer": "Neubau am Park",
 		"icon": "B",
-		"duration": 20.0,
+		"duration": 150.0,
+		"cooldown": 300.0,
 		"reward": 780.0,
 		"xp": 110,
 		"level": 5,
@@ -55,7 +59,8 @@ const JOBS: Array[Dictionary] = [
 		"title": "Spülkasten reparieren",
 		"customer": "Praxis am Markt",
 		"icon": "SP",
-		"duration": 9.0,
+		"duration": 40.0,
+		"cooldown": 60.0,
 		"reward": 215.0,
 		"xp": 44,
 		"level": 2,
@@ -67,7 +72,8 @@ const JOBS: Array[Dictionary] = [
 		"title": "Heizkörper erneuern",
 		"customer": "Altbau Schillerstraße",
 		"icon": "HK",
-		"duration": 15.0,
+		"duration": 75.0,
+		"cooldown": 120.0,
 		"reward": 440.0,
 		"xp": 76,
 		"level": 4,
@@ -79,7 +85,8 @@ const JOBS: Array[Dictionary] = [
 		"title": "Fußbodenheizung prüfen",
 		"customer": "Loftwerk GmbH",
 		"icon": "FB",
-		"duration": 18.0,
+		"duration": 90.0,
+		"cooldown": 150.0,
 		"reward": 620.0,
 		"xp": 94,
 		"level": 5,
@@ -91,7 +98,8 @@ const JOBS: Array[Dictionary] = [
 		"title": "Wärmepumpe in Betrieb nehmen",
 		"customer": "Familie Winter",
 		"icon": "WP",
-		"duration": 26.0,
+		"duration": 180.0,
+		"cooldown": 360.0,
 		"reward": 1250.0,
 		"xp": 165,
 		"level": 7,
@@ -103,7 +111,8 @@ const JOBS: Array[Dictionary] = [
 		"title": "Heizzentrale sanieren",
 		"customer": "Residenz Bellevue",
 		"icon": "HZ",
-		"duration": 34.0,
+		"duration": 300.0,
+		"cooldown": 600.0,
 		"reward": 2400.0,
 		"xp": 250,
 		"level": 9,
@@ -115,7 +124,8 @@ const JOBS: Array[Dictionary] = [
 		"title": "Industrieanlage warten",
 		"customer": "Kraftwerk Technik AG",
 		"icon": "IN",
-		"duration": 48.0,
+		"duration": 480.0,
+		"cooldown": 900.0,
 		"reward": 5200.0,
 		"xp": 420,
 		"level": 12,
@@ -127,7 +137,8 @@ const JOBS: Array[Dictionary] = [
 		"title": "Schulheizung modernisieren",
 		"customer": "Stadtwerke Bildungsbau",
 		"icon": "GP",
-		"duration": 55.0,
+		"duration": 900.0,
+		"cooldown": 1800.0,
 		"reward": 6800.0,
 		"xp": 520,
 		"level": 8,
@@ -141,7 +152,8 @@ const JOBS: Array[Dictionary] = [
 		"title": "Villa energetisch sanieren",
 		"customer": "Architekturbüro Kronberg",
 		"icon": "GP",
-		"duration": 72.0,
+		"duration": 1200.0,
+		"cooldown": 2700.0,
 		"reward": 11500.0,
 		"xp": 760,
 		"level": 10,
@@ -155,7 +167,8 @@ const JOBS: Array[Dictionary] = [
 		"title": "Produktionshalle umrüsten",
 		"customer": "Rheinwerk Produktion",
 		"icon": "GP",
-		"duration": 95.0,
+		"duration": 1800.0,
+		"cooldown": 3600.0,
 		"reward": 22000.0,
 		"xp": 1200,
 		"level": 14,
@@ -169,7 +182,8 @@ const JOBS: Array[Dictionary] = [
 		"title": "Klinik-Energiezentrale erneuern",
 		"customer": "Klinikum West",
 		"icon": "GP",
-		"duration": 130.0,
+		"duration": 2700.0,
+		"cooldown": 7200.0,
 		"reward": 48000.0,
 		"xp": 2100,
 		"level": 18,
@@ -222,9 +236,11 @@ const LOCATIONS: Array[Dictionary] = [
 ]
 
 const DAILY_MISSIONS: Array[Dictionary] = [
-	{"id": "jobs", "title": "Volle Auftragslage", "description": "3 Aufträge abschließen", "target": 3.0, "reward": 250.0, "metric": "jobs"},
-	{"id": "earnings", "title": "Guter Umsatz", "description": "800 € verdienen", "target": 800.0, "reward": 350.0, "metric": "earnings"},
-	{"id": "invest", "title": "In die Zukunft", "description": "2 Verbesserungen kaufen", "target": 2.0, "reward": 400.0, "metric": "upgrades"},
+	{"id": "jobs", "title": "Volle Auftragslage", "description": "5 Aufträge abschließen", "target": 5.0, "reward": 250.0, "metric": "jobs"},
+	{"id": "earnings", "title": "Guter Umsatz", "description": "1.500 € verdienen", "target": 1500.0, "reward": 350.0, "metric": "earnings"},
+	{"id": "invest", "title": "In die Zukunft", "description": "3 Verbesserungen kaufen", "target": 3.0, "reward": 400.0, "metric": "upgrades"},
+	{"id": "streak", "title": "Zuverlässige Woche", "description": "Eine 4er-Auftragsserie erreichen", "target": 4.0, "reward": 300.0, "metric": "streak"},
+	{"id": "quality", "title": "Saubere Arbeit", "description": "Mindestens 85 % Qualität erreichen", "target": 85.0, "reward": 325.0, "metric": "quality"},
 ]
 
 const ACHIEVEMENTS: Array[Dictionary] = [
@@ -236,6 +252,16 @@ const ACHIEVEMENTS: Array[Dictionary] = [
 	{"id": "reputation_350", "title": "In aller Munde", "description": "350 Reputation erreichen", "target": 350.0, "metric": "reputation", "reward": 1250.0},
 	{"id": "first_major", "title": "Große Baustelle", "description": "Erstes Großprojekt abschließen", "target": 1.0, "metric": "major", "reward": 1800.0},
 	{"id": "quality_master", "title": "Qualitätsbetrieb", "description": "Eine Kundenbewertung von 4,8 erreichen", "target": 4.8, "metric": "rating", "reward": 2400.0},
+	{"id": "jobs_25", "title": "Gut gebucht", "description": "25 Aufträge erledigen", "target": 25.0, "metric": "jobs", "reward": 750.0},
+	{"id": "jobs_75", "title": "Volle Bücher", "description": "75 Aufträge erledigen", "target": 75.0, "metric": "jobs", "reward": 2200.0},
+	{"id": "team_six", "title": "Einsatzgruppe", "description": "6 Mitarbeiter beschäftigen", "target": 6.0, "metric": "team", "reward": 1400.0},
+	{"id": "team_twelve", "title": "Montageteam", "description": "12 Mitarbeiter beschäftigen", "target": 12.0, "metric": "team", "reward": 3600.0},
+	{"id": "earn_50k", "title": "Solider Betrieb", "description": "50.000 € insgesamt verdienen", "target": 50000.0, "metric": "lifetime", "reward": 2500.0},
+	{"id": "earn_250k", "title": "Handwerks-Imperium", "description": "250.000 € insgesamt verdienen", "target": 250000.0, "metric": "lifetime", "reward": 8500.0},
+	{"id": "reputation_700", "title": "Industrie-Partner", "description": "700 Reputation erreichen", "target": 700.0, "metric": "reputation", "reward": 3200.0},
+	{"id": "reputation_1200", "title": "Überregional gefragt", "description": "1.200 Reputation erreichen", "target": 1200.0, "metric": "reputation", "reward": 6000.0},
+	{"id": "major_three", "title": "Großprojekt-Profi", "description": "3 Großprojekte abschließen", "target": 3.0, "metric": "major", "reward": 5000.0},
+	{"id": "streak_ten", "title": "Unaufhaltsam", "description": "Eine 10er-Auftragsserie erreichen", "target": 10.0, "metric": "streak", "reward": 2800.0},
 ]
 
 const JOB_EVENTS: Array[Dictionary] = [
@@ -283,6 +309,14 @@ const REPUTATION_RANKS: Array[Dictionary] = [
 	{"title": "Industrie-Partner", "minimum": 700, "code": "R5"},
 ]
 
+const TEAM_RANKS: Array[Dictionary] = [
+	{"title": "Solo-Betrieb", "minimum": 0, "quality_bonus": 0, "code": "T1"},
+	{"title": "Erstes Team", "minimum": 1, "quality_bonus": 1, "code": "T2"},
+	{"title": "Einsatzgruppe", "minimum": 3, "quality_bonus": 2, "code": "T3"},
+	{"title": "Starker Betrieb", "minimum": 6, "quality_bonus": 3, "code": "T4"},
+	{"title": "Großes Montageteam", "minimum": 12, "quality_bonus": 5, "code": "T5"},
+]
+
 const UPGRADES: Array[Dictionary] = [
 	{
 		"id": "tools",
@@ -313,7 +347,7 @@ const UPGRADES: Array[Dictionary] = [
 const EMPLOYEES: Array[Dictionary] = [
 	{
 		"id": "azubi",
-		"title": "Azubi Alex",
+		"title": "Azubi",
 		"trade": "Sanitär",
 		"income": 0.08,
 		"base_cost": 350.0,
@@ -321,7 +355,7 @@ const EMPLOYEES: Array[Dictionary] = [
 	},
 	{
 		"id": "monteur",
-		"title": "Monteur Mo",
+		"title": "Monteur",
 		"trade": "Heizung",
 		"income": 0.32,
 		"base_cost": 1350.0,
@@ -329,7 +363,7 @@ const EMPLOYEES: Array[Dictionary] = [
 	},
 	{
 		"id": "meisterin",
-		"title": "Meisterin Mia",
+		"title": "Meisterin",
 		"trade": "Projektleitung",
 		"income": 1.1,
 		"base_cost": 4800.0,
@@ -346,7 +380,8 @@ static func employee_cost(employee: Dictionary, owned: int) -> float:
 
 
 static func xp_for_level(level: int) -> int:
-	return 80 + (level - 1) * 55
+	var completed_levels := level - 1
+	return 140 + completed_levels * 90 + completed_levels * completed_levels * 8
 
 
 static func format_money(value: float, include_decimals := false) -> String:
