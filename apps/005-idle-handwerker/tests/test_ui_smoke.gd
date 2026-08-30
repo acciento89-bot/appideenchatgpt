@@ -70,11 +70,19 @@ func _run() -> void:
 				if label.text != "" and label.get_combined_minimum_size().y <= 0.0:
 					failures += 1
 					printerr("FAIL: label '%s' has no measurable height in %s at %s" % [label.text, tab_id, device_size])
+				if label.text.length() >= 4 and not label.text.contains("\n") and label.size.x < 40.0 and label.size.y > 40.0:
+					failures += 1
+					printerr("FAIL: vertically collapsed label '%s' in %s at %s" % [label.text, tab_id, device_size])
 			if tab_id == "team":
 				for expected_text in ["TEAMRANG", "Mitarbeiter", "Azubi", "Monteur", "Meisterin"]:
 					if not _has_label(content, expected_text):
 						failures += 1
 						printerr("FAIL: team progression label '%s' is missing at %s" % [expected_text, device_size])
+			if tab_id == "auftraege":
+				var section_action := _find_label(content, "STANDORTBONUS")
+				if not section_action or section_action.autowrap_mode != TextServer.AUTOWRAP_OFF:
+					failures += 1
+					printerr("FAIL: section action can wrap vertically at %s" % device_size)
 		app.call("_show_settings")
 		await process_frame
 		for expected_button in ["TUTORIAL ERNEUT ANSEHEN", "SPIELSTAND ZURÜCKSETZEN", "FERTIG"]:
@@ -131,9 +139,14 @@ func _has_button(node: Node, text: String) -> bool:
 
 
 func _has_label(node: Node, text: String) -> bool:
+	return _find_label(node, text) != null
+
+
+func _find_label(node: Node, text: String) -> Label:
 	for child in node.get_children():
 		if child is Label and child.text == text:
-			return true
-		if _has_label(child, text):
-			return true
-	return false
+			return child
+		var nested := _find_label(child, text)
+		if nested:
+			return nested
+	return null
