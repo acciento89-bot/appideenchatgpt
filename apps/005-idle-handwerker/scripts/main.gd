@@ -32,6 +32,7 @@ var header_row: HBoxContainer
 var brand_eyebrow: Label
 var brand_title: Label
 var settings_button: Button
+var main_scroll: ScrollContainer
 
 
 func _ready() -> void:
@@ -82,16 +83,17 @@ func _build_shell() -> void:
 	root.add_child(header_margin)
 	header_margin.add_child(_build_header())
 
-	var scroll := ScrollContainer.new()
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	root.add_child(scroll)
+	main_scroll = ScrollContainer.new()
+	main_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	main_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	main_scroll.scroll_deadzone = 6
+	root.add_child(main_scroll)
 	body_margin = MarginContainer.new()
 	body_margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	body_margin.add_theme_constant_override("margin_left", 16)
 	body_margin.add_theme_constant_override("margin_right", 16)
 	body_margin.add_theme_constant_override("margin_bottom", 18)
-	scroll.add_child(body_margin)
+	main_scroll.add_child(body_margin)
 	content = VBoxContainer.new()
 	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	content.add_theme_constant_override("separation", 12)
@@ -187,6 +189,7 @@ func _switch_tab(tab_id: String) -> void:
 		"ausbau": _build_upgrades()
 		"team": _build_team()
 		"ziele": _build_goals()
+	_forward_touch_scrolling(content)
 	_animate_tab_content()
 
 
@@ -1170,6 +1173,13 @@ func _label(value: String, font_size: int, color: Color, bold := false) -> Label
 		label.add_theme_constant_override("outline_size", 1)
 		label.add_theme_color_override("font_outline_color", Color(color, 0.2))
 	return label
+
+
+func _forward_touch_scrolling(node: Node) -> void:
+	for child in node.get_children():
+		if child is Control and not child is BaseButton:
+			child.mouse_filter = Control.MOUSE_FILTER_PASS
+		_forward_touch_scrolling(child)
 
 
 func _is_compact() -> bool:

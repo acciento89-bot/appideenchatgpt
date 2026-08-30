@@ -26,4 +26,4 @@ textures/default_filters/use_nearest_mipmap_filter=false
 textures/vram_compression/import_etc2_astc=true
 
 [gui]
-theme/default_font_multichannel_signed_distance_field=true
+theme/default_font_multichannel_signed_distance_field=false
