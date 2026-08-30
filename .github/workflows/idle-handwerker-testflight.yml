@@ -9,7 +9,7 @@ on:
       build:
         description: App Store Connect build number
         required: true
-        default: '15'
+        default: '16'
       create_app_record:
         description: App-Datensatz bei Bedarf anlegen
         required: true
@@ -66,7 +66,7 @@ jobs:
       - name: Preflight
         shell: bash
         env:
-          REQUESTED_BUILD: ${{ inputs.build || '15' }}
+          REQUESTED_BUILD: ${{ inputs.build || '16' }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_PRIVATE_KEY_B64: ${{ secrets.ASC_PRIVATE_KEY_B64 }}
@@ -338,7 +338,7 @@ jobs:
             DEVELOPMENT_TEAM="$TEAM_ID" PRODUCT_BUNDLE_IDENTIFIER="$BUNDLE_ID" \
             MARKETING_VERSION="$APP_VERSION" CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
             INFOPLIST_KEY_ITSAppUsesNonExemptEncryption=NO \
-            CODE_SIGN_STYLE=Automatic \
+            CODE_SIGN_STYLE=Automatic CODE_SIGN_IDENTITY='Apple Development' \
             -allowProvisioningUpdates -authenticationKeyPath "$ASC_KEY_PATH" \
             -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID" archive
           APP=$(find "$ARCHIVE/Products/Applications" -maxdepth 1 -type d -name '*.app' -print -quit)
