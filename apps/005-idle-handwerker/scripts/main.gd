@@ -25,6 +25,13 @@ var workshop_visual: WorkshopVisual
 var toast_layer: Control
 var last_money_display := -1.0
 var nav_buttons: Dictionary = {}
+var header_margin: MarginContainer
+var body_margin: MarginContainer
+var nav_margin: MarginContainer
+var header_row: HBoxContainer
+var brand_eyebrow: Label
+var brand_title: Label
+var settings_button: Button
 
 
 func _ready() -> void:
@@ -33,6 +40,7 @@ func _ready() -> void:
 	add_child(game)
 	sfx = SfxBank.new()
 	add_child(sfx)
+	sfx.set_enabled(game.sound_enabled)
 	game.job_completed.connect(_on_job_completed)
 	game.job_event_started.connect(_on_job_event_started)
 	game.contract_signed.connect(_on_contract_signed)
@@ -40,6 +48,8 @@ func _ready() -> void:
 	game.level_up.connect(_on_level_up)
 	game.notice.connect(_show_toast)
 	_build_shell()
+	get_viewport().size_changed.connect(_apply_responsive_layout)
+	_apply_responsive_layout()
 	_switch_tab("betrieb")
 	set_process(true)
 	if not game.tutorial_completed:
@@ -64,28 +74,28 @@ func _build_shell() -> void:
 	root.add_theme_constant_override("separation", 0)
 	add_child(root)
 
-	var safe_top := MarginContainer.new()
-	safe_top.add_theme_constant_override("margin_left", 20)
-	safe_top.add_theme_constant_override("margin_right", 20)
-	safe_top.add_theme_constant_override("margin_top", 18)
-	safe_top.add_theme_constant_override("margin_bottom", 12)
-	root.add_child(safe_top)
-	safe_top.add_child(_build_header())
+	header_margin = MarginContainer.new()
+	header_margin.add_theme_constant_override("margin_left", 20)
+	header_margin.add_theme_constant_override("margin_right", 20)
+	header_margin.add_theme_constant_override("margin_top", 18)
+	header_margin.add_theme_constant_override("margin_bottom", 12)
+	root.add_child(header_margin)
+	header_margin.add_child(_build_header())
 
 	var scroll := ScrollContainer.new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	root.add_child(scroll)
-	var margin := MarginContainer.new()
-	margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	margin.add_theme_constant_override("margin_left", 16)
-	margin.add_theme_constant_override("margin_right", 16)
-	margin.add_theme_constant_override("margin_bottom", 18)
-	scroll.add_child(margin)
+	body_margin = MarginContainer.new()
+	body_margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	body_margin.add_theme_constant_override("margin_left", 16)
+	body_margin.add_theme_constant_override("margin_right", 16)
+	body_margin.add_theme_constant_override("margin_bottom", 18)
+	scroll.add_child(body_margin)
 	content = VBoxContainer.new()
 	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	content.add_theme_constant_override("separation", 12)
-	margin.add_child(content)
+	body_margin.add_child(content)
 
 	root.add_child(_build_nav())
 
@@ -96,16 +106,16 @@ func _build_shell() -> void:
 
 
 func _build_header() -> Control:
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 12)
+	header_row = HBoxContainer.new()
+	header_row.add_theme_constant_override("separation", 12)
 	var brand := VBoxContainer.new()
 	brand.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var eyebrow := _label("KAMILUNAVO GAMES", 10, GREEN)
-	eyebrow.add_theme_constant_override("letter_spacing", 1)
-	brand.add_child(eyebrow)
-	var title := _label("IDLE HANDWERKER", 23, TEXT, true)
-	brand.add_child(title)
-	row.add_child(brand)
+	brand_eyebrow = _label("KAMILUNAVO GAMES", 10, GREEN)
+	brand_eyebrow.add_theme_constant_override("letter_spacing", 1)
+	brand.add_child(brand_eyebrow)
+	brand_title = _label("IDLE HANDWERKER", 23, TEXT, true)
+	brand.add_child(brand_title)
+	header_row.add_child(brand)
 
 	var balance := VBoxContainer.new()
 	balance.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -115,22 +125,34 @@ func _build_header() -> Control:
 	income_label = _label("+0 €/s", 11, GREEN)
 	income_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	balance.add_child(income_label)
-	row.add_child(balance)
-	return row
+	header_row.add_child(balance)
+
+	settings_button = Button.new()
+	settings_button.text = "OP"
+	settings_button.tooltip_text = "Einstellungen"
+	settings_button.custom_minimum_size = Vector2(44, 44)
+	settings_button.add_theme_font_size_override("font_size", 11)
+	settings_button.add_theme_color_override("font_color", GREEN)
+	settings_button.add_theme_stylebox_override("normal", UiSkin.dark_button())
+	settings_button.add_theme_stylebox_override("hover", UiSkin.active_nav())
+	settings_button.add_theme_stylebox_override("pressed", UiSkin.pressed_button())
+	settings_button.pressed.connect(_show_settings)
+	header_row.add_child(settings_button)
+	return header_row
 
 
 func _build_nav() -> Control:
 	var panel := PanelContainer.new()
 	panel.add_theme_stylebox_override("panel", _box(SURFACE, 0, Color.TRANSPARENT, 0))
-	var margin := MarginContainer.new()
-	margin.add_theme_constant_override("margin_left", 8)
-	margin.add_theme_constant_override("margin_right", 8)
-	margin.add_theme_constant_override("margin_top", 8)
-	margin.add_theme_constant_override("margin_bottom", 14)
-	panel.add_child(margin)
+	nav_margin = MarginContainer.new()
+	nav_margin.add_theme_constant_override("margin_left", 8)
+	nav_margin.add_theme_constant_override("margin_right", 8)
+	nav_margin.add_theme_constant_override("margin_top", 8)
+	nav_margin.add_theme_constant_override("margin_bottom", 14)
+	panel.add_child(nav_margin)
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 4)
-	margin.add_child(row)
+	nav_margin.add_child(row)
 	var items := [
 		["betrieb", "Betrieb", "BT"],
 		["auftraege", "Jobs", "AU"],
@@ -145,7 +167,7 @@ func _build_nav() -> Control:
 		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		button.custom_minimum_size.y = 58
 		button.add_theme_font_size_override("font_size", 11)
-		button.pressed.connect(_switch_tab.bind(item[0]))
+		button.pressed.connect(_nav_selected.bind(item[0], button))
 		row.add_child(button)
 		nav_buttons[item[0]] = button
 	return panel
@@ -165,11 +187,61 @@ func _switch_tab(tab_id: String) -> void:
 		"ausbau": _build_upgrades()
 		"team": _build_team()
 		"ziele": _build_goals()
+	_animate_tab_content()
+
+
+func _nav_selected(tab_id: String, source: Control) -> void:
+	if tab_id == current_tab:
+		_punch(source)
+		return
+	sfx.play_cue("click")
+	_haptic(12, 0.25)
+	_switch_tab(tab_id)
+
+
+func _animate_tab_content() -> void:
+	if game.reduced_motion:
+		content.modulate = Color.WHITE
+		return
+	content.modulate = Color(1.0, 1.0, 1.0, 0.25)
+	var tween := create_tween()
+	tween.tween_property(content, "modulate", Color.WHITE, 0.22).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+
+
+func _apply_responsive_layout() -> void:
+	if not header_margin or not body_margin or not nav_margin:
+		return
+	var compact := get_viewport_rect().size.x <= 370.0
+	var side := 12 if compact else 20
+	var safe_top := 0
+	var safe_bottom := 0
+	var screen_size := DisplayServer.screen_get_size()
+	var safe_area := DisplayServer.get_display_safe_area()
+	if screen_size.y > 0 and safe_area.size.y > 0:
+		var scale_y := get_viewport_rect().size.y / float(screen_size.y)
+		safe_top = int(float(safe_area.position.y) * scale_y)
+		safe_bottom = int(float(screen_size.y - safe_area.end.y) * scale_y)
+	header_margin.add_theme_constant_override("margin_left", side)
+	header_margin.add_theme_constant_override("margin_right", side)
+	header_margin.add_theme_constant_override("margin_top", maxi(14 if compact else 18, safe_top + 6))
+	body_margin.add_theme_constant_override("margin_left", 10 if compact else 16)
+	body_margin.add_theme_constant_override("margin_right", 10 if compact else 16)
+	nav_margin.add_theme_constant_override("margin_left", 4 if compact else 8)
+	nav_margin.add_theme_constant_override("margin_right", 4 if compact else 8)
+	nav_margin.add_theme_constant_override("margin_bottom", maxi(10 if compact else 14, safe_bottom + 6))
+	for button in nav_buttons.values():
+		button.add_theme_font_size_override("font_size", 9 if compact else 11)
+	header_row.add_theme_constant_override("separation", 6 if compact else 12)
+	brand_eyebrow.add_theme_font_size_override("font_size", 8 if compact else 10)
+	brand_title.add_theme_font_size_override("font_size", 17 if compact else 23)
+	money_label.add_theme_font_size_override("font_size", 16 if compact else 20)
+	income_label.add_theme_font_size_override("font_size", 9 if compact else 11)
+	settings_button.custom_minimum_size = Vector2(40, 40) if compact else Vector2(44, 44)
 
 
 func _build_dashboard() -> void:
 	var hero := PanelContainer.new()
-	hero.custom_minimum_size.y = 238
+	hero.custom_minimum_size.y = 330 if _is_compact() else 238
 	hero.add_theme_stylebox_override("panel", UiSkin.hero())
 	var hero_margin := MarginContainer.new()
 	_set_margins(hero_margin, 20, 20, 18, 18)
@@ -185,7 +257,7 @@ func _build_dashboard() -> void:
 	top.add_child(level_label)
 	hero_v.add_child(top)
 
-	var scene_row := HBoxContainer.new()
+	var scene_row: BoxContainer = VBoxContainer.new() if _is_compact() else HBoxContainer.new()
 	scene_row.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	var copy := VBoxContainer.new()
 	copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -772,6 +844,87 @@ func _show_offline_dialog() -> void:
 	dialog.confirmed.connect(dialog.queue_free)
 
 
+func _show_settings() -> void:
+	sfx.play_cue("click")
+	var overlay := ColorRect.new()
+	overlay.color = Color("07100ee8")
+	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	overlay.z_index = 60
+	add_child(overlay)
+	var center := CenterContainer.new()
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	overlay.add_child(center)
+	var panel := PanelContainer.new()
+	panel.custom_minimum_size = Vector2(minf(370.0, size.x - 28.0), 450)
+	panel.add_theme_stylebox_override("panel", UiSkin.hero())
+	center.add_child(panel)
+	var margin := MarginContainer.new()
+	_set_margins(margin, 24, 24, 26, 22)
+	panel.add_child(margin)
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 14)
+	margin.add_child(box)
+	box.add_child(_label("SPIELEINSTELLUNGEN", 10, GREEN, true))
+	box.add_child(_label("Dein Betrieb, dein Spielgefühl", 22, TEXT, true))
+	var description := _label("Diese Optionen werden lokal im Spielstand gespeichert.", 11, MUTED)
+	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	box.add_child(description)
+	var sound_button := _settings_button("Sound", "Auftrags- und Belohnungseffekte")
+	var haptic_button := _settings_button("Haptik", "Vibration bei wichtigen Aktionen")
+	var motion_button := _settings_button("Bewegung reduzieren", "Weniger Übergänge und Skalierung")
+	box.add_child(sound_button)
+	box.add_child(haptic_button)
+	box.add_child(motion_button)
+	var refresh := func() -> void:
+		sound_button.text = "SOUND\n%s" % ("AN" if game.sound_enabled else "AUS")
+		haptic_button.text = "HAPTIK\n%s" % ("AN" if game.haptics_enabled else "AUS")
+		motion_button.text = "BEWEGUNG REDUZIEREN\n%s" % ("AN" if game.reduced_motion else "AUS")
+	refresh.call()
+	sound_button.pressed.connect(func() -> void:
+		game.set_preference("sound", not game.sound_enabled)
+		sfx.set_enabled(game.sound_enabled)
+		if game.sound_enabled:
+			sfx.play_cue("click")
+		refresh.call()
+	)
+	haptic_button.pressed.connect(func() -> void:
+		game.set_preference("haptics", not game.haptics_enabled)
+		_haptic(25, 0.4)
+		refresh.call()
+	)
+	motion_button.pressed.connect(func() -> void:
+		game.set_preference("reduced_motion", not game.reduced_motion)
+		refresh.call()
+	)
+	var close := Button.new()
+	close.text = "FERTIG"
+	close.custom_minimum_size.y = 56
+	close.add_theme_font_size_override("font_size", 14)
+	close.add_theme_color_override("font_color", Color("071811"))
+	close.add_theme_stylebox_override("normal", UiSkin.primary_button())
+	close.add_theme_stylebox_override("hover", UiSkin.primary_button())
+	close.add_theme_stylebox_override("pressed", UiSkin.pressed_button())
+	close.pressed.connect(func() -> void:
+		sfx.play_cue("click")
+		overlay.queue_free()
+	)
+	box.add_child(close)
+
+
+func _settings_button(title: String, description: String) -> Button:
+	var button := Button.new()
+	button.tooltip_text = description
+	button.custom_minimum_size.y = 66
+	button.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	button.add_theme_font_size_override("font_size", 12)
+	button.add_theme_color_override("font_color", TEXT)
+	button.add_theme_stylebox_override("normal", UiSkin.panel())
+	button.add_theme_stylebox_override("hover", UiSkin.active_nav())
+	button.add_theme_stylebox_override("pressed", UiSkin.pressed_button())
+	button.text = title
+	return button
+
+
 func _show_tutorial() -> void:
 	var steps := [
 		["01 · DEIN ERSTER AUFTRAG", "Starte mit kleinen Reparaturen in der Nachbarschaft. Jeder Auftrag bringt Geld, XP und eine stärkere Auftragsserie."],
@@ -878,11 +1031,12 @@ func _show_reward_burst(message: String, color: Color) -> void:
 	label.position = Vector2(30, size.y * 0.43)
 	label.size = Vector2(size.x - 60, 52)
 	toast_layer.add_child(label)
-	label.scale = Vector2(0.7, 0.7)
+	label.scale = Vector2.ONE if game.reduced_motion else Vector2(0.7, 0.7)
 	label.pivot_offset = label.size * 0.5
 	var tween := create_tween().set_parallel(true)
 	tween.tween_property(label, "position:y", label.position.y - 90.0, 1.1).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	tween.tween_property(label, "scale", Vector2.ONE, 0.25).set_trans(Tween.TRANS_BACK)
+	if not game.reduced_motion:
+		tween.tween_property(label, "scale", Vector2.ONE, 0.25).set_trans(Tween.TRANS_BACK)
 	tween.tween_property(label, "modulate:a", 0.0, 0.35).set_delay(0.75)
 	tween.chain().tween_callback(label.queue_free)
 
@@ -1008,12 +1162,18 @@ func _pill(text: String, bg: Color, fg: Color) -> Control:
 func _label(value: String, font_size: int, color: Color, bold := false) -> Label:
 	var label := Label.new()
 	label.text = value
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	label.add_theme_font_size_override("font_size", font_size)
 	label.add_theme_color_override("font_color", color)
 	if bold:
 		label.add_theme_constant_override("outline_size", 1)
 		label.add_theme_color_override("font_outline_color", Color(color, 0.2))
 	return label
+
+
+func _is_compact() -> bool:
+	return get_viewport_rect().size.x <= 370.0
 
 
 func _box(color: Color, radius: int, border_color := Color.TRANSPARENT, border_width := 0) -> StyleBoxFlat:
@@ -1057,6 +1217,8 @@ func _style_nav(button: Button, active: bool) -> void:
 
 
 func _punch(control: Control) -> void:
+	if game.reduced_motion:
+		return
 	control.pivot_offset = control.size * 0.5
 	var tween := create_tween()
 	tween.tween_property(control, "scale", Vector2(0.94, 0.94), 0.07)
@@ -1064,7 +1226,8 @@ func _punch(control: Control) -> void:
 
 
 func _haptic(duration_ms: int, strength: float) -> void:
-	Input.vibrate_handheld(duration_ms, strength)
+	if game.haptics_enabled:
+		Input.vibrate_handheld(duration_ms, strength)
 
 
 func _employee_count() -> int:
