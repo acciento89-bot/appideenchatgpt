@@ -21,6 +21,9 @@ func _init() -> void:
 	if GameData.JOBS.size() < 14:
 		failures += 1
 		printerr("FAIL: phase 6 needs fourteen jobs")
+	if GameData.DAILY_MISSIONS.size() < 5 or GameData.ACHIEVEMENTS.size() < 18:
+		failures += 1
+		printerr("FAIL: extended daily and long-term goal progression")
 	if GameData.LOCATIONS.size() != 4:
 		failures += 1
 		printerr("FAIL: expected four progression locations")
@@ -30,16 +33,57 @@ func _init() -> void:
 	if GameData.CONTRACTS.size() != 4 or GameData.REPUTATION_RANKS.size() < 5:
 		failures += 1
 		printerr("FAIL: contract and reputation progression data")
+	var expected_employee_titles := ["Azubi", "Monteur", "Meisterin"]
+	for index in GameData.EMPLOYEES.size():
+		if str(GameData.EMPLOYEES[index].title) != expected_employee_titles[index]:
+			failures += 1
+			printerr("FAIL: employee roles must not use repeated personal names")
 	for employee in GameData.EMPLOYEES:
 		var payback_seconds := float(employee.base_cost) / float(employee.income)
 		if payback_seconds < 3600.0:
 			failures += 1
 			printerr("FAIL: employee '%s' pays for itself in under one hour" % employee.id)
+	for job in GameData.JOBS:
+		if float(job.get("cooldown", 0.0)) <= float(job.duration):
+			failures += 1
+			printerr("FAIL: job '%s' needs a meaningful replay cooldown" % job.id)
 	if not is_equal_approx(GameState.OFFLINE_EFFICIENCY, 0.5):
 		failures += 1
 		printerr("FAIL: offline income must use the balanced efficiency factor")
 	var game := GameState.new()
 	game.save_path = "user://idle_handwerker_test_save.json"
+	if str(game.team_rank().code) != "T1" or game.team_quality_bonus() != 0:
+		failures += 1
+		printerr("FAIL: empty company team rank")
+	game.employees.azubi = 3
+	if str(game.team_rank().code) != "T3" or game.team_quality_bonus() != 2:
+		failures += 1
+		printerr("FAIL: team rank and quality progression")
+	if int(game.next_team_rank().minimum) != 6:
+		failures += 1
+		printerr("FAIL: next team milestone")
+	game.employees.azubi = 0
+	game.job_cooldowns.tap = int(Time.get_unix_time_from_system()) + 60
+	if game.start_job("tap") or game.job_cooldown_remaining("tap") <= 0.0:
+		failures += 1
+		printerr("FAIL: cooling down jobs must not be repeatable")
+	game.job_cooldowns.tap = int(Time.get_unix_time_from_system()) - 1
+	if not game.start_job("tap"):
+		failures += 1
+		printerr("FAIL: elapsed job cooldown should unlock the job")
+	game.complete_active_job()
+	if game.job_cooldown_remaining("tap") <= 0.0:
+		failures += 1
+		printerr("FAIL: completing a job must start its replay cooldown")
+	game.job_cooldowns.clear()
+	if not game.start_job("tap"):
+		failures += 1
+		printerr("FAIL: job should restart after cooldown test cleanup")
+	game.complete_active_job(120.0)
+	if game.job_cooldown_remaining("tap") > 0.0:
+		failures += 1
+		printerr("FAIL: offline time after completion must consume the replay cooldown")
+	game.job_cooldowns.clear()
 	game.current_streak = 5
 	if not is_equal_approx(game.streak_reward_multiplier(), 1.15):
 		failures += 1
@@ -53,14 +97,29 @@ func _init() -> void:
 		failures += 1
 		printerr("FAIL: locked location must not be selectable")
 	game.level = 12
+	game.money = 999.0
+	game.upgrades.tools = 2
+	game.employees.azubi = 2
+	game.active_contracts.property_service = true
 	if not game.select_location("industrial_park"):
 		failures += 1
 		printerr("FAIL: unlocked location should be selectable")
+	if game.money != 0.0 or int(game.upgrades.tools) != 0 or int(game.employees.azubi) != 0 or not game.active_contracts.is_empty():
+		failures += 1
+		printerr("FAIL: first opening of a new location must reset operating progress")
+	if game.level != 12 or not bool(game.visited_locations.get("industrial_park", false)):
+		failures += 1
+		printerr("FAIL: location restart must preserve career progress and remember the opening")
+	game.money = 321.0
+	if not game.select_location("neighborhood") or not is_equal_approx(game.money, 321.0):
+		failures += 1
+		printerr("FAIL: revisiting an opened location must not reset progress")
+	game.current_location_id = "industrial_park"
 	if not is_equal_approx(game.location_reward_multiplier(), 1.55):
 		failures += 1
 		printerr("FAIL: industrial location reward multiplier")
 	game.daily_key = Time.get_date_string_from_system()
-	game.daily_progress.jobs = 3.0
+	game.daily_progress.jobs = 5.0
 	var money_before := game.money
 	if not game.claim_daily_mission("jobs") or game.money <= money_before:
 		failures += 1
