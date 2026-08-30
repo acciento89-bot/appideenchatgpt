@@ -1,17 +1,35 @@
+; Engine configuration file.
+; It's best edited using the editor UI and not directly,
+; since the parameters that go here are not all obvious.
+;
+; Format:
+;   [section] ; section goes between []
+;   param=value ; assign values to parameters
+
+config_version=5
+
+[admob]
+
+general/android/enabled=false
+
 [application]
+
 config/name="Idle Handwerker"
 config/description="Baue deinen eigenen Handwerksbetrieb auf."
-config/version="1.2.3"
-config/icon="res://assets/branding/app_icon.svg"
+config/version="1.3.0"
 run/main_scene="res://main.tscn"
+config/features=PackedStringArray("4.7")
+config/icon="res://assets/branding/app_icon.svg"
 
 [boot_splash]
+
 bg_color=Color(0.027, 0.063, 0.055, 1)
 image="res://assets/branding/launch_badge.svg"
 fullsize=false
 use_filter=true
 
 [display]
+
 window/size/viewport_width=430
 window/size/viewport_height=932
 window/size/window_width_override=430
@@ -19,11 +37,17 @@ window/size/window_height_override=932
 window/stretch/mode="canvas_items"
 window/handheld/orientation=1
 
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/admob/plugin.cfg")
+
+[monetization]
+
+admob/rewarded_boost_id="ca-app-pub-3940256099942544/1712485313"
+admob/rewarded_offline_id="ca-app-pub-3940256099942544/1712485313"
+
 [rendering]
+
 renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
-textures/default_filters/use_nearest_mipmap_filter=false
 textures/vram_compression/import_etc2_astc=true
-
-[gui]
-theme/default_font_multichannel_signed_distance_field=false

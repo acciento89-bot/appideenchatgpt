@@ -124,11 +124,11 @@ func _run() -> void:
 				printerr("FAIL: settings cannot be closed at %s" % device_size)
 		app.call("_show_store")
 		await process_frame
-		for expected_shop_button in ["WERBEFREI KAUFEN", "STARTERPAKET", "250 BONUSMARKEN", "SHOP SCHLIESSEN"]:
-			if not _has_button(app, expected_shop_button):
+		for expected_shop_button in ["WERBEFREI", "STARTERPAKET", "250 BONUSMARKEN", "1.200 BONUSMARKEN", "SHOP SCHLIESSEN"]:
+			if _find_button_prefix(app, expected_shop_button) == null:
 				failures += 1
 				printerr("FAIL: separate shop action '%s' is missing at %s" % [expected_shop_button, device_size])
-		if not _has_scroll_safe_button_skin(_find_button(app, "STARTERPAKET")):
+		if not _has_scroll_safe_button_skin(_find_button_prefix(app, "STARTERPAKET")):
 			failures += 1
 			printerr("FAIL: shop action shows false pressed feedback while scrolling at %s" % device_size)
 		var shop_close := _find_button(app, "SHOP SCHLIESSEN")

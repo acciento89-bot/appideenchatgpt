@@ -56,6 +56,7 @@ func _ready() -> void:
 	add_child(monetization)
 	monetization.purchase_completed.connect(_on_purchase_completed)
 	monetization.purchase_failed.connect(_show_toast)
+	monetization.restore_completed.connect(_show_toast)
 	monetization.rewarded_completed.connect(_on_rewarded_completed)
 	monetization.rewarded_unavailable.connect(_show_toast)
 	sfx.set_enabled(game.sound_enabled)
@@ -1121,9 +1122,8 @@ func _show_offline_dialog() -> void:
 	if not game.no_ads:
 		var double_button := _settings_button("2× OFFLINE-ERTRAG", "Optionales Werbevideo ansehen und Ertrag verdoppeln")
 		double_button.pressed.connect(func() -> void:
-			double_button.disabled = true
 			rewarded_context = "offline"
-			monetization.show_rewarded_ad()
+			monetization.show_rewarded_ad("offline")
 		)
 		box.add_child(double_button)
 
@@ -1227,6 +1227,10 @@ func _show_settings() -> void:
 		game.set_preference("reduced_motion", not game.reduced_motion)
 		refresh.call()
 	)
+	var privacy_button := _settings_button("DATENSCHUTZOPTIONEN", "Einwilligung für optionale Belohnungswerbung verwalten")
+	privacy_button.visible = monetization.privacy_options_required()
+	privacy_button.pressed.connect(monetization.show_privacy_options)
+	box.add_child(privacy_button)
 	var tutorial_button := _settings_button("TUTORIAL ERNEUT ANSEHEN", "Die vier Schnellstart-Schritte erneut öffnen")
 	tutorial_button.pressed.connect(func() -> void:
 		sfx.play_cue("click")
@@ -1314,22 +1318,28 @@ func _show_store() -> void:
 	box.add_child(description)
 	var ad_boost := _settings_button("2× EINNAHMEN · 10 MIN.", "Optionales Belohnungsvideo – kein Zwang, keine Unterbrecherwerbung")
 	ad_boost.pressed.connect(func() -> void:
-		ad_boost.disabled = true
 		rewarded_context = "boost"
-		monetization.show_rewarded_ad()
+		monetization.show_rewarded_ad("boost")
 	)
 	box.add_child(ad_boost)
-	var no_ads_button := _settings_button("WERBEFREI KAUFEN", "Entfernt optionale Werbeangebote dauerhaft")
+	var no_ads_price := monetization.get_localized_price("de.kamilunavo.idlehandwerker.noads", "3,99 €")
+	var no_ads_button := _settings_button("WERBEFREI · %s" % no_ads_price, "Entfernt optionale Werbeangebote dauerhaft")
 	no_ads_button.disabled = game.no_ads
 	no_ads_button.pressed.connect(monetization.purchase.bind("de.kamilunavo.idlehandwerker.noads"))
 	box.add_child(no_ads_button)
-	var starter_button := _settings_button("STARTERPAKET", "2.500 € und 500 Bonusmarken – einmalig")
+	var starter_price := monetization.get_localized_price("de.kamilunavo.idlehandwerker.starter", "4,99 €")
+	var starter_button := _settings_button("STARTERPAKET · %s" % starter_price, "2.500 € und 500 Bonusmarken – einmalig")
 	starter_button.disabled = game.starter_pack_claimed
 	starter_button.pressed.connect(monetization.purchase.bind("de.kamilunavo.idlehandwerker.starter"))
 	box.add_child(starter_button)
-	var token_button := _settings_button("250 BONUSMARKEN", "Kleines Markenpaket")
+	var small_price := monetization.get_localized_price("de.kamilunavo.idlehandwerker.tokens.small", "1,99 €")
+	var token_button := _settings_button("250 BONUSMARKEN · %s" % small_price, "Kleines Markenpaket")
 	token_button.pressed.connect(monetization.purchase.bind("de.kamilunavo.idlehandwerker.tokens.small"))
 	box.add_child(token_button)
+	var large_price := monetization.get_localized_price("de.kamilunavo.idlehandwerker.tokens.large", "6,99 €")
+	var large_token_button := _settings_button("1.200 BONUSMARKEN · %s" % large_price, "Großes Markenpaket mit besserem Gegenwert")
+	large_token_button.pressed.connect(monetization.purchase.bind("de.kamilunavo.idlehandwerker.tokens.large"))
+	box.add_child(large_token_button)
 	var restore_button := _settings_button("KÄUFE WIEDERHERSTELLEN", "Frühere nicht verbrauchbare Käufe wiederherstellen")
 	restore_button.pressed.connect(monetization.restore_purchases)
 	box.add_child(restore_button)
