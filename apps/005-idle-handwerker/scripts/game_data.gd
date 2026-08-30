@@ -192,6 +192,15 @@ const JOBS: Array[Dictionary] = [
 		"location": "industrial_park",
 		"color": Color("f0c85c"),
 	},
+	{"id":"hotel_wing","title":"Hoteltrakt kernsanieren","customer":"Grand Hotel Elbe","icon":"HT","duration":3600.0,"cooldown":10800.0,"reward":76000.0,"xp":2800,"level":20,"reputation":1800,"major":true,"location":"harbor","color":Color("48b9b0")},
+	{"id":"harbor_heat","title":"Hafenlager beheizen","customer":"Nordkai Logistik","icon":"HL","duration":2100.0,"cooldown":5400.0,"reward":34000.0,"xp":1550,"level":18,"location":"harbor","color":Color("4fb2cf")},
+	{"id":"ship_service","title":"Schiffsanlage warten","customer":"Hanseatic Marine","icon":"SM","duration":3000.0,"cooldown":7200.0,"reward":58000.0,"xp":2300,"level":22,"reputation":2300,"major":true,"location":"harbor","color":Color("3987c6")},
+	{"id":"airport_terminal","title":"Terminaltechnik erneuern","customer":"Airport Services","icon":"AT","duration":5400.0,"cooldown":14400.0,"reward":130000.0,"xp":4300,"level":26,"reputation":3500,"major":true,"location":"airport","color":Color("8c9df0")},
+	{"id":"hangar_climate","title":"Hangarklima optimieren","customer":"AeroTech GmbH","icon":"HG","duration":3300.0,"cooldown":9000.0,"reward":82000.0,"xp":3000,"level":25,"location":"airport","color":Color("7888dc")},
+	{"id":"data_center","title":"Rechenzentrum kühlen","customer":"Cloudwerk Europe","icon":"DC","duration":7200.0,"cooldown":21600.0,"reward":240000.0,"xp":6800,"level":31,"reputation":6200,"major":true,"location":"tech_park","color":Color("b56be8")},
+	{"id":"research_lab","title":"Forschungslabor ausstatten","customer":"NovaLab Institute","icon":"FL","duration":6000.0,"cooldown":18000.0,"reward":185000.0,"xp":5600,"level":29,"location":"tech_park","color":Color("a36ee4")},
+	{"id":"district_network","title":"Fernwärmenetz ausbauen","customer":"Metropol Energie","icon":"FN","duration":10800.0,"cooldown":28800.0,"reward":520000.0,"xp":12000,"level":38,"reputation":12000,"major":true,"location":"metropolis","color":Color("ef8a55")},
+	{"id":"skyline_tower","title":"Skyline-Tower versorgen","customer":"Kronberg Development","icon":"ST","duration":14400.0,"cooldown":43200.0,"reward":950000.0,"xp":19000,"level":42,"reputation":18000,"major":true,"location":"metropolis","color":Color("f1b84a")},
 ]
 
 const REVIEW_TEXTS: Dictionary = {
@@ -233,6 +242,10 @@ const LOCATIONS: Array[Dictionary] = [
 		"multiplier": 1.55,
 		"code": "04",
 	},
+	{"id":"harbor","title":"Hafenquartier","subtitle":"Logistik, Hotels und maritime Großanlagen","level":18,"multiplier":1.72,"code":"05"},
+	{"id":"airport","title":"Flughafencity","subtitle":"Terminals, Hangars und internationale Kunden","level":25,"multiplier":1.94,"code":"06"},
+	{"id":"tech_park","title":"Technologiepark","subtitle":"Labore, Rechenzentren und Präzisionstechnik","level":29,"multiplier":2.18,"code":"07"},
+	{"id":"metropolis","title":"Metropole","subtitle":"Stadtweite Netze und die größten Bauprojekte","level":38,"multiplier":2.55,"code":"08"},
 ]
 
 const DAILY_MISSIONS: Array[Dictionary] = [
@@ -241,6 +254,8 @@ const DAILY_MISSIONS: Array[Dictionary] = [
 	{"id": "invest", "title": "In die Zukunft", "description": "3 Verbesserungen kaufen", "target": 3.0, "reward": 400.0, "metric": "upgrades"},
 	{"id": "streak", "title": "Zuverlässige Woche", "description": "Eine 4er-Auftragsserie erreichen", "target": 4.0, "reward": 300.0, "metric": "streak"},
 	{"id": "quality", "title": "Saubere Arbeit", "description": "Mindestens 85 % Qualität erreichen", "target": 85.0, "reward": 325.0, "metric": "quality"},
+	{"id":"jobs_long","title":"Langer Arbeitstag","description":"12 Aufträge abschließen","target":12.0,"reward":850.0,"metric":"jobs"},
+	{"id":"earnings_big","title":"Umsatzkönig","description":"15.000 € verdienen","target":15000.0,"reward":1200.0,"metric":"earnings"},
 ]
 
 const ACHIEVEMENTS: Array[Dictionary] = [
@@ -262,6 +277,21 @@ const ACHIEVEMENTS: Array[Dictionary] = [
 	{"id": "reputation_1200", "title": "Überregional gefragt", "description": "1.200 Reputation erreichen", "target": 1200.0, "metric": "reputation", "reward": 6000.0},
 	{"id": "major_three", "title": "Großprojekt-Profi", "description": "3 Großprojekte abschließen", "target": 3.0, "metric": "major", "reward": 5000.0},
 	{"id": "streak_ten", "title": "Unaufhaltsam", "description": "Eine 10er-Auftragsserie erreichen", "target": 10.0, "metric": "streak", "reward": 2800.0},
+	{"id":"jobs_150","title":"Dauerbrenner","description":"150 Aufträge erledigen","target":150.0,"metric":"jobs","reward":6000.0},
+	{"id":"jobs_300","title":"Volle Auftragsbücher","description":"300 Aufträge erledigen","target":300.0,"metric":"jobs","reward":15000.0},
+	{"id":"jobs_750","title":"Handwerkslegende","description":"750 Aufträge erledigen","target":750.0,"metric":"jobs","reward":40000.0},
+	{"id":"earn_1m","title":"Erste Million","description":"1.000.000 € insgesamt verdienen","target":1000000.0,"metric":"lifetime","reward":30000.0},
+	{"id":"earn_10m","title":"Bauimperium","description":"10.000.000 € insgesamt verdienen","target":10000000.0,"metric":"lifetime","reward":120000.0},
+	{"id":"team_25","title":"Großbetrieb","description":"25 Mitarbeiter beschäftigen","target":25.0,"metric":"team","reward":18000.0},
+	{"id":"team_50","title":"Unternehmensgruppe","description":"50 Mitarbeiter beschäftigen","target":50.0,"metric":"team","reward":50000.0},
+	{"id":"rep_2500","title":"Landesweit gefragt","description":"2.500 Ruf erreichen","target":2500.0,"metric":"reputation","reward":16000.0},
+	{"id":"rep_7500","title":"Branchenname","description":"7.500 Ruf erreichen","target":7500.0,"metric":"reputation","reward":45000.0},
+	{"id":"major_10","title":"Projektgigant","description":"10 Großprojekte abschließen","target":10.0,"metric":"major","reward":25000.0},
+	{"id":"major_25","title":"Infrastruktur-Profi","description":"25 Großprojekte abschließen","target":25.0,"metric":"major","reward":80000.0},
+	{"id":"streak_25","title":"Perfekter Lauf","description":"Eine 25er-Serie erreichen","target":25.0,"metric":"streak","reward":15000.0},
+	{"id":"mastery_1","title":"Meisterbrief","description":"Ersten Meisterpunkt verdienen","target":1.0,"metric":"mastery","reward":5000.0},
+	{"id":"prestige_3","title":"Dritte Generation","description":"Dreimal neu gründen","target":3.0,"metric":"prestige","reward":25000.0},
+	{"id":"prestige_10","title":"Handwerksdynastie","description":"Zehnmal neu gründen","target":10.0,"metric":"prestige","reward":100000.0},
 ]
 
 const JOB_EVENTS: Array[Dictionary] = [
@@ -307,6 +337,9 @@ const REPUTATION_RANKS: Array[Dictionary] = [
 	{"title": "Gefragter Meisterbetrieb", "minimum": 150, "code": "R3"},
 	{"title": "Regionale Größe", "minimum": 350, "code": "R4"},
 	{"title": "Industrie-Partner", "minimum": 700, "code": "R5"},
+	{"title":"Überregional gefragt","minimum":1800,"code":"R6"},
+	{"title":"Infrastruktur-Profi","minimum":5000,"code":"R7"},
+	{"title":"Handwerkslegende","minimum":12000,"code":"R8"},
 ]
 
 const TEAM_RANKS: Array[Dictionary] = [
@@ -315,6 +348,8 @@ const TEAM_RANKS: Array[Dictionary] = [
 	{"title": "Einsatzgruppe", "minimum": 3, "quality_bonus": 2, "code": "T3"},
 	{"title": "Starker Betrieb", "minimum": 6, "quality_bonus": 3, "code": "T4"},
 	{"title": "Großes Montageteam", "minimum": 12, "quality_bonus": 5, "code": "T5"},
+	{"title":"Großbetrieb","minimum":25,"quality_bonus":7,"code":"T6"},
+	{"title":"Unternehmensgruppe","minimum":50,"quality_bonus":10,"code":"T7"},
 ]
 
 const UPGRADES: Array[Dictionary] = [
