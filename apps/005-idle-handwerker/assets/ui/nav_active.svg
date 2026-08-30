@@ -4,3 +4,9 @@
   <path d="M28 6H68" stroke="#94ecc0" stroke-opacity=".35" stroke-width="2" stroke-linecap="round"/>
   <circle cx="48" cy="12" r="2" fill="#62dfa0"/>
 </svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="96" height="72" viewBox="0 0 96 72">
+  <defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#174a6a"/><stop offset="1" stop-color="#0d2c43"/></linearGradient></defs>
+  <rect x="2" y="2" width="92" height="68" rx="20" fill="url(#g)" stroke="#35b9e6" stroke-opacity=".8" stroke-width="2"/>
+  <path d="M28 6H68" stroke="#a5e7f7" stroke-opacity=".4" stroke-width="2" stroke-linecap="round"/>
+  <circle cx="48" cy="12" r="2" fill="#f28c28"/>
+</svg>
