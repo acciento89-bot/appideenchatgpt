@@ -27,32 +27,3 @@ textures/vram_compression/import_etc2_astc=true
 
 [gui]
 theme/default_font_multichannel_signed_distance_field=false
-[application]
-config/name="Idle Handwerker"
-config/description="Baue deinen eigenen Handwerksbetrieb auf."
-config/version="1.1.0"
-config/icon="res://assets/branding/app_icon.svg"
-run/main_scene="res://main.tscn"
-
-[boot_splash]
-bg_color=Color(0.027, 0.063, 0.055, 1)
-image="res://assets/branding/launch_badge.svg"
-fullsize=false
-use_filter=true
-
-[display]
-window/size/viewport_width=430
-window/size/viewport_height=932
-window/size/window_width_override=430
-window/size/window_height_override=932
-window/stretch/mode="canvas_items"
-window/handheld/orientation=1
-
-[rendering]
-renderer/rendering_method="gl_compatibility"
-renderer/rendering_method.mobile="gl_compatibility"
-textures/default_filters/use_nearest_mipmap_filter=false
-textures/vram_compression/import_etc2_astc=true
-
-[gui]
-theme/default_font_multichannel_signed_distance_field=false
