@@ -27,6 +27,7 @@ var employees := {"azubi": 0, "monteur": 0, "meisterin": 0}
 var active_job_id := ""
 var active_job_remaining := 0.0
 var active_job_total := 0.0
+var job_cooldowns: Dictionary = {}
 var active_event_id := ""
 var offline_reward := 0.0
 var offline_elapsed_seconds := 0.0
@@ -34,11 +35,12 @@ var last_saved_unix := 0
 var current_location_id := "neighborhood"
 var tutorial_completed := false
 var daily_key := ""
-var daily_progress := {"jobs": 0.0, "earnings": 0.0, "upgrades": 0.0}
-var daily_claimed := {"jobs": false, "earnings": false, "invest": false}
+var daily_progress := {"jobs": 0.0, "earnings": 0.0, "upgrades": 0.0, "streak": 0.0, "quality": 0.0}
+var daily_claimed := {"jobs": false, "earnings": false, "invest": false, "streak": false, "quality": false}
 var achievements_claimed: Dictionary = {}
 var reputation := 0
 var active_contracts: Dictionary = {}
+var visited_locations: Dictionary = {"neighborhood": true}
 var customer_rating := 4.0
 var quality_samples := 0
 var last_job_quality := 0
@@ -88,6 +90,10 @@ func start_job(job_id: String) -> bool:
 	var job := get_job(job_id)
 	if job.is_empty():
 		return false
+	var cooldown_remaining := job_cooldown_remaining(job_id)
+	if cooldown_remaining > 0.0:
+		notice.emit("Dieser Auftrag ist in %s wieder verfügbar." % format_cooldown(cooldown_remaining))
+		return false
 	if level < int(job.level):
 		notice.emit("Ab Betriebsstufe %d verfügbar." % int(job.level))
 		return false
@@ -111,7 +117,7 @@ func start_job(job_id: String) -> bool:
 	return true
 
 
-func complete_active_job() -> void:
+func complete_active_job(cooldown_elapsed := 0.0) -> void:
 	var job := get_job(active_job_id)
 	if job.is_empty():
 		active_job_id = ""
@@ -129,9 +135,13 @@ func complete_active_job() -> void:
 	reputation += reputation_gain
 	if bool(job.get("major", false)):
 		completed_major_projects += 1
+	var remaining_cooldown := maxf(0.0, float(job.get("cooldown", 0.0)) - cooldown_elapsed)
+	job_cooldowns[str(job.id)] = int(Time.get_unix_time_from_system() + remaining_cooldown)
 	var review := _create_review(job, last_job_quality)
 	daily_progress.jobs = float(daily_progress.jobs) + 1.0
 	daily_progress.earnings = float(daily_progress.earnings) + reward
+	daily_progress.streak = maxf(float(daily_progress.get("streak", 0.0)), float(current_streak))
+	daily_progress.quality = maxf(float(daily_progress.get("quality", 0.0)), float(last_job_quality))
 	add_xp(int(round(float(job.xp) * active_event_xp_multiplier())))
 	active_job_id = ""
 	active_event_id = ""
@@ -241,12 +251,31 @@ func select_location(location_id: String) -> bool:
 		if active_job_id != "":
 			notice.emit("Standortwechsel erst nach dem laufenden Auftrag.")
 			return false
+		var opening_new_location := requires_location_restart(location_id)
+		if opening_new_location:
+			_reset_operating_progress()
 		current_location_id = location_id
-		notice.emit("Neuer Standort: %s" % location.title)
+		visited_locations[location_id] = true
+		notice.emit("Neuer Betriebsstart: %s" % location.title if opening_new_location else "Neuer Standort: %s" % location.title)
 		changed.emit()
 		save_game()
 		return true
 	return false
+
+
+func requires_location_restart(location_id: String) -> bool:
+	return location_id != current_location_id and not bool(visited_locations.get(location_id, false))
+
+
+func _reset_operating_progress() -> void:
+	money = 0.0
+	upgrades = {"tools": 0, "van": 0, "office": 0}
+	employees = {"azubi": 0, "monteur": 0, "meisterin": 0}
+	active_contracts.clear()
+	job_cooldowns.clear()
+	current_streak = 0
+	offline_reward = 0.0
+	offline_elapsed_seconds = 0.0
 
 
 func current_location() -> Dictionary:
@@ -319,6 +348,27 @@ func total_employees() -> int:
 	return total
 
 
+func team_rank() -> Dictionary:
+	var rank: Dictionary = GameData.TEAM_RANKS[0]
+	var team_size := total_employees()
+	for candidate in GameData.TEAM_RANKS:
+		if team_size >= int(candidate.minimum):
+			rank = candidate
+	return rank
+
+
+func next_team_rank() -> Dictionary:
+	var team_size := total_employees()
+	for candidate in GameData.TEAM_RANKS:
+		if team_size < int(candidate.minimum):
+			return candidate
+	return {}
+
+
+func team_quality_bonus() -> int:
+	return int(team_rank().quality_bonus)
+
+
 func completed_daily_missions() -> int:
 	var total := 0
 	for mission in GameData.DAILY_MISSIONS:
@@ -347,8 +397,8 @@ func _ensure_daily_state() -> void:
 	if daily_key == today:
 		return
 	daily_key = today
-	daily_progress = {"jobs": 0.0, "earnings": 0.0, "upgrades": 0.0}
-	daily_claimed = {"jobs": false, "earnings": false, "invest": false}
+	daily_progress = {"jobs": 0.0, "earnings": 0.0, "upgrades": 0.0, "streak": 0.0, "quality": 0.0}
+	daily_claimed = {"jobs": false, "earnings": false, "invest": false, "streak": false, "quality": false}
 
 
 func _update_streak() -> void:
@@ -427,6 +477,7 @@ func _calculate_job_quality(job: Dictionary) -> int:
 	var score := 70.0
 	score += float(upgrades.tools) * 4.0
 	score += float(upgrades.office) * 2.0
+	score += float(team_quality_bonus())
 	score += float(mini(current_streak, 5)) * 1.5
 	score += float(randi_range(-6, 8))
 	if active_event_id == "premium_material":
@@ -476,6 +527,23 @@ func active_job_progress() -> float:
 	return clampf(1.0 - active_job_remaining / active_job_total, 0.0, 1.0)
 
 
+func job_cooldown_remaining(job_id: String) -> float:
+	var available_at := int(job_cooldowns.get(job_id, 0))
+	return maxf(0.0, float(available_at - int(Time.get_unix_time_from_system())))
+
+
+func format_cooldown(seconds: float) -> String:
+	var total_seconds := maxi(0, int(ceil(seconds)))
+	var hours := int(total_seconds / 3600)
+	var minutes := int(total_seconds % 3600 / 60)
+	var remaining_seconds := total_seconds % 60
+	if hours > 0:
+		return "%d Std. %02d Min." % [hours, minutes]
+	if minutes > 0:
+		return "%d:%02d Min." % [minutes, remaining_seconds]
+	return "%d Sek." % remaining_seconds
+
+
 func claim_offline_reward() -> float:
 	var reward := offline_reward
 	money += reward
@@ -490,7 +558,7 @@ func claim_offline_reward() -> float:
 func save_game() -> void:
 	last_saved_unix = int(Time.get_unix_time_from_system())
 	var payload := {
-		"version": 5,
+		"version": 6,
 		"money": money,
 		"lifetime_earnings": lifetime_earnings,
 		"level": level,
@@ -504,6 +572,7 @@ func save_game() -> void:
 		"active_job_id": active_job_id,
 		"active_job_remaining": active_job_remaining,
 		"active_job_total": active_job_total,
+		"job_cooldowns": job_cooldowns,
 		"active_event_id": active_event_id,
 		"offline_reward": offline_reward,
 		"offline_elapsed_seconds": offline_elapsed_seconds,
@@ -516,6 +585,7 @@ func save_game() -> void:
 		"achievements_claimed": achievements_claimed,
 		"reputation": reputation,
 		"active_contracts": active_contracts,
+		"visited_locations": visited_locations,
 		"customer_rating": customer_rating,
 		"quality_samples": quality_samples,
 		"last_job_quality": last_job_quality,
@@ -559,6 +629,7 @@ func load_game() -> void:
 	active_job_id = str(parsed.get("active_job_id", ""))
 	active_job_remaining = maxf(0.0, float(parsed.get("active_job_remaining", 0.0)))
 	active_job_total = maxf(0.0, float(parsed.get("active_job_total", 0.0)))
+	job_cooldowns = parsed.get("job_cooldowns", {})
 	active_event_id = str(parsed.get("active_event_id", ""))
 	offline_reward = maxf(0.0, float(parsed.get("offline_reward", 0.0)))
 	offline_elapsed_seconds = maxf(0.0, float(parsed.get("offline_elapsed_seconds", 0.0)))
@@ -573,6 +644,8 @@ func load_game() -> void:
 	achievements_claimed = parsed.get("achievements_claimed", {})
 	reputation = maxi(0, int(parsed.get("reputation", completed_jobs * 4)))
 	active_contracts = parsed.get("active_contracts", {})
+	visited_locations = parsed.get("visited_locations", {"neighborhood": true})
+	visited_locations[current_location_id] = true
 	customer_rating = clampf(float(parsed.get("customer_rating", 4.0)), 1.0, 5.0)
 	quality_samples = maxi(0, int(parsed.get("quality_samples", 0)))
 	last_job_quality = clampi(int(parsed.get("last_job_quality", 0)), 0, 100)
@@ -586,6 +659,7 @@ func load_game() -> void:
 		offline_reward += passive_income_per_second() * elapsed * OFFLINE_EFFICIENCY
 		offline_elapsed_seconds = minf(OFFLINE_CAP_SECONDS, offline_elapsed_seconds + elapsed)
 		if active_job_id != "":
+			var remaining_before_offline := active_job_remaining
 			active_job_remaining = maxf(0.0, active_job_remaining - elapsed)
 			if active_job_remaining <= 0.0:
-				complete_active_job()
+				complete_active_job(maxf(0.0, elapsed - remaining_before_offline))
