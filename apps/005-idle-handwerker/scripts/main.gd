@@ -1452,11 +1452,16 @@ func _settings_button(title: String, description: String) -> Button:
 	button.tooltip_text = description
 	button.custom_minimum_size.y = 66
 	button.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	button.focus_mode = Control.FOCUS_NONE
 	button.add_theme_font_size_override("font_size", 12)
 	button.add_theme_color_override("font_color", TEXT)
+	button.add_theme_color_override("font_hover_color", TEXT)
+	button.add_theme_color_override("font_pressed_color", TEXT)
 	button.add_theme_stylebox_override("normal", UiSkin.panel())
 	button.add_theme_stylebox_override("hover", UiSkin.active_nav())
-	button.add_theme_stylebox_override("pressed", UiSkin.pressed_button())
+	# A ScrollContainer initially sends the touch to the child button. Keeping the
+	# pressed skin identical prevents false tap feedback while the finger drags.
+	button.add_theme_stylebox_override("pressed", UiSkin.panel())
 	button.text = title
 	return button
 
