@@ -1,6 +1,9 @@
 name: Idle Handwerker TestFlight
 
 on:
+  push:
+    branches:
+      - release/idle-handwerker-build13
   workflow_dispatch:
     inputs:
       build:
@@ -34,7 +37,7 @@ env:
   APP_NAME: Idle Handwerker
   APP_VERSION: 1.3.0
   APP_SKU: KAMILUNAVO-IDLE-HANDWERKER-IOS
-  PRODUCTION_ADS: ${{ inputs.production_ads }}
+  PRODUCTION_ADS: ${{ inputs.production_ads || false }}
 
 jobs:
   upload:
@@ -62,7 +65,7 @@ jobs:
       - name: Preflight
         shell: bash
         env:
-          REQUESTED_BUILD: ${{ inputs.build }}
+          REQUESTED_BUILD: ${{ inputs.build || '13' }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_PRIVATE_KEY_B64: ${{ secrets.ASC_PRIVATE_KEY_B64 }}
