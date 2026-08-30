@@ -5,6 +5,7 @@ const SAMPLE_RATE := 22050
 
 var _player: AudioStreamPlayer
 var _streams: Dictionary = {}
+var enabled := true
 
 
 func _ready() -> void:
@@ -22,10 +23,16 @@ func _ready() -> void:
 
 
 func play_cue(cue: String) -> void:
-	if not _streams.has(cue):
+	if not enabled or not _streams.has(cue):
 		return
 	_player.stream = _streams[cue]
 	_player.play()
+
+
+func set_enabled(value: bool) -> void:
+	enabled = value
+	if not enabled and _player:
+		_player.stop()
 
 
 func _make_tone(frequencies: Array[float], note_duration: float, volume: float) -> AudioStreamWAV:

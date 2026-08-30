@@ -55,6 +55,13 @@ jobs:
           "$GODOT" --headless --path "$PROJECT_DIR" --script res://tests/test_economy.gd 2>&1 | tee godot-tests.log
           grep -q "All economy tests passed." godot-tests.log
 
+      - name: Run responsive UI smoke tests
+        shell: bash
+        run: |
+          set -o pipefail
+          "$GODOT" --headless --path "$PROJECT_DIR" --script res://tests/test_ui_smoke.gd 2>&1 | tee godot-ui-tests.log
+          grep -q "All responsive UI smoke tests passed." godot-ui-tests.log
+
       - name: Upload failure logs
         if: failure()
         uses: actions/upload-artifact@v4
@@ -63,5 +70,5 @@ jobs:
           path: |
             godot-import.log
             godot-tests.log
+            godot-ui-tests.log
           if-no-files-found: ignore
-

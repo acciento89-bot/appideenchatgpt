@@ -101,6 +101,12 @@ func _init() -> void:
 	if int(review.stars) != 5 or game.recent_reviews.is_empty():
 		failures += 1
 		printerr("FAIL: excellent work should create five-star review")
+	game.set_preference("sound", false)
+	game.set_preference("haptics", false)
+	game.set_preference("reduced_motion", true)
+	if game.sound_enabled or game.haptics_enabled or not game.reduced_motion:
+		failures += 1
+		printerr("FAIL: accessibility preferences should persist in state")
 	game.free()
 	if failures == 0:
 		print("All economy tests passed.")

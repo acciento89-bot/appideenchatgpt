@@ -36,6 +36,11 @@ Ein mobiles Idle-Game von Kamilunavo Games: Vom tropfenden Wasserhahn zum eigene
 - Qualitätsbonus auf Lohn und Reputation
 - vier mehrstufig gesperrte Großprojekte bis zur Klinik-Energiezentrale
 - eigene Großprojekt-Darstellung in Auftragsbörse und Werkstattszene
+- responsive Layoutanpassung für kleine und große iPhone-Portraitformate
+- automatische Safe-Area-Abstände für Dynamic Island und Home Indicator
+- gespeicherte Optionen für Sound, Haptik und reduzierte Bewegung
+- flüssige, optional deaktivierbare Menüübergänge
+- automatischer UI-Smoke-Test über vier relevante Displaygrößen und alle Hauptbereiche
 
 ## Start
 

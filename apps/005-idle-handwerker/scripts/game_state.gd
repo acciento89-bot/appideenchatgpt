@@ -42,6 +42,9 @@ var quality_samples := 0
 var last_job_quality := 0
 var completed_major_projects := 0
 var recent_reviews: Array = []
+var sound_enabled := true
+var haptics_enabled := true
+var reduced_motion := false
 var _autosave_elapsed := 0.0
 
 
@@ -326,6 +329,16 @@ func finish_tutorial() -> void:
 	save_game()
 
 
+func set_preference(preference: String, enabled: bool) -> void:
+	match preference:
+		"sound": sound_enabled = enabled
+		"haptics": haptics_enabled = enabled
+		"reduced_motion": reduced_motion = enabled
+		_: return
+	changed.emit()
+	save_game()
+
+
 func _ensure_daily_state() -> void:
 	var today := Time.get_date_string_from_system()
 	if daily_key == today:
@@ -470,7 +483,7 @@ func claim_offline_reward() -> float:
 func save_game() -> void:
 	last_saved_unix = int(Time.get_unix_time_from_system())
 	var payload := {
-		"version": 4,
+		"version": 5,
 		"money": money,
 		"lifetime_earnings": lifetime_earnings,
 		"level": level,
@@ -499,6 +512,9 @@ func save_game() -> void:
 		"last_job_quality": last_job_quality,
 		"completed_major_projects": completed_major_projects,
 		"recent_reviews": recent_reviews,
+		"sound_enabled": sound_enabled,
+		"haptics_enabled": haptics_enabled,
+		"reduced_motion": reduced_motion,
 	}
 	var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if file:
@@ -545,6 +561,9 @@ func load_game() -> void:
 	last_job_quality = clampi(int(parsed.get("last_job_quality", 0)), 0, 100)
 	completed_major_projects = maxi(0, int(parsed.get("completed_major_projects", 0)))
 	recent_reviews = parsed.get("recent_reviews", [])
+	sound_enabled = bool(parsed.get("sound_enabled", true))
+	haptics_enabled = bool(parsed.get("haptics_enabled", true))
+	reduced_motion = bool(parsed.get("reduced_motion", false))
 	var elapsed := clampf(float(Time.get_unix_time_from_system() - last_saved_unix), 0.0, OFFLINE_CAP_SECONDS)
 	if elapsed > 10.0:
 		offline_reward = passive_income_per_second() * elapsed
