@@ -47,6 +47,14 @@ func _run() -> void:
 		if nav_buttons.size() != 5:
 			failures += 1
 			printerr("FAIL: expected five navigation targets at %s" % device_size)
+		var settings_button: Button = app.get("settings_button")
+		var store_button: Button = app.get("store_button")
+		if not settings_button or settings_button.text != "" or not settings_button.icon:
+			failures += 1
+			printerr("FAIL: settings header action is not a gear icon at %s" % device_size)
+		if not store_button or store_button.text != "SHOP":
+			failures += 1
+			printerr("FAIL: shop is not a separate header action at %s" % device_size)
 		for tab_id in ["betrieb", "auftraege", "ausbau", "team", "ziele"]:
 			app.call("_switch_tab", tab_id)
 			await process_frame
@@ -96,6 +104,33 @@ func _run() -> void:
 		if not has_settings_scroll:
 			failures += 1
 			printerr("FAIL: settings are not touch-scrollable at %s" % device_size)
+		for forbidden_shop_button in ["WERBEFREI KAUFEN", "STARTERPAKET", "250 BONUSMARKEN"]:
+			if _has_button(app, forbidden_shop_button):
+				failures += 1
+				printerr("FAIL: shop action '%s' still appears inside settings at %s" % [forbidden_shop_button, device_size])
+		var settings_close := _find_button(app, "X")
+		if not settings_close:
+			failures += 1
+			printerr("FAIL: pinned settings close button is missing at %s" % device_size)
+		else:
+			settings_close.pressed.emit()
+			await process_frame
+			if _has_label(app, "Optionen"):
+				failures += 1
+				printerr("FAIL: settings cannot be closed at %s" % device_size)
+		app.call("_show_store")
+		await process_frame
+		for expected_shop_button in ["WERBEFREI KAUFEN", "STARTERPAKET", "250 BONUSMARKEN", "SHOP SCHLIESSEN"]:
+			if not _has_button(app, expected_shop_button):
+				failures += 1
+				printerr("FAIL: separate shop action '%s' is missing at %s" % [expected_shop_button, device_size])
+		var shop_close := _find_button(app, "SHOP SCHLIESSEN")
+		if shop_close:
+			shop_close.pressed.emit()
+			await process_frame
+			if _has_label(app, "Bonus & Käufe"):
+				failures += 1
+				printerr("FAIL: shop cannot be closed at %s" % device_size)
 		app.call("_show_location_restart_confirmation", "downtown")
 		await process_frame
 		for expected_text in ["SHK · BETRIEBSENTSCHEIDUNG", "NEUER STANDORT · 02"]:
@@ -143,12 +178,17 @@ func _all_labels(node: Node) -> Array[Label]:
 
 
 func _has_button(node: Node, text: String) -> bool:
+	return _find_button(node, text) != null
+
+
+func _find_button(node: Node, text: String) -> Button:
 	for child in node.get_children():
 		if child is Button and child.text == text:
-			return true
-		if _has_button(child, text):
-			return true
-	return false
+			return child
+		var nested := _find_button(child, text)
+		if nested:
+			return nested
+	return null
 
 
 func _has_label(node: Node, text: String) -> bool:
