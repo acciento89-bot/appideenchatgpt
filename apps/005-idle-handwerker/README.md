@@ -102,3 +102,8 @@ Das Projekt nutzt Godot und GDScript ohne Expo. Für den späteren iOS-Export ka
 - Zahnrad statt `OPT`, eigener `SHOP`-Button im Header
 - Shop vollständig aus den Spieleinstellungen entfernt und als eigenes SHK-Fenster umgesetzt
 - Optionen und Shop besitzen jeweils dauerhaft sichtbare obere und untere Schließen-Aktionen
+
+## Build 11 – Scroll-Interaktion
+
+- Einträge in Optionen und Shop zeigen beim vertikalen Scrollen keinen falschen gedrückten Zustand mehr
+- Touch-Fokus bleibt nicht mehr als scheinbare Auswahl auf einem Shop- oder Optionspunkt stehen
