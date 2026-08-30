@@ -17,6 +17,7 @@ var content: VBoxContainer
 var money_label: Label
 var level_label: Label
 var income_label: Label
+var reputation_label: Label
 var progress_bar: ProgressBar
 var job_label: Label
 var job_time_label: Label
@@ -127,12 +128,19 @@ func _build_header() -> Control:
 
 	var balance := VBoxContainer.new()
 	balance.alignment = BoxContainer.ALIGNMENT_CENTER
+	balance.custom_minimum_size.x = 92
 	money_label = _label("120 €", 20, TEXT, true)
 	money_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	money_label.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
 	balance.add_child(money_label)
 	income_label = _label("+0 €/s", 11, GREEN)
 	income_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	income_label.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
 	balance.add_child(income_label)
+	reputation_label = _label("0 Ruf", 11, GOLD, true)
+	reputation_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	reputation_label.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
+	balance.add_child(reputation_label)
 	header_row.add_child(balance)
 
 	settings_button = Button.new()
@@ -220,7 +228,7 @@ func _animate_tab_content() -> void:
 func _apply_responsive_layout() -> void:
 	if not header_margin or not body_margin or not nav_margin:
 		return
-	var compact := get_viewport_rect().size.x <= 370.0
+	var compact := get_viewport_rect().size.x <= 480.0
 	var side := 12 if compact else 20
 	var safe_top := 0
 	var safe_bottom := 0
@@ -245,6 +253,7 @@ func _apply_responsive_layout() -> void:
 	brand_title.add_theme_font_size_override("font_size", 17 if compact else 23)
 	money_label.add_theme_font_size_override("font_size", 16 if compact else 20)
 	income_label.add_theme_font_size_override("font_size", 9 if compact else 11)
+	reputation_label.add_theme_font_size_override("font_size", 9 if compact else 11)
 	settings_button.custom_minimum_size = Vector2(40, 40) if compact else Vector2(44, 44)
 
 
@@ -584,7 +593,7 @@ func _contract_card(contract: Dictionary) -> Control:
 func _workshop_progress_card() -> Control:
 	var card := _card_container()
 	var box: VBoxContainer = card.get_child(0).get_child(0)
-	var row := HBoxContainer.new()
+	var row: BoxContainer = VBoxContainer.new() if _is_compact() else HBoxContainer.new()
 	row.add_theme_constant_override("separation", 12)
 	var preview := WorkshopVisual.new()
 	preview.custom_minimum_size = Vector2(150, 112)
@@ -593,8 +602,12 @@ func _workshop_progress_card() -> Control:
 	var copy := VBoxContainer.new()
 	copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	copy.add_child(_label("DEINE WERKSTATT", 13, GOLD, true))
-	copy.add_child(_label("Jeder Ausbau wird im Betrieb sichtbar.", 11, MUTED))
-	copy.add_child(_label("Werkzeug %d  ·  Fuhrpark %d  ·  Büro %d" % [int(game.upgrades.tools), int(game.upgrades.van), int(game.upgrades.office)], 11, GREEN, true))
+	var workshop_copy := _label("Jeder Ausbau wird im Betrieb sichtbar.", 11, MUTED)
+	workshop_copy.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
+	copy.add_child(workshop_copy)
+	var workshop_levels := _label("Werkzeug %d  ·  Fuhrpark %d  ·  Büro %d" % [int(game.upgrades.tools), int(game.upgrades.van), int(game.upgrades.office)], 11, GREEN, true)
+	workshop_levels.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
+	copy.add_child(workshop_levels)
 	copy.add_child(_label("Team vor Ort: %d" % game.total_employees(), 11, TEXT, true))
 	row.add_child(copy)
 	box.add_child(row)
@@ -612,7 +625,9 @@ func _upgrade_card(upgrade: Dictionary) -> Control:
 	var copy := VBoxContainer.new()
 	copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	copy.add_child(_label(str(upgrade.title), 15, TEXT, true))
-	copy.add_child(_label(str(upgrade.description), 11, MUTED))
+	var description := _label(str(upgrade.description), 11, MUTED)
+	description.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
+	copy.add_child(description)
 	copy.add_child(_label("Stufe %d" % level, 11, GOLD, true))
 	row.add_child(copy)
 	var button := Button.new()
@@ -720,6 +735,7 @@ func _update_live_header() -> void:
 		money_label.text = GameData.format_money(game.money, true)
 		last_money_display = game.money
 	income_label.text = "+%s /s" % GameData.format_money(game.passive_income_per_second(), true)
+	reputation_label.text = "%d Ruf" % game.reputation
 	if level_label:
 		level_label.text = "STUFE %d" % game.level
 
@@ -1191,7 +1207,7 @@ func _forward_touch_scrolling(node: Node) -> void:
 
 
 func _is_compact() -> bool:
-	return get_viewport_rect().size.x <= 370.0
+	return get_viewport_rect().size.x <= 480.0
 
 
 func _box(color: Color, radius: int, border_color := Color.TRANSPARENT, border_width := 0) -> StyleBoxFlat:
