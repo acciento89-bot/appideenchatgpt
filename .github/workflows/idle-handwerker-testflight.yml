@@ -143,8 +143,9 @@ jobs:
             "https://github.com/godotengine/godot/archive/refs/tags/$GODOT_TAG.zip"
           unzip -q "$RUNNER_TEMP/godot-source.zip" -d "$RUNNER_TEMP/godot-source"
           mv "$RUNNER_TEMP/godot-source/godot-$GODOT_TAG" "$STOREKIT_SOURCE/godot"
-          python3 -m pip install --disable-pip-version-check scons
-          scons -C "$STOREKIT_SOURCE/godot" platform=ios target=editor -j3
+          python3 -m venv "$RUNNER_TEMP/storekit-venv"
+          "$RUNNER_TEMP/storekit-venv/bin/pip" install --disable-pip-version-check scons
+          "$RUNNER_TEMP/storekit-venv/bin/scons" -C "$STOREKIT_SOURCE/godot" platform=ios target=editor -j3
           (
             cd "$STOREKIT_SOURCE"
             ./scripts/generate_xcframework.sh inappstore release 4.0
