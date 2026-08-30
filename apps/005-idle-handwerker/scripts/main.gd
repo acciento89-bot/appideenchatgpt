@@ -12,6 +12,7 @@ const RED := Color("ef756b")
 
 var game: GameState
 var sfx: SfxBank
+var monetization: MonetizationBridge
 var current_tab := "betrieb"
 var content: VBoxContainer
 var money_label: Label
@@ -36,6 +37,7 @@ var brand_title: Label
 var settings_button: Button
 var main_scroll: ScrollContainer
 var app_font: FontFile
+var rewarded_context := "boost"
 
 
 func _ready() -> void:
@@ -49,6 +51,12 @@ func _ready() -> void:
 	add_child(game)
 	sfx = SfxBank.new()
 	add_child(sfx)
+	monetization = MonetizationBridge.new()
+	add_child(monetization)
+	monetization.purchase_completed.connect(_on_purchase_completed)
+	monetization.purchase_failed.connect(_show_toast)
+	monetization.rewarded_completed.connect(_on_rewarded_completed)
+	monetization.rewarded_unavailable.connect(_show_toast)
 	sfx.set_enabled(game.sound_enabled)
 	game.job_completed.connect(_on_job_completed)
 	game.job_event_started.connect(_on_job_event_started)
@@ -386,6 +394,7 @@ func _build_team() -> void:
 
 func _build_goals() -> void:
 	content.add_child(_page_intro("Ziele & Erfolge", "Klare Etappen, tägliche Belohnungen und dauerhafte Meilensteine."))
+	content.add_child(_mastery_card())
 	content.add_child(_highlight_card("HEUTIGER FORTSCHRITT", "%d / %d Ziele" % [game.completed_daily_missions(), GameData.DAILY_MISSIONS.size()], "Neue Tagesziele am nächsten Kalendertag"))
 	content.add_child(_section_title("Tagesziele", "HEUTE"))
 	for mission in GameData.DAILY_MISSIONS:
@@ -397,6 +406,33 @@ func _build_goals() -> void:
 		content.add_child(_section_title("Letzte Kundenstimmen", "BEWERTUNGEN"))
 		for review in game.recent_reviews:
 			content.add_child(_review_card(review))
+
+
+func _mastery_card() -> Control:
+	var card := _card_container()
+	var box: VBoxContainer = card.get_child(0).get_child(0)
+	box.add_child(_label("MEISTERBRIEF · PRESTIGE", 10, GOLD, true))
+	box.add_child(_label("%d Meisterpunkte · %d Neugründungen" % [game.mastery_points, game.prestige_count], 18, TEXT, true))
+	var effect := _label("Dauerhaft +4 % auf alle Einnahmen je Meisterpunkt. Der operative Betrieb startet neu, deine Meisterpunkte bleiben.", 11, MUTED)
+	effect.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	effect.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
+	box.add_child(effect)
+	var status := _label("Benötigt: Stufe %d und %s Firmenwert" % [GameState.PRESTIGE_LEVEL, GameData.format_money(GameState.PRESTIGE_VALUE)], 10, GREEN, true)
+	status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	box.add_child(status)
+	var button := Button.new()
+	button.text = "MEISTERBRIEF ERHALTEN" if game.can_prestige() else "NOCH NICHT BEREIT"
+	button.custom_minimum_size.y = 52
+	_style_small_button(button)
+	button.disabled = not game.can_prestige()
+	button.pressed.connect(func() -> void:
+		if game.perform_prestige():
+			sfx.play_cue("level")
+			_show_reward_burst("MEISTERBRIEF ERHALTEN", GOLD)
+			_switch_tab("betrieb")
+	)
+	box.add_child(button)
+	return card
 
 
 func _job_card(job: Dictionary) -> Control:
@@ -1051,7 +1087,7 @@ func _show_offline_dialog() -> void:
 	var reward_label := _label(GameData.format_money(pending_reward, true), 30, GOLD, true)
 	reward_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(reward_label)
-	var detail := _label("50 % Offline-Effizienz · maximal 8 Stunden", 10, GREEN, true)
+	var detail := _label("35 % Offline-Effizienz · maximal 8 Stunden", 10, GREEN, true)
 	detail.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(detail)
 	var collect := Button.new()
@@ -1071,6 +1107,14 @@ func _show_offline_dialog() -> void:
 		_show_toast("Offline-Ertrag: +%s" % GameData.format_money(collected, true))
 	)
 	box.add_child(collect)
+	if not game.no_ads:
+		var double_button := _settings_button("2× OFFLINE-ERTRAG", "Optionales Werbevideo ansehen und Ertrag verdoppeln")
+		double_button.pressed.connect(func() -> void:
+			double_button.disabled = true
+			rewarded_context = "offline"
+			monetization.show_rewarded_ad()
+		)
+		box.add_child(double_button)
 
 
 func _format_offline_duration(seconds: float) -> String:
@@ -1160,8 +1204,30 @@ func _show_settings() -> void:
 		_show_tutorial()
 	)
 	box.add_child(tutorial_button)
+	box.add_child(_label("SHOP & OPTIONALE BONUSSE", 10, GOLD, true))
+	var ad_boost := _settings_button("2× EINNAHMEN · 10 MIN.", "Optionales Belohnungsvideo – kein Zwang, keine Unterbrecherwerbung")
+	ad_boost.pressed.connect(func() -> void:
+		ad_boost.disabled = true
+		rewarded_context = "boost"
+		monetization.show_rewarded_ad()
+	)
+	box.add_child(ad_boost)
+	var no_ads_button := _settings_button("WERBEFREI KAUFEN", "Entfernt optionale Werbeangebote dauerhaft")
+	no_ads_button.disabled = game.no_ads
+	no_ads_button.pressed.connect(monetization.purchase.bind("de.kamilunavo.idlehandwerker.noads"))
+	box.add_child(no_ads_button)
+	var starter_button := _settings_button("STARTERPAKET", "2.500 € und 500 Bonusmarken – einmalig")
+	starter_button.disabled = game.starter_pack_claimed
+	starter_button.pressed.connect(monetization.purchase.bind("de.kamilunavo.idlehandwerker.starter"))
+	box.add_child(starter_button)
+	var token_button := _settings_button("250 BONUSMARKEN", "Kleines Markenpaket")
+	token_button.pressed.connect(monetization.purchase.bind("de.kamilunavo.idlehandwerker.tokens.small"))
+	box.add_child(token_button)
+	var restore_button := _settings_button("KÄUFE WIEDERHERSTELLEN", "Frühere nicht verbrauchbare Käufe wiederherstellen")
+	restore_button.pressed.connect(monetization.restore_purchases)
+	box.add_child(restore_button)
 	var version := str(ProjectSettings.get_setting("application/config/version", "1.0.0"))
-	var privacy := _label("VERSION %s\nLokal gespeichert · keine Anmeldung · keine Werbung · kein Tracking" % version, 10, MUTED)
+	var privacy := _label("VERSION %s\nLokal gespeichert · keine Anmeldung · Werbung nur nach deiner Auswahl" % version, 10, MUTED)
 	privacy.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	privacy.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
 	box.add_child(privacy)
@@ -1185,6 +1251,24 @@ func _show_settings() -> void:
 	)
 	box.add_child(close)
 	_forward_touch_scrolling(box)
+
+
+func _on_purchase_completed(product_id: String, transaction_id: String) -> void:
+	if game.apply_purchase(product_id, transaction_id):
+		sfx.play_cue("coin")
+		_haptic(80, 0.8)
+		_show_reward_burst("KAUF GUTGESCHRIEBEN", GOLD)
+
+
+func _on_rewarded_completed() -> void:
+	if rewarded_context == "offline" and game.offline_reward > 0.0:
+		game.offline_reward *= 2.0
+		_show_toast("Offline-Ertrag wurde verdoppelt.")
+	else:
+		game.activate_rewarded_boost(600)
+		_show_toast("Bonus aktiv: 2× Einnahmen für 10 Minuten.")
+	rewarded_context = "boost"
+	sfx.play_cue("coin")
 
 
 func _show_reset_confirmation(settings_overlay: Control) -> void:
