@@ -10,6 +10,7 @@ Ein mobiles Idle-Game von Kamilunavo Games: Vom tropfenden Wasserhahn zum eigene
 - Werkzeug-, Transporter- und Büro-Upgrades
 - drei Mitarbeitertypen mit passivem Einkommen
 - Offline-Einnahmen für bis zu acht Stunden
+- gebremste Offline-Ökonomie mit 50 Prozent Effizienz und bewusstem Einsammeln
 - lokaler Spielstand mit Autosave
 - portraitoptimierte, responsive Godot-UI
 - deutsch formatierte Preise und direktes Spiel-Feedback
@@ -39,6 +40,9 @@ Ein mobiles Idle-Game von Kamilunavo Games: Vom tropfenden Wasserhahn zum eigene
 - responsive Layoutanpassung für kleine und große iPhone-Portraitformate
 - automatische Safe-Area-Abstände für Dynamic Island und Home Indicator
 - gespeicherte Optionen für Sound, Haptik und reduzierte Bewegung
+- Speichern beim App-Wechsel und beim Schließen
+- scrollbare Release-Einstellungen mit Tutorial-Wiederholung, lokaler Datenschutzinfo und bestätigtem Spielstand-Reset
+- eigener Rückkehrbildschirm im Werkstattdesign statt nativer Systemdialoge
 - flüssige, optional deaktivierbare Menüübergänge
 - automatischer UI-Smoke-Test über vier relevante Displaygrößen und alle Hauptbereiche
 - natives iOS-Export-Preset mit eigenem App-Icon, Launch-Badge und Privacy-Manifest-Angaben
