@@ -18,15 +18,15 @@ func _init() -> void:
 	if GameData.format_money(1234.5, true) != "1.234,50 €":
 		failures += 1
 		printerr("FAIL: German money formatting")
-	if GameData.JOBS.size() < 14:
+	if GameData.JOBS.size() < 23:
 		failures += 1
-		printerr("FAIL: phase 6 needs fourteen jobs")
-	if GameData.DAILY_MISSIONS.size() < 5 or GameData.ACHIEVEMENTS.size() < 18:
+		printerr("FAIL: long-form progression needs at least 23 jobs")
+	if GameData.DAILY_MISSIONS.size() < 7 or GameData.ACHIEVEMENTS.size() < 33:
 		failures += 1
 		printerr("FAIL: extended daily and long-term goal progression")
-	if GameData.LOCATIONS.size() != 4:
+	if GameData.LOCATIONS.size() < 8:
 		failures += 1
-		printerr("FAIL: expected four progression locations")
+		printerr("FAIL: expected eight progression locations")
 	if GameData.JOB_EVENTS.size() < 3:
 		failures += 1
 		printerr("FAIL: expected varied bonus events")
@@ -47,9 +47,12 @@ func _init() -> void:
 		if float(job.get("cooldown", 0.0)) <= float(job.duration):
 			failures += 1
 			printerr("FAIL: job '%s' needs a meaningful replay cooldown" % job.id)
-	if not is_equal_approx(GameState.OFFLINE_EFFICIENCY, 0.5):
+	if not is_equal_approx(GameState.OFFLINE_EFFICIENCY, 0.35):
 		failures += 1
 		printerr("FAIL: offline income must use the balanced efficiency factor")
+	if GameState.BASE_REWARD_SCALE >= 0.75:
+		failures += 1
+		printerr("FAIL: active rewards must use the slower Build 8 economy")
 	var game := GameState.new()
 	game.save_path = "user://idle_handwerker_test_save.json"
 	if str(game.team_rank().code) != "T1" or game.team_quality_bonus() != 0:
@@ -118,6 +121,22 @@ func _init() -> void:
 	if not is_equal_approx(game.location_reward_multiplier(), 1.55):
 		failures += 1
 		printerr("FAIL: industrial location reward multiplier")
+	game.level = GameState.PRESTIGE_LEVEL
+	game.lifetime_earnings = GameState.PRESTIGE_VALUE
+	game.money = GameState.PRESTIGE_VALUE
+	if not game.can_prestige() or not game.perform_prestige():
+		failures += 1
+		printerr("FAIL: eligible company must earn a Meisterbrief")
+	if game.mastery_points < 1 or game.prestige_count != 1 or game.level != 1:
+		failures += 1
+		printerr("FAIL: prestige reset and permanent mastery progression")
+	if not game.apply_purchase("de.kamilunavo.idlehandwerker.tokens.small", "tx-test-1"):
+		failures += 1
+		printerr("FAIL: consumable purchase credit")
+	var tokens_after_purchase := game.bonus_tokens
+	if game.apply_purchase("de.kamilunavo.idlehandwerker.tokens.small", "tx-test-1") or game.bonus_tokens != tokens_after_purchase:
+		failures += 1
+		printerr("FAIL: duplicate StoreKit transaction protection")
 	game.daily_key = Time.get_date_string_from_system()
 	game.daily_progress.jobs = 5.0
 	var money_before := game.money
