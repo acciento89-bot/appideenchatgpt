@@ -82,3 +82,10 @@ Die aktuelle Phase fokussiert bewusst auf Spielgefühl, Progression, Onboarding 
 ## Technische Ausrichtung
 
 Das Projekt nutzt Godot und GDScript ohne Expo. Für den späteren iOS-Export kann die bewährte native Bridge-Struktur aus dem separaten Projekt `onemorefloor` als Referenz dienen, ohne dessen Code oder Produktidentität zu verändern.
+# Build 8 – Langzeitspiel und Monetarisierung
+
+- 8 Einsatzgebiete und 23 Aufträge bis zur Metropole
+- 33 Karriere-Erfolge, 7 Tagesziele und deutlich langsamere Wirtschaft
+- Meisterbrief/Prestige mit permanenten Meisterpunkten
+- optionale Belohnungswerbung für 2× Ertrag, keine erzwungenen Unterbrecheranzeigen
+- StoreKit-Produkte für Werbefrei, Starterpaket und Bonusmarken inklusive Transaktionsschutz
