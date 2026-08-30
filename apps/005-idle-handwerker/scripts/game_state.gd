@@ -4,6 +4,7 @@ extends Node
 signal changed
 signal job_started(job: Dictionary)
 signal job_completed(job: Dictionary, reward: float)
+signal job_event_started(event: Dictionary)
 signal level_up(new_level: int)
 signal notice(message: String)
 
@@ -23,6 +24,7 @@ var employees := {"azubi": 0, "monteur": 0, "meisterin": 0}
 var active_job_id := ""
 var active_job_remaining := 0.0
 var active_job_total := 0.0
+var active_event_id := ""
 var offline_reward := 0.0
 var last_saved_unix := 0
 var current_location_id := "neighborhood"
@@ -78,9 +80,13 @@ func start_job(job_id: String) -> bool:
 		notice.emit("Dieser Auftrag gehört zu einem anderen Standort.")
 		return false
 	active_job_id = job_id
-	active_job_total = maxf(1.0, float(job.duration) * job_duration_multiplier())
+	active_event_id = _roll_job_event()
+	active_job_total = maxf(1.0, float(job.duration) * job_duration_multiplier() * active_event_duration_multiplier())
 	active_job_remaining = active_job_total
 	job_started.emit(job)
+	var event := active_event()
+	if not event.is_empty():
+		job_event_started.emit(event)
 	changed.emit()
 	save_game()
 	return true
@@ -92,14 +98,15 @@ func complete_active_job() -> void:
 		active_job_id = ""
 		return
 	_update_streak()
-	var reward := float(job.reward) * job_reward_multiplier() * streak_reward_multiplier() * location_reward_multiplier()
+	var reward := float(job.reward) * job_reward_multiplier() * streak_reward_multiplier() * location_reward_multiplier() * active_event_reward_multiplier()
 	money += reward
 	lifetime_earnings += reward
 	completed_jobs += 1
 	daily_progress.jobs = float(daily_progress.jobs) + 1.0
 	daily_progress.earnings = float(daily_progress.earnings) + reward
-	add_xp(int(job.xp))
+	add_xp(int(round(float(job.xp) * active_event_xp_multiplier())))
 	active_job_id = ""
+	active_event_id = ""
 	active_job_remaining = 0.0
 	active_job_total = 0.0
 	job_completed.emit(job, reward)
@@ -153,7 +160,7 @@ func hire_employee(employee_id: String) -> bool:
 
 
 func job_reward_multiplier() -> float:
-	return 1.0 + float(upgrades.tools) * 0.2
+	return 1.0 + float(upgrades.tools) * 0.18
 
 
 func streak_reward_multiplier() -> float:
@@ -165,6 +172,34 @@ func location_reward_multiplier() -> float:
 		if location.id == current_location_id:
 			return float(location.multiplier)
 	return 1.0
+
+
+func active_event() -> Dictionary:
+	for event in GameData.JOB_EVENTS:
+		if event.id == active_event_id:
+			return event
+	return {}
+
+
+func active_event_reward_multiplier() -> float:
+	var event := active_event()
+	return float(event.get("reward_multiplier", 1.0))
+
+
+func active_event_duration_multiplier() -> float:
+	var event := active_event()
+	return float(event.get("duration_multiplier", 1.0))
+
+
+func active_event_xp_multiplier() -> float:
+	var event := active_event()
+	return float(event.get("xp_multiplier", 1.0))
+
+
+func _roll_job_event() -> String:
+	if randf() > 0.38:
+		return ""
+	return str(GameData.JOB_EVENTS[randi() % GameData.JOB_EVENTS.size()].id)
 
 
 func select_location(location_id: String) -> bool:
@@ -291,7 +326,20 @@ func passive_income_per_second() -> float:
 	var base := 0.0
 	for employee in GameData.EMPLOYEES:
 		base += float(employee.income) * int(employees.get(employee.id, 0))
-	return base * (1.0 + float(upgrades.office) * 0.25)
+	return base * (1.0 + float(upgrades.office) * 0.22)
+
+
+func company_value() -> float:
+	var value := lifetime_earnings + money
+	for upgrade in GameData.UPGRADES:
+		var owned := int(upgrades.get(upgrade.id, 0))
+		for index in range(owned):
+			value += GameData.upgrade_cost(upgrade, index)
+	for employee in GameData.EMPLOYEES:
+		var owned := int(employees.get(employee.id, 0))
+		for index in range(owned):
+			value += GameData.employee_cost(employee, index)
+	return value
 
 
 func active_job_progress() -> float:
@@ -310,7 +358,7 @@ func claim_offline_reward() -> float:
 func save_game() -> void:
 	last_saved_unix = int(Time.get_unix_time_from_system())
 	var payload := {
-		"version": 1,
+		"version": 2,
 		"money": money,
 		"lifetime_earnings": lifetime_earnings,
 		"level": level,
@@ -324,6 +372,7 @@ func save_game() -> void:
 		"active_job_id": active_job_id,
 		"active_job_remaining": active_job_remaining,
 		"active_job_total": active_job_total,
+		"active_event_id": active_event_id,
 		"last_saved_unix": last_saved_unix,
 		"current_location_id": current_location_id,
 		"tutorial_completed": tutorial_completed,
@@ -360,6 +409,9 @@ func load_game() -> void:
 	active_job_id = str(parsed.get("active_job_id", ""))
 	active_job_remaining = maxf(0.0, float(parsed.get("active_job_remaining", 0.0)))
 	active_job_total = maxf(0.0, float(parsed.get("active_job_total", 0.0)))
+	active_event_id = str(parsed.get("active_event_id", ""))
+	if active_job_id == "":
+		active_event_id = ""
 	last_saved_unix = int(parsed.get("last_saved_unix", Time.get_unix_time_from_system()))
 	current_location_id = str(parsed.get("current_location_id", "neighborhood"))
 	tutorial_completed = bool(parsed.get("tutorial_completed", false))

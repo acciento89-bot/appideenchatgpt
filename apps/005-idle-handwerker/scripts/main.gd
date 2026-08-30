@@ -34,6 +34,7 @@ func _ready() -> void:
 	sfx = SfxBank.new()
 	add_child(sfx)
 	game.job_completed.connect(_on_job_completed)
+	game.job_event_started.connect(_on_job_event_started)
 	game.level_up.connect(_on_level_up)
 	game.notice.connect(_show_toast)
 	_build_shell()
@@ -193,6 +194,7 @@ func _build_dashboard() -> void:
 	workshop_visual = WorkshopVisual.new()
 	workshop_visual.custom_minimum_size = Vector2(162, 112)
 	workshop_visual.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	workshop_visual.set_progression(game.upgrades, game.employees, game.level, game.current_location_id)
 	scene_row.add_child(workshop_visual)
 	hero_v.add_child(scene_row)
 
@@ -225,12 +227,15 @@ func _build_dashboard() -> void:
 	var stat_row := HBoxContainer.new()
 	stat_row.add_theme_constant_override("separation", 9)
 	stat_row.add_child(_stat_card("AUFTRÄGE", str(game.completed_jobs), "erledigt"))
-	stat_row.add_child(_stat_card("TEAM", str(_employee_count()), "Mitarbeiter"))
-	stat_row.add_child(_stat_card("SERIE", "%d×" % game.current_streak, "max. %d×" % game.best_streak))
+	stat_row.add_child(_stat_card("SERIE", "%d×" % game.current_streak, "Bestwert %d×" % game.best_streak))
+	stat_row.add_child(_stat_card("WERT", GameData.format_money(game.company_value()), "Firmenwert"))
 	content.add_child(stat_row)
 
 	var location := game.current_location()
 	content.add_child(_highlight_card("AKTIVER STANDORT · %s" % location.code, str(location.title), "+%d %% Auftragswert · %d/3 Tagesziele" % [int((float(location.multiplier) - 1.0) * 100.0), game.completed_daily_missions()]))
+	if game.active_job_id != "" and not game.active_event().is_empty():
+		var event := game.active_event()
+		content.add_child(_event_card(event))
 
 	content.add_child(_section_title("Nächster Meilenstein", "MEHR"))
 	content.add_child(_milestone_card())
@@ -248,6 +253,7 @@ func _build_jobs() -> void:
 
 func _build_upgrades() -> void:
 	content.add_child(_page_intro("Betrieb ausbauen", "Investiere in Tempo, Qualität und automatisierte Einnahmen."))
+	content.add_child(_workshop_progress_card())
 	for upgrade in GameData.UPGRADES:
 		content.add_child(_upgrade_card(upgrade))
 
@@ -357,6 +363,42 @@ func _goal_card(item: Dictionary, daily: bool) -> Control:
 	bar.add_theme_stylebox_override("background", _box(Color("0a1713"), 4))
 	bar.add_theme_stylebox_override("fill", _box(GOLD if ready else GREEN, 4))
 	box.add_child(bar)
+	return card
+
+
+func _event_card(event: Dictionary) -> Control:
+	var card := _card_container()
+	card.add_theme_stylebox_override("panel", UiSkin.hero())
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 12)
+	card.get_child(0).get_child(0).add_child(row)
+	row.add_child(_icon_box(str(event.code), GOLD))
+	var copy := VBoxContainer.new()
+	copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	copy.add_child(_label("BONUSEREIGNIS · " + str(event.title), 13, GOLD, true))
+	copy.add_child(_label(str(event.description), 10, MUTED))
+	copy.add_child(_label("+%d %% Lohn  ·  +%d %% XP" % [int((float(event.reward_multiplier) - 1.0) * 100.0), int((float(event.xp_multiplier) - 1.0) * 100.0)], 11, GREEN, true))
+	row.add_child(copy)
+	return card
+
+
+func _workshop_progress_card() -> Control:
+	var card := _card_container()
+	var box: VBoxContainer = card.get_child(0).get_child(0)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 12)
+	var preview := WorkshopVisual.new()
+	preview.custom_minimum_size = Vector2(150, 112)
+	preview.set_progression(game.upgrades, game.employees, game.level, game.current_location_id)
+	row.add_child(preview)
+	var copy := VBoxContainer.new()
+	copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	copy.add_child(_label("DEINE WERKSTATT", 13, GOLD, true))
+	copy.add_child(_label("Jeder Ausbau wird im Betrieb sichtbar.", 11, MUTED))
+	copy.add_child(_label("Werkzeug %d  ·  Fuhrpark %d  ·  Büro %d" % [int(game.upgrades.tools), int(game.upgrades.van), int(game.upgrades.office)], 11, GREEN, true))
+	copy.add_child(_label("Team vor Ort: %d" % game.total_employees(), 11, TEXT, true))
+	row.add_child(copy)
+	box.add_child(row)
 	return card
 
 
@@ -490,7 +532,8 @@ func _update_active_job() -> void:
 	if workshop_visual:
 		workshop_visual.set_job(game.active_job_id, game.active_job_progress())
 	progress_bar.value = game.active_job_progress() * 100.0
-	job_label.text = str(job.title)
+	var event := game.active_event()
+	job_label.text = str(job.title) if event.is_empty() else "%s  ·  %s" % [job.title, event.code]
 	job_time_label.text = "%.1f s" % game.active_job_remaining
 	primary_button.text = "AUFTRAG LÄUFT  •  %d %%" % int(game.active_job_progress() * 100.0)
 
@@ -501,9 +544,44 @@ func _on_job_completed(job: Dictionary, reward: float) -> void:
 	if current_tab == "betrieb":
 		_refresh_current_tab()
 		if workshop_visual:
-			workshop_visual.celebrate()
+			workshop_visual.celebrate(game.current_streak)
 	_show_reward_burst("+" + GameData.format_money(reward), job.color)
 	_show_toast("Auftrag erledigt · Serie %d×" % game.current_streak)
+
+
+func _on_job_event_started(event: Dictionary) -> void:
+	sfx.play_cue("event")
+	_haptic(45, 0.65)
+	_show_event_reveal(event)
+
+
+func _show_event_reveal(event: Dictionary) -> void:
+	var panel := PanelContainer.new()
+	panel.z_index = 20
+	panel.add_theme_stylebox_override("panel", UiSkin.hero())
+	panel.position = Vector2(24, size.y * 0.29)
+	panel.size = Vector2(size.x - 48, 138)
+	var box := VBoxContainer.new()
+	box.alignment = BoxContainer.ALIGNMENT_CENTER
+	box.add_child(_label("BONUSEREIGNIS · " + str(event.code), 10, GOLD, true))
+	var title := _label(str(event.title), 21, TEXT, true)
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	box.add_child(title)
+	var description := _label(str(event.description), 11, MUTED)
+	description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	box.add_child(description)
+	panel.add_child(box)
+	toast_layer.add_child(panel)
+	panel.modulate.a = 0.0
+	panel.scale = Vector2(0.84, 0.84)
+	panel.pivot_offset = panel.size * 0.5
+	var tween := create_tween().set_parallel(true)
+	tween.tween_property(panel, "modulate:a", 1.0, 0.18)
+	tween.tween_property(panel, "scale", Vector2.ONE, 0.28).set_trans(Tween.TRANS_BACK)
+	tween.set_parallel(false)
+	tween.tween_interval(1.65)
+	tween.tween_property(panel, "modulate:a", 0.0, 0.25)
+	tween.tween_callback(panel.queue_free)
 
 
 func _on_level_up(new_level: int) -> void:
