@@ -9,7 +9,7 @@ on:
       build:
         description: App Store Connect build number
         required: true
-        default: '16'
+        default: '17'
       create_app_record:
         description: App-Datensatz bei Bedarf anlegen
         required: true
@@ -37,7 +37,9 @@ env:
   APP_NAME: Idle Handwerker
   APP_VERSION: 1.3.0
   APP_SKU: KAMILUNAVO-IDLE-HANDWERKER-IOS
-  PRODUCTION_ADS: ${{ github.event_name == 'push' || inputs.production_ads }}
+  # TestFlight QA uses Google's rewarded test units. Production units are enabled
+  # only by an explicit release dispatch after the ad flow has been verified.
+  PRODUCTION_ADS: ${{ github.event_name == 'workflow_dispatch' && inputs.production_ads }}
 
 jobs:
   upload:
@@ -61,12 +63,60 @@ jobs:
           ADMOB_SOURCE="$RUNNER_TEMP/godot-admob/poing-godot-admob/addons/admob"
           test -f "$ADMOB_SOURCE/plugin.cfg"
           mkdir -p "$PROJECT_DIR/addons"
+          rm -rf "$PROJECT_DIR/addons/admob"
           cp -R "$ADMOB_SOURCE" "$PROJECT_DIR/addons/admob"
+          # Godot 4.7 can abort during iOS termination when plugin-owned anonymous
+          # GDScript Callables outlive the scripting language. All callbacks used by
+          # the game are assigned explicitly, so empty defaults are safer here.
+          python3 - "$PROJECT_DIR/addons/admob" <<'PY'
+          from pathlib import Path
+          import sys
+          root = Path(sys.argv[1])
+          replacements = {
+              "gdscript/src/api/RewardedAd.gd": {
+                  "var on_ad_paid: Callable = func(_ad_value: AdValue): pass": "var on_ad_paid: Callable = Callable()",
+              },
+              "gdscript/src/api/listeners/FullScreenContentCallback.gd": {
+                  "var on_ad_clicked: Callable = func() -> void: pass": "var on_ad_clicked: Callable = Callable()",
+                  "var on_ad_dismissed_full_screen_content: Callable = func() -> void: pass": "var on_ad_dismissed_full_screen_content: Callable = Callable()",
+                  "var on_ad_failed_to_show_full_screen_content: Callable = func(adError: AdError) -> void: pass": "var on_ad_failed_to_show_full_screen_content: Callable = Callable()",
+                  "var on_ad_impression: Callable = func() -> void: pass": "var on_ad_impression: Callable = Callable()",
+                  "var on_ad_showed_full_screen_content: Callable = func() -> void: pass": "var on_ad_showed_full_screen_content: Callable = Callable()",
+              },
+              "gdscript/src/api/listeners/RewardedAdLoadCallback.gd": {
+                  "var on_ad_failed_to_load: Callable = func(adError: LoadAdError) -> void: pass": "var on_ad_failed_to_load: Callable = Callable()",
+                  "var on_ad_loaded: Callable = func(rewardedAd: RewardedAd) -> void: pass": "var on_ad_loaded: Callable = Callable()",
+              },
+              "gdscript/src/api/listeners/OnUserEarnedRewardListener.gd": {
+                  "var on_user_earned_reward: Callable = func(rewarded_item: RewardedItem): pass": "var on_user_earned_reward: Callable = Callable()",
+              },
+              "gdscript/src/ump/api/ConsentInformation.gd": {
+                  "on_consent_info_updated_success := func(): pass,": "on_consent_info_updated_success: Callable = Callable(),",
+                  "on_consent_info_updated_failure := func(form_error: FormError): pass,": "on_consent_info_updated_failure: Callable = Callable(),",
+              },
+              "gdscript/src/ump/api/UserMessagingPlatform.gd": {
+                  "on_consent_form_load_success_listener := func(consent_form: ConsentForm): pass,": "on_consent_form_load_success_listener: Callable = Callable(),",
+                  "on_consent_form_load_failure_listener := func(form_error: FormError): pass": "on_consent_form_load_failure_listener: Callable = Callable()",
+                  "on_privacy_options_form_dismissed := func(form_error: FormError): pass": "on_privacy_options_form_dismissed: Callable = Callable()",
+              },
+              "gdscript/src/ump/api/ConsentForm.gd": {
+                  "func show(on_consent_form_dismissed := func(form_error: FormError): pass) -> void:": "func show(on_consent_form_dismissed: Callable = Callable()) -> void:",
+              },
+          }
+          for relative, changes in replacements.items():
+              path = root / relative
+              text = path.read_text()
+              for old, new in changes.items():
+                  if old not in text:
+                      raise SystemExit(f"Missing expected AdMob callback in {relative}: {old}")
+                  text = text.replace(old, new, 1)
+              path.write_text(text)
+          PY
 
       - name: Preflight
         shell: bash
         env:
-          REQUESTED_BUILD: ${{ inputs.build || '16' }}
+          REQUESTED_BUILD: ${{ inputs.build || '17' }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_PRIVATE_KEY_B64: ${{ secrets.ASC_PRIVATE_KEY_B64 }}
