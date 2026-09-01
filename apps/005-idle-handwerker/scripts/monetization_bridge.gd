@@ -162,11 +162,13 @@ func privacy_options_required() -> bool:
 func _handle_store_event(event: Variant) -> void:
 	if not event is Dictionary:
 		return
-	var result := str(event.get("result", "ok"))
+	var result := str(event.get("result", ""))
 	var event_type := str(event.get("type", event.get("event", "")))
 	var event_product_id := str(event.get("product_id", event.get("productId", "")))
 	if result == "error":
-		if event_type == "purchase" and event_product_id == _pending_product_id:
+		if event_type.begins_with("purchase") and (
+			event_product_id.is_empty() or event_product_id == _pending_product_id
+		):
 			_pending_product_id = ""
 			purchase_failed.emit(str(event.get("error", "Der Kauf ist fehlgeschlagen.")))
 		else:
@@ -176,17 +178,34 @@ func _handle_store_event(event: Variant) -> void:
 		if event_type == "restore":
 			restore_completed.emit("Käufe wurden wiederhergestellt.")
 		return
+	# StoreKit also reports intermediate states such as "progress" and
+	# "unhandled". They only mean that the sheet/request is in flight and must
+	# never unlock or credit a product. The iOS plugin documents a successful
+	# transaction as result == "ok" with a transaction_id.
+	if result != "ok":
+		return
 	match event_type:
 		"product_info":
 			_update_product_prices(event)
-		"purchase", "purchase_success", "restore", "restore_success":
+		"purchase", "purchase_success":
 			var product_id := event_product_id
 			var transaction_id := str(event.get("transaction_id", event.get("transactionId", "")))
-			if product_id in PRODUCTS:
-				if event_type.begins_with("purchase") and product_id == _pending_product_id:
-					_pending_product_id = ""
+			if product_id not in PRODUCTS or transaction_id.is_empty():
+				push_warning("Unvollständige StoreKit-Kaufbestätigung ignoriert: %s" % str(event))
+				return
+			if product_id == _pending_product_id:
+				_pending_product_id = ""
+			purchase_completed.emit(product_id, transaction_id)
+		"restore", "restore_success":
+			var product_id := event_product_id
+			var transaction_id := str(event.get("transaction_id", event.get("transactionId", "")))
+			# Consumables are never restorable. Only permanent entitlements may be
+			# re-applied from Apple's restored transaction stream.
+			if product_id in [PRODUCTS[0], PRODUCTS[1]] and not transaction_id.is_empty():
 				purchase_completed.emit(product_id, transaction_id)
 		"purchase_error", "restore_error", "error":
+			if event_type == "purchase_error":
+				_pending_product_id = ""
 			purchase_failed.emit(str(event.get("message", "StoreKit-Fehler")))
 
 
