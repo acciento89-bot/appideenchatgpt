@@ -33,5 +33,8 @@ jobs:
       - name: Validate privacy and secrets boundary
         run: |
           test -f apps/012-rapport-ai/prototype/RapportAI/PrivacyInfo.xcprivacy
+          test -f apps/012-rapport-ai/prototype/RapportAI/StoreKit/RapportAI.storekit
+          test -f apps/012-rapport-ai/prototype/RapportAI/Assets.xcassets/AppIcon.appiconset/RapportAI-AppIcon-1024.png
+          test "$(sips -g pixelWidth -g pixelHeight apps/012-rapport-ai/prototype/RapportAI/Assets.xcassets/AppIcon.appiconset/RapportAI-AppIcon-1024.png | awk '/pixelWidth|pixelHeight/ { print $2 }' | tr '\n' ' ')" = "1024 1024 "
           ! grep -R -E -n 'sk-[A-Za-z0-9_-]{20,}' apps/012-rapport-ai
           grep -n 'OPENAI_API_KEY' apps/012-rapport-ai/supabase/functions/generate-rapport/index.ts

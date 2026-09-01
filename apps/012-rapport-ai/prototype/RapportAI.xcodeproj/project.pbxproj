@@ -15,6 +15,11 @@
 		AA0000000000000000000007 /* PDFExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000007 /* PDFExporter.swift */; };
 		AA0000000000000000000008 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000008 /* RootView.swift */; };
 		AA0000000000000000000009 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000009 /* PrivacyInfo.xcprivacy */; };
+		AA000000000000000000000A /* CompanyProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000000000000000000000A /* CompanyProfile.swift */; };
+		AA000000000000000000000B /* EntitlementStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000000000000000000000B /* EntitlementStore.swift */; };
+		AA000000000000000000000C /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000000000000000000000C /* OnboardingView.swift */; };
+		AA000000000000000000000D /* PaywallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB000000000000000000000D /* PaywallView.swift */; };
+		AA000000000000000000000E /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = BB000000000000000000000E /* Assets.xcassets */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -28,6 +33,12 @@
 		BB0000000000000000000008 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
 		BB0000000000000000000009 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		BB0000000000000000000010 /* RapportAI.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = RapportAI.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		BB000000000000000000000A /* CompanyProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompanyProfile.swift; sourceTree = "<group>"; };
+		BB000000000000000000000B /* EntitlementStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EntitlementStore.swift; sourceTree = "<group>"; };
+		BB000000000000000000000C /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
+		BB000000000000000000000D /* PaywallView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaywallView.swift; sourceTree = "<group>"; };
+		BB000000000000000000000E /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		BB000000000000000000000F /* RapportAI.storekit */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = StoreKit/RapportAI.storekit; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -51,6 +62,12 @@
 				BB0000000000000000000006 /* SpeechTranscriber.swift */,
 				BB0000000000000000000007 /* PDFExporter.swift */,
 				BB0000000000000000000008 /* RootView.swift */,
+				BB000000000000000000000A /* CompanyProfile.swift */,
+				BB000000000000000000000B /* EntitlementStore.swift */,
+				BB000000000000000000000C /* OnboardingView.swift */,
+				BB000000000000000000000D /* PaywallView.swift */,
+				BB000000000000000000000E /* Assets.xcassets */,
+				BB000000000000000000000F /* RapportAI.storekit */,
 				BB0000000000000000000009 /* PrivacyInfo.xcprivacy */,
 			);
 			path = RapportAI;
@@ -92,7 +109,7 @@
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
-		CC0000000000000000000003 /* Resources */ = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (AA0000000000000000000009 /* PrivacyInfo.xcprivacy in Resources */); runOnlyForDeploymentPostprocessing = 0; };
+		CC0000000000000000000003 /* Resources */ = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (AA0000000000000000000009 /* PrivacyInfo.xcprivacy in Resources */, AA000000000000000000000E /* Assets.xcassets in Resources */); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -108,6 +125,10 @@
 				AA0000000000000000000006 /* SpeechTranscriber.swift in Sources */,
 				AA0000000000000000000007 /* PDFExporter.swift in Sources */,
 				AA0000000000000000000008 /* RootView.swift in Sources */,
+				AA000000000000000000000A /* CompanyProfile.swift in Sources */,
+				AA000000000000000000000B /* EntitlementStore.swift in Sources */,
+				AA000000000000000000000C /* OnboardingView.swift in Sources */,
+				AA000000000000000000000D /* PaywallView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -119,6 +140,7 @@
 		110000000000000000000003 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = TKG684N5GL;
@@ -146,6 +168,7 @@
 		110000000000000000000004 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = TKG684N5GL;
@@ -179,4 +202,3 @@
 	};
 	rootObject = EE0000000000000000000002 /* Project object */;
 }
-

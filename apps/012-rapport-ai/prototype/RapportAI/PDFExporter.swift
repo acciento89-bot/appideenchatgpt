@@ -1,7 +1,7 @@
 import UIKit
 
 enum PDFExporter {
-    static func makePDF(for report: RapportDraft) throws -> URL {
+    static func makePDF(for report: RapportDraft, profile: CompanyProfile) throws -> URL {
         let page = CGRect(x: 0, y: 0, width: 595, height: 842)
         let renderer = UIGraphicsPDFRenderer(bounds: page)
         let url = FileManager.default.temporaryDirectory
@@ -12,9 +12,21 @@ enum PDFExporter {
             let margin: CGFloat = 48
             var y: CGFloat = 46
 
-            draw("RAPPORT AI", at: CGRect(x: margin, y: y, width: 360, height: 28), font: .boldSystemFont(ofSize: 22), color: UIColor(red: 0.05, green: 0.42, blue: 0.62, alpha: 1))
-            draw("KAMILUNAVO · HANDWERK", at: CGRect(x: 360, y: y + 3, width: 185, height: 22), font: .boldSystemFont(ofSize: 10), color: .darkGray, alignment: .right)
+            if let data = profile.logoData, let image = UIImage(data: data) {
+                image.draw(in: CGRect(x: margin, y: y - 8, width: 62, height: 62))
+            }
+            let titleX = profile.logoData == nil ? margin : margin + 76
+            draw("ARBEITSRAPPORT", at: CGRect(x: titleX, y: y, width: 300, height: 28), font: .boldSystemFont(ofSize: 22), color: UIColor(red: 0.05, green: 0.42, blue: 0.62, alpha: 1))
+            draw(profile.hasIdentity ? profile.companyName : "RAPPORT AI", at: CGRect(x: 365, y: y + 3, width: 180, height: 22), font: .boldSystemFont(ofSize: 10), color: .darkGray, alignment: .right)
             y += 48
+
+            let companyLine = [profile.ownerName, profile.address, profile.phone, profile.email]
+                .filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+                .joined(separator: " · ")
+            if !companyLine.isEmpty {
+                draw(companyLine, at: CGRect(x: margin, y: y, width: page.width - margin * 2, height: 34), font: .systemFont(ofSize: 8), color: .gray)
+                y += 34
+            }
 
             let details = [
                 ("Gewerk", report.trade.title),

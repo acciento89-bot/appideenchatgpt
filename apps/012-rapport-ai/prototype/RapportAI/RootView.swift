@@ -1,3 +1,4 @@
+import PhotosUI
 import SwiftUI
 
 struct RootView: View {
@@ -17,11 +18,14 @@ struct RootView: View {
 struct CreateRapportView: View {
     @EnvironmentObject private var store: RapportStore
     @EnvironmentObject private var usage: UsageMeter
+    @EnvironmentObject private var entitlements: EntitlementStore
+    @EnvironmentObject private var profileStore: CompanyProfileStore
     @StateObject private var speech = SpeechTranscriber()
     @State private var draft = RapportDraft()
     @State private var isGenerating = false
     @State private var errorMessage: String?
     @State private var shareItem: ShareItem?
+    @State private var showPaywall = false
     private let service = HybridRapportService()
 
     var body: some View {
@@ -43,6 +47,7 @@ struct CreateRapportView: View {
             Button("OK", role: .cancel) { errorMessage = nil; speech.errorMessage = nil }
         } message: { Text(errorMessage ?? speech.errorMessage ?? "") }
         .sheet(item: $shareItem) { ShareSheet(url: $0.url) }
+        .sheet(isPresented: $showPaywall) { PaywallView() }
     }
 
     private var hero: some View {
@@ -56,7 +61,12 @@ struct CreateRapportView: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("HANDWERK → RAPPORT").font(.caption.bold()).foregroundStyle(CraftTheme.cyan)
                     Text("Sprich frei. Wir machen es professionell.").font(.title3.bold())
-                    Text("Noch \(usage.remaining) kostenlose KI-Rapporte diesen Monat").font(.caption).foregroundStyle(CraftTheme.textMuted)
+                    Text(entitlements.isPro ? "PRO · Unbegrenzte KI-Rapporte" : "Noch \(usage.remaining) kostenlose KI-Rapporte diesen Monat")
+                        .font(.caption).foregroundStyle(CraftTheme.textMuted)
+                    if !entitlements.isPro {
+                        Button("Pro freischalten") { showPaywall = true }
+                            .font(.caption.bold()).foregroundStyle(CraftTheme.orange)
+                    }
                 }
             }
         }
@@ -120,7 +130,7 @@ struct CreateRapportView: View {
                     if isGenerating { ProgressView().tint(.white) } else { Label("Professionellen Rapport erstellen", systemImage: "sparkles") }
                 }
                 .buttonStyle(PrimaryButtonStyle())
-                .disabled(isGenerating || draft.rawText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || !usage.mayGenerate)
+                .disabled(isGenerating || draft.rawText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || (!usage.mayGenerate && !entitlements.isPro))
             }
         }
     }
@@ -145,7 +155,7 @@ struct CreateRapportView: View {
                     Spacer()
                     Button("PDF teilen", systemImage: "square.and.arrow.up") {
                         store.save(draft)
-                        do { shareItem = ShareItem(url: try PDFExporter.makePDF(for: draft)) } catch { errorMessage = error.localizedDescription }
+                        do { shareItem = ShareItem(url: try PDFExporter.makePDF(for: draft, profile: profileStore.profile)) } catch { errorMessage = error.localizedDescription }
                     }
                 }
                 .buttonStyle(.bordered)
@@ -155,12 +165,12 @@ struct CreateRapportView: View {
     }
 
     private func generate() {
-        guard usage.mayGenerate else { errorMessage = "Deine kostenlosen KI-Rapporte sind für diesen Monat verbraucht."; return }
+        guard usage.mayGenerate || entitlements.isPro else { showPaywall = true; return }
         isGenerating = true
         Task {
             do {
                 draft.reportText = try await service.generate(from: draft)
-                usage.recordGeneration()
+                if !entitlements.isPro { usage.recordGeneration() }
             } catch { errorMessage = error.localizedDescription }
             isGenerating = false
         }
@@ -203,6 +213,7 @@ struct ReportRow: View {
 
 struct ReportDetailView: View {
     @EnvironmentObject private var store: RapportStore
+    @EnvironmentObject private var profileStore: CompanyProfileStore
     @State var report: RapportDraft
     @State private var shareItem: ShareItem?
 
@@ -217,7 +228,7 @@ struct ReportDetailView: View {
                     TextEditor(text: $report.reportText).frame(minHeight: 360).scrollContentBackground(.hidden)
                     Button("Änderungen speichern") { store.save(report) }.buttonStyle(PrimaryButtonStyle())
                     Button("PDF teilen", systemImage: "square.and.arrow.up") {
-                        if let url = try? PDFExporter.makePDF(for: report) { shareItem = ShareItem(url: url) }
+                        if let url = try? PDFExporter.makePDF(for: report, profile: profileStore.profile) { shareItem = ShareItem(url: url) }
                     }
                         .buttonStyle(.bordered).tint(CraftTheme.cyan)
                 }
@@ -230,6 +241,10 @@ struct ReportDetailView: View {
 
 struct SettingsView: View {
     @EnvironmentObject private var usage: UsageMeter
+    @EnvironmentObject private var profileStore: CompanyProfileStore
+    @EnvironmentObject private var entitlements: EntitlementStore
+    @State private var selectedLogo: PhotosPickerItem?
+    @State private var showPaywall = false
     var body: some View {
         ScrollView {
             VStack(spacing: 16) {
@@ -239,9 +254,31 @@ struct SettingsView: View {
                     Text("Deine Entwürfe und fertigen Rapporte bleiben lokal auf diesem Gerät.").foregroundStyle(CraftTheme.textMuted).padding(.top, 4)
                 }
                 CraftCard {
-                    Label("Kostenloser Tarif", systemImage: "gauge.with.dots.needle.33percent").font(.headline)
-                    ProgressView(value: Double(usage.usedThisMonth), total: Double(usage.freeLimit)).tint(CraftTheme.orange)
-                    Text("\(usage.usedThisMonth) von \(usage.freeLimit) KI-Rapporten verwendet").foregroundStyle(CraftTheme.textMuted)
+                    VStack(alignment: .leading, spacing: 10) {
+                        Label("Firmenprofil für PDF", systemImage: "building.2.fill").font(.headline)
+                        TextField("Firmenname", text: $profileStore.profile.companyName).textFieldStyle(.roundedBorder)
+                        TextField("Ansprechpartner", text: $profileStore.profile.ownerName).textFieldStyle(.roundedBorder)
+                        TextField("Anschrift", text: $profileStore.profile.address).textFieldStyle(.roundedBorder)
+                        TextField("Telefon", text: $profileStore.profile.phone).textFieldStyle(.roundedBorder).keyboardType(.phonePad)
+                        TextField("E-Mail", text: $profileStore.profile.email).textFieldStyle(.roundedBorder).keyboardType(.emailAddress).textInputAutocapitalization(.never)
+                        PhotosPicker(selection: $selectedLogo, matching: .images) {
+                            Label(profileStore.profile.logoData == nil ? "Firmenlogo auswählen" : "Firmenlogo ändern", systemImage: "photo.badge.plus")
+                        }
+                        .onChange(of: selectedLogo) { _, item in Task { await profileStore.importLogo(from: item) } }
+                        if profileStore.profile.logoData != nil {
+                            Button("Logo entfernen", role: .destructive) { profileStore.removeLogo() }
+                        }
+                    }
+                }
+                CraftCard {
+                    Label(entitlements.isPro ? "Rapport AI Pro" : "Kostenloser Tarif", systemImage: entitlements.isPro ? "checkmark.seal.fill" : "gauge.with.dots.needle.33percent").font(.headline)
+                    if entitlements.isPro {
+                        Text("Unbegrenzte KI-Rapporte sind aktiv.").foregroundStyle(CraftTheme.cyan)
+                    } else {
+                        ProgressView(value: Double(usage.usedThisMonth), total: Double(usage.freeLimit)).tint(CraftTheme.orange)
+                        Text("\(usage.usedThisMonth) von \(usage.freeLimit) KI-Rapporten verwendet").foregroundStyle(CraftTheme.textMuted)
+                        Button("Pro ansehen") { showPaywall = true }.buttonStyle(PrimaryButtonStyle())
+                    }
                 }
                 CraftCard {
                     Label("Datenschutz", systemImage: "lock.shield.fill").font(.headline)
@@ -252,6 +289,7 @@ struct SettingsView: View {
         }
         .background(CraftTheme.background.ignoresSafeArea())
         .navigationTitle("Mehr")
+        .sheet(isPresented: $showPaywall) { PaywallView() }
     }
 }
 

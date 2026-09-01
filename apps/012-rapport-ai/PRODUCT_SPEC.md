@@ -1,6 +1,6 @@
 # Rapport AI — MVP Product Spec
 
-Status: working title / implementation started
+Status: working MVP / release preparation
 
 ## Product promise
 
@@ -25,5 +25,6 @@ Turn a rough German tradesperson voice note into a clear, professional work repo
 ## Initial monetization
 
 - Free: 5 AI reports per month, unlimited manual drafts.
-- Pro: unlimited AI reports, company logo/templates and PDF branding options.
-- Product and pricing are not locked until real device and willingness-to-pay tests.
+- Pro monthly: unlimited AI reports plus company logo and branded PDF export, currently configured at 4.99 EUR for local StoreKit testing.
+- Pro annual: the same Pro features, currently configured at 39.99 EUR for local StoreKit testing.
+- Final storefront prices remain subject to real-device and willingness-to-pay tests.
