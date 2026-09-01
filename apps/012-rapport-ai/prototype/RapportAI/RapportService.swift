@@ -1,0 +1,79 @@
+import Foundation
+
+protocol RapportGenerating {
+    func generate(from draft: RapportDraft) async throws -> String
+}
+
+struct HybridRapportService: RapportGenerating {
+    private let session: URLSession
+    private let endpoint: URL?
+
+    init(session: URLSession = .shared, bundle: Bundle = .main) {
+        self.session = session
+        if let value = bundle.object(forInfoDictionaryKey: "RAPPORT_API_URL") as? String {
+            endpoint = URL(string: value)
+        } else {
+            endpoint = nil
+        }
+    }
+
+    func generate(from draft: RapportDraft) async throws -> String {
+        let trimmed = draft.rawText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { throw RapportError.emptyInput }
+        guard let endpoint else { return LocalRapportFormatter.format(draft) }
+
+        var request = URLRequest(url: endpoint)
+        request.httpMethod = "POST"
+        request.timeoutInterval = 35
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONEncoder().encode(
+            RapportGenerationRequest(
+                rawText: trimmed,
+                trade: draft.trade.title,
+                customer: draft.customer,
+                location: draft.location,
+                system: draft.system,
+                tone: draft.tone.rawValue
+            )
+        )
+
+        let (data, response) = try await session.data(for: request)
+        guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
+            throw RapportError.service("Der KI-Dienst ist gerade nicht erreichbar. Dein Text bleibt erhalten.")
+        }
+        guard let decoded = try? JSONDecoder().decode(RapportGenerationResponse.self, from: data),
+              !decoded.report.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            throw RapportError.invalidResponse
+        }
+        return decoded.report
+    }
+}
+
+enum LocalRapportFormatter {
+    static func format(_ draft: RapportDraft) -> String {
+        var text = draft.rawText
+            .replacingOccurrences(of: " äh ", with: " ", options: .caseInsensitive)
+            .replacingOccurrences(of: " ähm ", with: " ", options: .caseInsensitive)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        if let first = text.first { text.replaceSubrange(text.startIndex...text.startIndex, with: String(first).uppercased()) }
+        if !text.hasSuffix(".") && !text.hasSuffix("!") && !text.hasSuffix("?") { text += "." }
+
+        let context = [
+            "Gewerk: \(draft.trade.title)",
+            draft.system.isEmpty ? nil : "Anlage: \(draft.system)",
+            draft.location.isEmpty ? nil : "Einsatzort: \(draft.location)"
+        ].compactMap { $0 }.joined(separator: "\n")
+
+        let heading: String
+        switch draft.tone {
+        case .factual: heading = "Arbeitsbericht"
+        case .customerFriendly: heading = "Durchgeführte Arbeiten"
+        case .insurance: heading = "Sachverhalts- und Leistungsdokumentation"
+        }
+
+        return [heading, context, text, "Hinweis: Der Rapport wurde digital erstellt und ist vor Verwendung fachlich zu prüfen."]
+            .filter { !$0.isEmpty }
+            .joined(separator: "\n\n")
+    }
+}
