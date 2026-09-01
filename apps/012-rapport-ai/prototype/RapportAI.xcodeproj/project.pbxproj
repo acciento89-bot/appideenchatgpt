@@ -1,0 +1,182 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		AA0000000000000000000001 /* RapportAIApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000001 /* RapportAIApp.swift */; };
+		AA0000000000000000000002 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000002 /* Models.swift */; };
+		AA0000000000000000000003 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000003 /* Theme.swift */; };
+		AA0000000000000000000004 /* RapportStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000004 /* RapportStore.swift */; };
+		AA0000000000000000000005 /* RapportService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000005 /* RapportService.swift */; };
+		AA0000000000000000000006 /* SpeechTranscriber.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000006 /* SpeechTranscriber.swift */; };
+		AA0000000000000000000007 /* PDFExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000007 /* PDFExporter.swift */; };
+		AA0000000000000000000008 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000008 /* RootView.swift */; };
+		AA0000000000000000000009 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000009 /* PrivacyInfo.xcprivacy */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		BB0000000000000000000001 /* RapportAIApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RapportAIApp.swift; sourceTree = "<group>"; };
+		BB0000000000000000000002 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
+		BB0000000000000000000003 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
+		BB0000000000000000000004 /* RapportStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RapportStore.swift; sourceTree = "<group>"; };
+		BB0000000000000000000005 /* RapportService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RapportService.swift; sourceTree = "<group>"; };
+		BB0000000000000000000006 /* SpeechTranscriber.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeechTranscriber.swift; sourceTree = "<group>"; };
+		BB0000000000000000000007 /* PDFExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PDFExporter.swift; sourceTree = "<group>"; };
+		BB0000000000000000000008 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
+		BB0000000000000000000009 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		BB0000000000000000000010 /* RapportAI.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = RapportAI.app; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		CC0000000000000000000001 /* Frameworks */ = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		DD0000000000000000000001 = {
+			isa = PBXGroup;
+			children = (DD0000000000000000000002 /* RapportAI */, DD0000000000000000000003 /* Products */);
+			sourceTree = "<group>";
+		};
+		DD0000000000000000000002 /* RapportAI */ = {
+			isa = PBXGroup;
+			children = (
+				BB0000000000000000000001 /* RapportAIApp.swift */,
+				BB0000000000000000000002 /* Models.swift */,
+				BB0000000000000000000003 /* Theme.swift */,
+				BB0000000000000000000004 /* RapportStore.swift */,
+				BB0000000000000000000005 /* RapportService.swift */,
+				BB0000000000000000000006 /* SpeechTranscriber.swift */,
+				BB0000000000000000000007 /* PDFExporter.swift */,
+				BB0000000000000000000008 /* RootView.swift */,
+				BB0000000000000000000009 /* PrivacyInfo.xcprivacy */,
+			);
+			path = RapportAI;
+			sourceTree = "<group>";
+		};
+		DD0000000000000000000003 /* Products */ = {isa = PBXGroup; children = (BB0000000000000000000010 /* RapportAI.app */); name = Products; sourceTree = "<group>"; };
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		EE0000000000000000000001 /* RapportAI */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = FF0000000000000000000002 /* Build configuration list for PBXNativeTarget "RapportAI" */;
+			buildPhases = (CC0000000000000000000002 /* Sources */, CC0000000000000000000001 /* Frameworks */, CC0000000000000000000003 /* Resources */);
+			buildRules = ();
+			dependencies = ();
+			name = RapportAI;
+			packageProductDependencies = ();
+			productName = RapportAI;
+			productReference = BB0000000000000000000010 /* RapportAI.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		EE0000000000000000000002 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {BuildIndependentTargetsInParallel = 1; LastSwiftUpdateCheck = 2600; LastUpgradeCheck = 2600; TargetAttributes = {EE0000000000000000000001 = {CreatedOnToolsVersion = 26.0;};};};
+			buildConfigurationList = FF0000000000000000000001 /* Build configuration list for PBXProject "RapportAI" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = de;
+			hasScannedForEncodings = 0;
+			knownRegions = (de, en, Base);
+			mainGroup = DD0000000000000000000001;
+			productRefGroup = DD0000000000000000000003 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (EE0000000000000000000001 /* RapportAI */);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		CC0000000000000000000003 /* Resources */ = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (AA0000000000000000000009 /* PrivacyInfo.xcprivacy in Resources */); runOnlyForDeploymentPostprocessing = 0; };
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		CC0000000000000000000002 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AA0000000000000000000001 /* RapportAIApp.swift in Sources */,
+				AA0000000000000000000002 /* Models.swift in Sources */,
+				AA0000000000000000000003 /* Theme.swift in Sources */,
+				AA0000000000000000000004 /* RapportStore.swift in Sources */,
+				AA0000000000000000000005 /* RapportService.swift in Sources */,
+				AA0000000000000000000006 /* SpeechTranscriber.swift in Sources */,
+				AA0000000000000000000007 /* PDFExporter.swift in Sources */,
+				AA0000000000000000000008 /* RootView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		110000000000000000000001 /* Debug */ = {isa = XCBuildConfiguration; buildSettings = {ALWAYS_SEARCH_USER_PATHS = NO; CLANG_ENABLE_MODULES = YES; CLANG_ENABLE_OBJC_ARC = YES; COPY_PHASE_STRIP = NO; DEBUG_INFORMATION_FORMAT = dwarf; ENABLE_TESTABILITY = YES; GCC_C_LANGUAGE_STANDARD = gnu17; GCC_NO_COMMON_BLOCKS = YES; IPHONEOS_DEPLOYMENT_TARGET = 17.0; ONLY_ACTIVE_ARCH = YES; SDKROOT = iphoneos; SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)"; SWIFT_OPTIMIZATION_LEVEL = "-Onone";}; name = Debug;};
+		110000000000000000000002 /* Release */ = {isa = XCBuildConfiguration; buildSettings = {ALWAYS_SEARCH_USER_PATHS = NO; CLANG_ENABLE_MODULES = YES; CLANG_ENABLE_OBJC_ARC = YES; COPY_PHASE_STRIP = NO; DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym"; ENABLE_NS_ASSERTIONS = NO; GCC_C_LANGUAGE_STANDARD = gnu17; GCC_NO_COMMON_BLOCKS = YES; IPHONEOS_DEPLOYMENT_TARGET = 17.0; SDKROOT = iphoneos; SWIFT_COMPILATION_MODE = wholemodule; VALIDATE_PRODUCT = YES;}; name = Release;};
+		110000000000000000000003 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = TKG684N5GL;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "Rapport AI";
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.business";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Rapport AI benötigt das Mikrofon, um deinen Baustellenbericht aufzunehmen.";
+				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Rapport AI wandelt deine gesprochene Baustellennotiz in Text um.";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = de.kamilunavo.rapportai;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		110000000000000000000004 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = TKG684N5GL;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "Rapport AI";
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.business";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Rapport AI benötigt das Mikrofon, um deinen Baustellenbericht aufzunehmen.";
+				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Rapport AI wandelt deine gesprochene Baustellennotiz in Text um.";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = de.kamilunavo.rapportai;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		FF0000000000000000000001 /* Build configuration list for PBXProject "RapportAI" */ = {isa = XCConfigurationList; buildConfigurations = (110000000000000000000001 /* Debug */, 110000000000000000000002 /* Release */); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release;};
+		FF0000000000000000000002 /* Build configuration list for PBXNativeTarget "RapportAI" */ = {isa = XCConfigurationList; buildConfigurations = (110000000000000000000003 /* Debug */, 110000000000000000000004 /* Release */); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release;};
+/* End XCConfigurationList section */
+	};
+	rootObject = EE0000000000000000000002 /* Project object */;
+}
+
