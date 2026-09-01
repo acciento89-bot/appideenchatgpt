@@ -9,7 +9,7 @@ on:
       build:
         description: App Store Connect build number
         required: true
-        default: '17'
+        default: '18'
       create_app_record:
         description: App-Datensatz bei Bedarf anlegen
         required: true
@@ -39,7 +39,7 @@ env:
   APP_SKU: KAMILUNAVO-IDLE-HANDWERKER-IOS
   # TestFlight QA uses Google's rewarded test units. Production units are enabled
   # only by an explicit release dispatch after the ad flow has been verified.
-  PRODUCTION_ADS: ${{ github.event_name == 'workflow_dispatch' && inputs.production_ads }}
+  PRODUCTION_ADS: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.production_ads) }}
 
 jobs:
   upload:
@@ -116,7 +116,7 @@ jobs:
       - name: Preflight
         shell: bash
         env:
-          REQUESTED_BUILD: ${{ inputs.build || '17' }}
+          REQUESTED_BUILD: ${{ inputs.build || '18' }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_PRIVATE_KEY_B64: ${{ secrets.ASC_PRIVATE_KEY_B64 }}
