@@ -1,5 +1,16 @@
 extends SceneTree
 
+var storekit_grants: Array[Dictionary] = []
+var storekit_failures := 0
+
+
+func _record_storekit_grant(product_id: String, transaction_id: String) -> void:
+	storekit_grants.append({"product_id": product_id, "transaction_id": transaction_id})
+
+
+func _record_storekit_failure(_message: String) -> void:
+	storekit_failures += 1
+
 
 func _init() -> void:
 	var failures := 0
@@ -133,10 +144,45 @@ func _init() -> void:
 	if not game.apply_purchase("de.kamilunavo.idlehandwerker.tokens.small", "tx-test-1"):
 		failures += 1
 		printerr("FAIL: consumable purchase credit")
+	if game.apply_purchase("de.kamilunavo.idlehandwerker.tokens.small", ""):
+		failures += 1
+		printerr("FAIL: purchase without StoreKit transaction ID must never be credited")
 	var tokens_after_purchase := game.bonus_tokens
 	if game.apply_purchase("de.kamilunavo.idlehandwerker.tokens.small", "tx-test-1") or game.bonus_tokens != tokens_after_purchase:
 		failures += 1
 		printerr("FAIL: duplicate StoreKit transaction protection")
+	var storekit := MonetizationBridge.new()
+	storekit.purchase_completed.connect(_record_storekit_grant)
+	storekit.purchase_failed.connect(_record_storekit_failure)
+	var small_product := "de.kamilunavo.idlehandwerker.tokens.small"
+	storekit._handle_store_event({"result": "progress", "type": "purchase", "product_id": small_product})
+	storekit._handle_store_event({"result": "ok", "type": "purchase", "product_id": small_product})
+	if not storekit_grants.is_empty():
+		failures += 1
+		printerr("FAIL: pending/incomplete StoreKit purchase must not emit a grant")
+	storekit._handle_store_event({
+		"result": "ok",
+		"type": "purchase",
+		"product_id": small_product,
+		"transaction_id": "tx-confirmed",
+	})
+	if storekit_grants.size() != 1 or str(storekit_grants[0].transaction_id) != "tx-confirmed":
+		failures += 1
+		printerr("FAIL: confirmed StoreKit purchase must emit exactly one grant")
+	storekit._handle_store_event({
+		"result": "ok",
+		"type": "restore",
+		"product_id": small_product,
+		"transaction_id": "tx-consumable-restore",
+	})
+	if storekit_grants.size() != 1:
+		failures += 1
+		printerr("FAIL: consumable StoreKit products must not be restored")
+	storekit._handle_store_event({"result": "error", "type": "purchase", "product_id": small_product, "error": "cancelled"})
+	if storekit_failures != 1 or storekit_grants.size() != 1:
+		failures += 1
+		printerr("FAIL: cancelled StoreKit purchase must report failure without granting")
+	storekit.free()
 	game.daily_key = Time.get_date_string_from_system()
 	game.daily_progress.jobs = 5.0
 	var money_before := game.money
