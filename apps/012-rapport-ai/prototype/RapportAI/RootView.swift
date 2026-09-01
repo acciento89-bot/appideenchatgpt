@@ -184,7 +184,9 @@ struct HistoryView: View {
         }
         .background(CraftTheme.background.ignoresSafeArea())
         .navigationTitle("Rapporte")
-        .navigationDestination(for: RapportDraft.self) { ReportDetailView(report: report) }
+        .navigationDestination(for: RapportDraft.self) { report in
+            ReportDetailView(report: report)
+        }
     }
 }
 
