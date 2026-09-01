@@ -178,6 +178,7 @@ func _init() -> void:
 	if storekit_grants.size() != 1:
 		failures += 1
 		printerr("FAIL: consumable StoreKit products must not be restored")
+	storekit._pending_product_id = small_product
 	storekit._handle_store_event({"result": "error", "type": "purchase", "product_id": small_product, "error": "cancelled"})
 	if storekit_failures != 1 or storekit_grants.size() != 1:
 		failures += 1
