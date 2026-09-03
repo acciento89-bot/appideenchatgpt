@@ -71,6 +71,9 @@ jobs:
           test -n "$APP" -a -d "$APP"
           /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP/Info.plist" | grep -qx "$BUNDLE_ID"
           /usr/libexec/PlistBuddy -c 'Print :CFBundleDisplayName' "$APP/Info.plist" | grep -qx 'Rapport AI'
+          strings "$APP/RapportAI" | grep -Fq 'bqctetqraszsvknczjjr.supabase.co'
+          strings "$APP/RapportAI" | grep -Fq 'generate-rapport'
+          strings "$APP/RapportAI" | grep -Fq 'sb_publishable_'
           echo "DEVICE_APP=$APP" >> "$GITHUB_ENV"
 
       - name: Package device validation build
