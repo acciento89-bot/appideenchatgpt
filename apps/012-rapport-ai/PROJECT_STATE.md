@@ -15,7 +15,7 @@ Last updated: 2026-09-03
 - StoreKit 2 monthly/annual Pro subscriptions only unlock after verified transactions.
 - App icon and local StoreKit test configuration are included in the Xcode project.
 - PR #80 (cross-trade native MVP), PR #82 (TestFlight UI and continuous dictation) and PR #83 (Speech partial-reset handling) are merged.
-- TestFlight Build 3 is uploaded and has been physically tested on an iPhone.
+- TestFlight Build 6 is uploaded and has been physically tested on an iPhone.
 - User-confirmed Build 3 speech behavior:
   - dictated text survives short speech pauses;
   - new sentences append to the existing block;
@@ -34,11 +34,13 @@ Last updated: 2026-09-03
 - The endpoint and public Supabase publishable key now ship as explicit client configuration; the silent local formatter has been removed.
 - CI validates that the compiled iOS app binary actually contains the endpoint and publishable key marker.
 - Build number is advanced to 6 for hosted-AI TestFlight validation.
+- User-confirmed Build 6 reaches the hosted OpenAI generation path and returns rewritten text.
+- The production prompt now requests compact, chronological trade-report language without metadata headers or generic section labels while strictly preserving supplied facts and uncertainty.
 
 ## Next gates
 
-1. Pass simulator/device CI for the corrected hosted-AI wiring and upload TestFlight Build 6.
-2. Physically verify AI generation, editing, local save/history and PDF sharing on iPhone.
+1. Physically verify the improved production prompt in the existing TestFlight Build 6.
+2. Physically verify editing, local save/history and PDF sharing on iPhone.
 3. Create matching App Store Connect subscriptions and agreements.
 4. Physically verify purchase, entitlement persistence and Restore in TestFlight.
 5. Complete App Store naming, metadata, screenshots and submission.
