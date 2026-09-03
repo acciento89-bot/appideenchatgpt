@@ -36,6 +36,7 @@ Last updated: 2026-09-03
 - Build number is advanced to 6 for hosted-AI TestFlight validation.
 - User-confirmed Build 6 reaches the hosted OpenAI generation path and returns rewritten text.
 - The production prompt now requests compact, chronological trade-report language without metadata headers or generic section labels while strictly preserving supplied facts and uncertainty.
+- After device feedback that prompt-only rewriting remained insufficiently professional, generation was upgraded from GPT-5 Mini to GPT-5.6 Terra and a two-stage draft/editor pipeline that checks report language and facts against the original note.
 
 ## Next gates
 
