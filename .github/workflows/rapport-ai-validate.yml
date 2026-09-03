@@ -38,3 +38,6 @@ jobs:
           test "$(sips -g pixelWidth -g pixelHeight apps/012-rapport-ai/prototype/RapportAI/Assets.xcassets/AppIcon.appiconset/RapportAI-AppIcon-1024.png | awk '/pixelWidth|pixelHeight/ { print $2 }' | tr '\n' ' ')" = "1024 1024 "
           ! grep -R -E -n 'sk-[A-Za-z0-9_-]{20,}' apps/012-rapport-ai
           grep -n 'OPENAI_API_KEY' apps/012-rapport-ai/supabase/functions/generate-rapport/index.ts
+          grep -q 'INFOPLIST_KEY_RAPPORT_API_URL = "https://bqctetqraszsvknczjjr.supabase.co/functions/v1/generate-rapport";' apps/012-rapport-ai/prototype/RapportAI.xcodeproj/project.pbxproj
+          grep -q 'request.setValue(apiKey, forHTTPHeaderField: "apikey")' apps/012-rapport-ai/prototype/RapportAI/RapportService.swift
+          ! grep -R -E -n 'eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+' apps/012-rapport-ai

@@ -26,15 +26,17 @@ Last updated: 2026-09-03
 
 ## Backend status
 
-- The `generate-rapport` Supabase Edge Function source exists in the repository.
-- `RAPPORT_API_URL` is not configured in the Xcode project yet, so current builds use `LocalRapportFormatter` instead of the hosted AI path.
-- A live probe on 2026-09-03 against the known Supabase project ref `bqctetqraszsvknczjjr` returned `404 Requested function was not found`; `generate-rapport` is not deployed there yet.
+- Supabase project `bqctetqraszsvknczjjr` is active in Frankfurt (`eu-central-1`).
+- `generate-rapport` is deployed and active with explicit validation of the public Supabase client key.
+- Two authenticated live probes returned real OpenAI-generated reports for SHK and general-handwork input.
+- The app supplies only the public Supabase client key; no bearer JWT, privileged credential or OpenAI API key is committed or shipped.
+- `RAPPORT_API_URL` is configured for Debug and Release builds.
+- Build number is advanced to 4 for hosted-AI TestFlight validation.
 
 ## Next gates
 
-1. Connect and deploy the protected `generate-rapport` AI endpoint.
-2. Configure the release app's `RAPPORT_API_URL`, validate the real hosted AI response and upload the next TestFlight build.
-3. Physically verify AI generation, editing, local save/history and PDF sharing on iPhone.
-4. Create matching App Store Connect subscriptions and agreements.
-5. Physically verify purchase, entitlement persistence and Restore in TestFlight.
-6. Complete App Store naming, metadata, screenshots and submission.
+1. Pass simulator/device CI for the hosted-AI wiring and upload TestFlight Build 4.
+2. Physically verify AI generation, editing, local save/history and PDF sharing on iPhone.
+3. Create matching App Store Connect subscriptions and agreements.
+4. Physically verify purchase, entitlement persistence and Restore in TestFlight.
+5. Complete App Store naming, metadata, screenshots and submission.
