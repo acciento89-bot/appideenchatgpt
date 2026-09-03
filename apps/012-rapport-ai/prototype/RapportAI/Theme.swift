@@ -31,6 +31,7 @@ struct PrimaryButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(.headline)
+            .padding(.horizontal, 18)
             .frame(maxWidth: .infinity)
             .padding(.vertical, 15)
             .foregroundStyle(.white)
@@ -44,5 +45,23 @@ struct PrimaryButtonStyle: ButtonStyle {
             )
             .scaleEffect(configuration.isPressed ? 0.98 : 1)
             .opacity(configuration.isPressed ? 0.86 : 1)
+    }
+}
+
+struct CraftTextFieldStyle: TextFieldStyle {
+    func _body(configuration: TextField<Self._Label>) -> some View {
+        configuration
+            .foregroundStyle(.white)
+            .tint(CraftTheme.orange)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
+            .background(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(CraftTheme.background.opacity(0.82))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .stroke(CraftTheme.cyan.opacity(0.2), lineWidth: 1)
+                    )
+            )
     }
 }

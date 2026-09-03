@@ -11,6 +11,7 @@ final class SpeechTranscriber: ObservableObject {
     private let recognizer = SFSpeechRecognizer(locale: Locale(identifier: "de-DE"))
     private var request: SFSpeechAudioBufferRecognitionRequest?
     private var task: SFSpeechRecognitionTask?
+    private var sessionPrefix = ""
 
     func toggle() async {
         if isRecording { stop(); return }
@@ -39,6 +40,7 @@ final class SpeechTranscriber: ObservableObject {
         }
 
         stop()
+        sessionPrefix = transcript.trimmingCharacters(in: .whitespacesAndNewlines)
         do {
             let session = AVAudioSession.sharedInstance()
             try session.setCategory(.record, mode: .measurement, options: .duckOthers)
@@ -59,7 +61,11 @@ final class SpeechTranscriber: ObservableObject {
 
             task = recognizer?.recognitionTask(with: recognitionRequest) { [weak self] result, error in
                 Task { @MainActor in
-                    if let result { self?.transcript = result.bestTranscription.formattedString }
+                    if let result, let self {
+                        let currentSegment = result.bestTranscription.formattedString
+                            .trimmingCharacters(in: .whitespacesAndNewlines)
+                        self.transcript = self.joinedTranscript(prefix: self.sessionPrefix, segment: currentSegment)
+                    }
                     if error != nil || result?.isFinal == true { self?.stop() }
                 }
             }
@@ -70,6 +76,13 @@ final class SpeechTranscriber: ObservableObject {
             stop()
             errorMessage = "Die Aufnahme konnte nicht gestartet werden: \(error.localizedDescription)"
         }
+    }
+
+    private func joinedTranscript(prefix: String, segment: String) -> String {
+        guard !prefix.isEmpty else { return segment }
+        guard !segment.isEmpty else { return prefix }
+        let separator = prefix.last?.isWhitespace == true ? "" : " "
+        return prefix + separator + segment
     }
 
     private func requestSpeechPermission() async -> SFSpeechRecognizerAuthorizationStatus {
@@ -84,4 +97,3 @@ final class SpeechTranscriber: ObservableObject {
         }
     }
 }
-

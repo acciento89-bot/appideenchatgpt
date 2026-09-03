@@ -37,7 +37,7 @@ struct CreateRapportView: View {
                 if !draft.reportText.isEmpty { resultCard }
             }
             .padding(16)
-            .padding(.bottom, 24)
+            .padding(.bottom, 112)
         }
         .background(CraftTheme.background.ignoresSafeArea())
         .navigationTitle("Neuer Rapport")
@@ -80,9 +80,9 @@ struct CreateRapportView: View {
                     ForEach(TradeCategory.allCases) { Text($0.title).tag($0) }
                 }
                 .pickerStyle(.menu)
-                TextField("Kunde / Auftraggeber", text: $draft.customer).textFieldStyle(.roundedBorder)
-                TextField("Einsatzort", text: $draft.location).textFieldStyle(.roundedBorder)
-                TextField("Objekt / Anlage / Bauteil", text: $draft.system).textFieldStyle(.roundedBorder)
+                TextField("Kunde / Auftraggeber", text: $draft.customer).textFieldStyle(CraftTextFieldStyle())
+                TextField("Einsatzort", text: $draft.location).textFieldStyle(CraftTextFieldStyle())
+                TextField("Objekt / Anlage / Bauteil", text: $draft.system).textFieldStyle(CraftTextFieldStyle())
                 Picker("Stil", selection: $draft.tone) {
                     ForEach(RapportTone.allCases) { Text($0.title).tag($0) }
                 }
@@ -232,7 +232,7 @@ struct ReportDetailView: View {
                     }
                         .buttonStyle(.bordered).tint(CraftTheme.cyan)
                 }
-            }.padding(16)
+            }.padding(16).padding(.bottom, 112)
         }
         .background(CraftTheme.background.ignoresSafeArea())
         .sheet(item: $shareItem) { ShareSheet(url: $0.url) }
@@ -256,11 +256,11 @@ struct SettingsView: View {
                 CraftCard {
                     VStack(alignment: .leading, spacing: 10) {
                         Label("Firmenprofil für PDF", systemImage: "building.2.fill").font(.headline)
-                        TextField("Firmenname", text: $profileStore.profile.companyName).textFieldStyle(.roundedBorder)
-                        TextField("Ansprechpartner", text: $profileStore.profile.ownerName).textFieldStyle(.roundedBorder)
-                        TextField("Anschrift", text: $profileStore.profile.address).textFieldStyle(.roundedBorder)
-                        TextField("Telefon", text: $profileStore.profile.phone).textFieldStyle(.roundedBorder).keyboardType(.phonePad)
-                        TextField("E-Mail", text: $profileStore.profile.email).textFieldStyle(.roundedBorder).keyboardType(.emailAddress).textInputAutocapitalization(.never)
+                        TextField("Firmenname", text: $profileStore.profile.companyName).textFieldStyle(CraftTextFieldStyle())
+                        TextField("Ansprechpartner", text: $profileStore.profile.ownerName).textFieldStyle(CraftTextFieldStyle())
+                        TextField("Anschrift", text: $profileStore.profile.address).textFieldStyle(CraftTextFieldStyle())
+                        TextField("Telefon", text: $profileStore.profile.phone).textFieldStyle(CraftTextFieldStyle()).keyboardType(.phonePad)
+                        TextField("E-Mail", text: $profileStore.profile.email).textFieldStyle(CraftTextFieldStyle()).keyboardType(.emailAddress).textInputAutocapitalization(.never)
                         PhotosPicker(selection: $selectedLogo, matching: .images) {
                             Label(profileStore.profile.logoData == nil ? "Firmenlogo auswählen" : "Firmenlogo ändern", systemImage: "photo.badge.plus")
                         }
@@ -285,7 +285,7 @@ struct SettingsView: View {
                     Text("Keine Zugangsdaten und keine API-Schlüssel werden in der App gespeichert. Bei aktivierter KI-Verarbeitung wird nur der eingegebene Rapportinhalt an den geschützten Dienst übertragen.")
                         .font(.subheadline).foregroundStyle(CraftTheme.textMuted)
                 }
-            }.padding(16)
+            }.padding(16).padding(.bottom, 112)
         }
         .background(CraftTheme.background.ignoresSafeArea())
         .navigationTitle("Mehr")
