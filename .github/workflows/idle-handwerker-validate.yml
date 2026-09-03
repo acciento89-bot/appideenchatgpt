@@ -28,6 +28,21 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
+      - name: Install pinned AdMob plugin
+        shell: bash
+        run: |
+          set -euo pipefail
+          ADMOB_VERSION='v5.0.0'
+          ADMOB_ARCHIVE="poing-godot-admob-$ADMOB_VERSION.zip"
+          curl -L --fail --retry 3 -o "$RUNNER_TEMP/$ADMOB_ARCHIVE" \
+            "https://github.com/poingstudios/godot-admob-plugin/releases/download/$ADMOB_VERSION/$ADMOB_ARCHIVE"
+          unzip -q "$RUNNER_TEMP/$ADMOB_ARCHIVE" -d "$RUNNER_TEMP/godot-admob"
+          ADMOB_SOURCE="$RUNNER_TEMP/godot-admob/poing-godot-admob/addons/admob"
+          test -f "$ADMOB_SOURCE/plugin.cfg"
+          rm -rf "$PROJECT_DIR/addons/admob"
+          mkdir -p "$PROJECT_DIR/addons"
+          cp -R "$ADMOB_SOURCE" "$PROJECT_DIR/addons/admob"
+
       - name: Download Godot
         shell: bash
         run: |
