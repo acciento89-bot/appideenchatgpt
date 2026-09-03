@@ -7,25 +7,26 @@ protocol RapportGenerating {
 struct HybridRapportService: RapportGenerating {
     private let session: URLSession
     private let endpoint: URL?
+    private let apiKey: String?
 
     init(session: URLSession = .shared, bundle: Bundle = .main) {
         self.session = session
-        if let value = bundle.object(forInfoDictionaryKey: "RAPPORT_API_URL") as? String {
-            endpoint = URL(string: value)
-        } else {
-            endpoint = nil
-        }
+        endpoint = Self.configuredURL(for: "RAPPORT_API_URL", bundle: bundle)
+        apiKey = Self.configuredValue(for: "RAPPORT_API_KEY", bundle: bundle)
     }
 
     func generate(from draft: RapportDraft) async throws -> String {
         let trimmed = draft.rawText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { throw RapportError.emptyInput }
-        guard let endpoint else { return LocalRapportFormatter.format(draft) }
+        guard let endpoint, let apiKey else {
+            return LocalRapportFormatter.format(draft)
+        }
 
         var request = URLRequest(url: endpoint)
         request.httpMethod = "POST"
         request.timeoutInterval = 35
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue(apiKey, forHTTPHeaderField: "apikey")
         request.httpBody = try JSONEncoder().encode(
             RapportGenerationRequest(
                 rawText: trimmed,
@@ -46,6 +47,17 @@ struct HybridRapportService: RapportGenerating {
             throw RapportError.invalidResponse
         }
         return decoded.report
+    }
+
+    private static func configuredValue(for key: String, bundle: Bundle) -> String? {
+        guard let value = bundle.object(forInfoDictionaryKey: key) as? String else { return nil }
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
+    }
+
+    private static func configuredURL(for key: String, bundle: Bundle) -> URL? {
+        guard let value = configuredValue(for: key, bundle: bundle) else { return nil }
+        return URL(string: value)
     }
 }
 
