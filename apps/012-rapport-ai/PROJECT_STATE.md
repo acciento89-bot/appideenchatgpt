@@ -27,9 +27,9 @@ Last updated: 2026-09-03
 ## Backend status
 
 - Supabase project `bqctetqraszsvknczjjr` is active in Frankfurt (`eu-central-1`).
-- `generate-rapport` version 1 is deployed and active with JWT verification enabled.
+- `generate-rapport` is deployed and active with explicit validation of the public Supabase client key.
 - Two authenticated live probes returned real OpenAI-generated reports for SHK and general-handwork input.
-- The app now supplies the public Supabase client credentials in the correct headers; privileged credentials and the OpenAI API key remain server-side.
+- The app supplies only the public Supabase client key; no bearer JWT, privileged credential or OpenAI API key is committed or shipped.
 - `RAPPORT_API_URL` is configured for Debug and Release builds.
 - Build number is advanced to 4 for hosted-AI TestFlight validation.
 
