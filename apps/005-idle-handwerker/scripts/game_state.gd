@@ -265,7 +265,12 @@ func activate_rewarded_boost(seconds := 600) -> void:
 
 
 func apply_purchase(product_id: String, transaction_id: String) -> bool:
-	if transaction_id != "" and bool(processed_transactions.get(transaction_id, false)):
+	# A native StoreKit grant without a transaction ID is never a completed
+	# purchase. Rejecting it also prevents progress/pending events from granting
+	# content if a bridge regression ever forwards them again.
+	if transaction_id.is_empty():
+		return false
+	if bool(processed_transactions.get(transaction_id, false)):
 		return false
 	match product_id:
 		"de.kamilunavo.idlehandwerker.noads": no_ads = true
@@ -278,8 +283,7 @@ func apply_purchase(product_id: String, transaction_id: String) -> bool:
 		"de.kamilunavo.idlehandwerker.tokens.small": bonus_tokens += 250
 		"de.kamilunavo.idlehandwerker.tokens.large": bonus_tokens += 1200
 		_: return false
-	if transaction_id != "":
-		processed_transactions[transaction_id] = true
+	processed_transactions[transaction_id] = true
 	notice.emit("Kauf erfolgreich gutgeschrieben.")
 	changed.emit()
 	save_game()

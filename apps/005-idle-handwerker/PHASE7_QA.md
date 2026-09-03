@@ -25,3 +25,13 @@
 - Tutorial aus den Einstellungen erneut starten
 - Spielstand-Reset abbrechen und anschließend bewusst bestätigen
 - Spielstand bleibt nach App-Wechsel und erzwungenem Beenden erhalten
+- EU-Einwilligungsformular erscheint vor der ersten möglichen Anzeigenanfrage
+- „Nicht einwilligen“ verhindert keine Nutzung des Spiels
+- Datenschutzoptionen lassen sich aus den Einstellungen erneut öffnen, wenn UMP sie verlangt
+- Rewarded Ad für Einnahmenbonus vergibt die Belohnung genau einmal
+- Rewarded Ad für Offline-Einnahmen verdoppelt nur den angezeigten Offline-Betrag
+- Abbruch oder Ladefehler einer Anzeige vergibt keine Belohnung
+- StoreKit-Sandboxkäufe für alle vier Produkt-IDs
+- Werbefrei und Starterpaket können nicht mehrfach gekauft werden
+- Bonusmarken werden nach bestätigtem Verbrauchskauf genau einmal gutgeschrieben
+- „Käufe wiederherstellen“ stellt dauerhafte Käufe wieder her, aber keine verbrauchten Bonusmarken

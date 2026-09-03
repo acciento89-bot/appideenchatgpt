@@ -1,0 +1,54 @@
+{
+  "identifier" : "RAPPORTAI-STORE-1",
+  "nonRenewingSubscriptions" : [],
+  "products" : [],
+  "settings" : {},
+  "subscriptionGroups" : [
+    {
+      "id" : "RAPPORTAI-PRO-GROUP",
+      "localizations" : [
+        { "description" : "Rapport AI Pro", "displayName" : "Rapport AI Pro", "locale" : "de_DE" },
+        { "description" : "Rapport AI Pro", "displayName" : "Rapport AI Pro", "locale" : "en_US" }
+      ],
+      "name" : "Rapport AI Pro",
+      "subscriptions" : [
+        {
+          "adHocOffers" : [],
+          "codeOffers" : [],
+          "displayPrice" : "4.99",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "RAPPORTAI-MONTHLY",
+          "introductoryOffer" : null,
+          "localizations" : [
+            { "description" : "Unbegrenzte KI-Rapporte, Firmenprofil und PDF-Export.", "displayName" : "Rapport AI Pro Monatlich", "locale" : "de_DE" },
+            { "description" : "Unlimited AI reports, company profile and PDF export.", "displayName" : "Rapport AI Pro Monthly", "locale" : "en_US" }
+          ],
+          "productID" : "de.kamilunavo.rapportai.pro.monthly",
+          "recurringSubscriptionPeriod" : "P1M",
+          "referenceName" : "Rapport AI Pro Monthly",
+          "type" : "RecurringSubscription"
+        },
+        {
+          "adHocOffers" : [],
+          "codeOffers" : [],
+          "displayPrice" : "39.99",
+          "familyShareable" : false,
+          "groupNumber" : 2,
+          "internalID" : "RAPPORTAI-ANNUAL",
+          "introductoryOffer" : null,
+          "localizations" : [
+            { "description" : "Unbegrenzte KI-Rapporte, Firmenprofil und PDF-Export.", "displayName" : "Rapport AI Pro Jährlich", "locale" : "de_DE" },
+            { "description" : "Unlimited AI reports, company profile and PDF export.", "displayName" : "Rapport AI Pro Annual", "locale" : "en_US" }
+          ],
+          "productID" : "de.kamilunavo.rapportai.pro.annual",
+          "recurringSubscriptionPeriod" : "P1Y",
+          "referenceName" : "Rapport AI Pro Annual",
+          "type" : "RecurringSubscription"
+        }
+      ]
+    }
+  ],
+  "version" : { "major" : 1, "minor" : 0 }
+}
+
