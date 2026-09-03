@@ -33,16 +33,16 @@ Last updated: 2026-09-03
 - Build 5 exposed that Xcode's generated `Info.plist` omitted the custom backend keys, so the app silently used its local formatter and never contacted Supabase.
 - The endpoint and public Supabase publishable key now ship as explicit client configuration; the silent local formatter has been removed.
 - CI validates that the compiled iOS app binary actually contains the endpoint and publishable key marker.
-- Build number is advanced to 7 for the redesigned professional PDF export.
+- Build number is advanced to 8 for App Store subscription readiness.
 - User-confirmed Build 6 reaches the hosted OpenAI generation path and returns rewritten text.
 - The production prompt now requests compact, chronological trade-report language without metadata headers or generic section labels while strictly preserving supplied facts and uncertainty.
 - After device feedback that prompt-only rewriting remained insufficiently professional, generation was upgraded from GPT-5 Mini to GPT-5.6 Terra and a two-stage draft/editor pipeline that checks report language and facts against the original note.
 - PDF export now uses a branded A4 service-report layout with a company header, structured job metadata, stable report numbers, signature fields, page numbering and automatic continuation pages for long reports.
+- The paywall and settings now provide direct links to the privacy policy and Apple's standard EULA as required for auto-renewable subscriptions.
 
 ## Next gates
 
-1. Upload and physically verify the redesigned PDF export in TestFlight Build 7.
-2. Physically verify editing and local save/history on iPhone.
-3. Create matching App Store Connect subscriptions and agreements.
-4. Physically verify purchase, entitlement persistence and Restore in TestFlight.
-5. Complete App Store naming, metadata, screenshots and submission.
+1. Upload Build 8 and physically verify the legal links plus editing and local save/history on iPhone.
+2. Add the App Store review screenshots for both subscriptions.
+3. Physically verify purchase, entitlement persistence and Restore in TestFlight.
+4. Complete App Store privacy answers, metadata, screenshots and submission.
