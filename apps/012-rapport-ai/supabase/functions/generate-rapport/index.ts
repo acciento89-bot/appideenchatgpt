@@ -8,6 +8,7 @@ const corsHeaders = {
 Deno.serve(async (request) => {
   if (request.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (request.method !== "POST") return json({ error: "method_not_allowed" }, 405);
+  if (!hasValidPublishableKey(request)) return json({ error: "unauthorized" }, 401);
 
   const apiKey = Deno.env.get("OPENAI_API_KEY");
   if (!apiKey) return json({ error: "service_not_configured" }, 503);
@@ -21,6 +22,7 @@ Deno.serve(async (request) => {
     "Du formulierst deutsche Arbeitsrapporte für Handwerksbetriebe unterschiedlicher Gewerke.",
     "Formuliere ausschließlich aus den gelieferten Tatsachen. Erfinde niemals Messwerte, Material, Ursachen, Diagnosen oder ausgeführte Arbeiten.",
     "Schreibe präzise, professionell, neutral und gut verständlich. Entferne Füllwörter. Unsichere Aussagen bleiben als Feststellung oder Empfehlung gekennzeichnet.",
+    "Übernimm jede im Rohtext genannte Feststellung, ausgeführte Maßnahme, jedes Ergebnis und jede Empfehlung. Keine gelieferte Tatsache darf entfallen.",
     `Stil: ${tone}`,
     `Gewerk: ${safe(body?.trade)}`,
     `Kunde: ${safe(body?.customer)}`,
@@ -36,7 +38,7 @@ Deno.serve(async (request) => {
     body: JSON.stringify({
       model: Deno.env.get("OPENAI_MODEL") ?? "gpt-5-mini",
       input: prompt,
-      max_output_tokens: 900,
+      max_output_tokens: 1_200,
     }),
   });
 
@@ -47,18 +49,35 @@ Deno.serve(async (request) => {
   return json({ report }, 200);
 });
 
+function hasValidPublishableKey(request: Request): boolean {
+  const supplied = request.headers.get("apikey")?.trim();
+  const configured = Deno.env.get("SUPABASE_PUBLISHABLE_KEYS");
+  if (!supplied || !configured) return false;
+
+  try {
+    const keys = JSON.parse(configured) as Record<string, unknown>;
+    return Object.values(keys).some((value) => value === supplied);
+  } catch {
+    return false;
+  }
+}
+
 function safe(value: unknown): string {
   return typeof value === "string" && value.trim() ? value.trim().slice(0, 300) : "nicht angegeben";
 }
 
 function extractOutputText(value: any): string {
   if (typeof value?.output_text === "string") return value.output_text.trim();
+  const parts: string[] = [];
   for (const item of value?.output ?? []) {
     for (const content of item?.content ?? []) {
-      if (content?.type === "output_text" && typeof content?.text === "string") return content.text.trim();
+      if (content?.type === "output_text" && typeof content?.text === "string") {
+        const text = content.text.trim();
+        if (text) parts.push(text);
+      }
     }
   }
-  return "";
+  return parts.join("\n").trim();
 }
 
 function json(value: unknown, status: number): Response {
