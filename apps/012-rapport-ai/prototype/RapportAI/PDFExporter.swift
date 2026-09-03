@@ -190,7 +190,16 @@ enum PDFExporter {
             let safeLength = max(1, selectedLength)
             result.append(TextPage(range: NSRange(location: offset, length: safeLength), isFirst: isFirst, isFinal: false))
             offset += safeLength
-            while offset < source.length && CharacterSet.whitespacesAndNewlines.characterIsMember(source.character(at: offset)) { offset += 1 }
+            while offset < source.length {
+                let characterRange = NSRange(location: offset, length: 1)
+                let whitespaceRange = source.rangeOfCharacter(
+                    from: .whitespacesAndNewlines,
+                    options: [],
+                    range: characterRange
+                )
+                guard whitespaceRange.location != NSNotFound else { break }
+                offset += 1
+            }
             pageIndex += 1
         }
         return result
