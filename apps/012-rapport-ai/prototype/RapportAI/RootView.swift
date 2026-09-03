@@ -245,6 +245,8 @@ struct SettingsView: View {
     @EnvironmentObject private var entitlements: EntitlementStore
     @State private var selectedLogo: PhotosPickerItem?
     @State private var showPaywall = false
+    private let privacyURL = URL(string: "https://kamilunavo.com/privacy")!
+    private let standardEULAURL = URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")!
     var body: some View {
         ScrollView {
             VStack(spacing: 16) {
@@ -281,9 +283,13 @@ struct SettingsView: View {
                     }
                 }
                 CraftCard {
-                    Label("Datenschutz", systemImage: "lock.shield.fill").font(.headline)
-                    Text("Keine Zugangsdaten und keine API-Schlüssel werden in der App gespeichert. Bei aktivierter KI-Verarbeitung wird nur der eingegebene Rapportinhalt an den geschützten Dienst übertragen.")
-                        .font(.subheadline).foregroundStyle(CraftTheme.textMuted)
+                    VStack(alignment: .leading, spacing: 10) {
+                        Label("Datenschutz", systemImage: "lock.shield.fill").font(.headline)
+                        Text("Keine Zugangsdaten und keine API-Schlüssel werden in der App gespeichert. Bei aktivierter KI-Verarbeitung wird nur der eingegebene Rapportinhalt an den geschützten Dienst übertragen.")
+                            .font(.subheadline).foregroundStyle(CraftTheme.textMuted)
+                        Link("Datenschutzerklärung", destination: privacyURL)
+                        Link("Nutzungsbedingungen (Apple EULA)", destination: standardEULAURL)
+                    }
                 }
             }.padding(16).padding(.bottom, 112)
         }

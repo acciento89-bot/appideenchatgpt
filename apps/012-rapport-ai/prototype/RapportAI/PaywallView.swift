@@ -4,6 +4,8 @@ import SwiftUI
 struct PaywallView: View {
     @EnvironmentObject private var entitlements: EntitlementStore
     @Environment(\.dismiss) private var dismiss
+    private let privacyURL = URL(string: "https://kamilunavo.com/privacy")!
+    private let standardEULAURL = URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")!
 
     var body: some View {
         NavigationStack {
@@ -61,6 +63,12 @@ struct PaywallView: View {
                         .tint(CraftTheme.cyan)
                     Text("Abonnements verlängern sich automatisch, sofern sie nicht mindestens 24 Stunden vor Ablauf gekündigt werden. Verwaltung über deine Apple-ID.")
                         .font(.caption2).foregroundStyle(CraftTheme.textMuted).multilineTextAlignment(.center)
+                    HStack(spacing: 18) {
+                        Link("Datenschutz", destination: privacyURL)
+                        Link("Nutzungsbedingungen", destination: standardEULAURL)
+                    }
+                    .font(.caption)
+                    .foregroundStyle(CraftTheme.cyan)
                 }
                 .padding(20)
             }
