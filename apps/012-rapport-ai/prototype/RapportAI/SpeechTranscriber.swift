@@ -12,6 +12,10 @@ final class SpeechTranscriber: ObservableObject {
     private var request: SFSpeechAudioBufferRecognitionRequest?
     private var task: SFSpeechRecognitionTask?
     private var sessionPrefix = ""
+    private var committedSessionText = ""
+    private var currentHypothesis = ""
+    private var currentHypothesisEnd: TimeInterval = 0
+    private var activeSessionID: UUID?
 
     func toggle() async {
         if isRecording { stop(); return }
@@ -19,6 +23,12 @@ final class SpeechTranscriber: ObservableObject {
     }
 
     func stop() {
+        stop(sessionID: nil)
+    }
+
+    private func stop(sessionID: UUID?) {
+        if let sessionID, activeSessionID != sessionID { return }
+        activeSessionID = nil
         audioEngine.stop()
         audioEngine.inputNode.removeTap(onBus: 0)
         request?.endAudio()
@@ -41,6 +51,9 @@ final class SpeechTranscriber: ObservableObject {
 
         stop()
         sessionPrefix = transcript.trimmingCharacters(in: .whitespacesAndNewlines)
+        committedSessionText = ""
+        currentHypothesis = ""
+        currentHypothesisEnd = 0
         do {
             let session = AVAudioSession.sharedInstance()
             try session.setCategory(.record, mode: .measurement, options: .duckOthers)
@@ -52,6 +65,8 @@ final class SpeechTranscriber: ObservableObject {
                 recognitionRequest.requiresOnDeviceRecognition = true
             }
             request = recognitionRequest
+            let sessionID = UUID()
+            activeSessionID = sessionID
 
             let input = audioEngine.inputNode
             let format = input.outputFormat(forBus: 0)
@@ -61,12 +76,11 @@ final class SpeechTranscriber: ObservableObject {
 
             task = recognizer?.recognitionTask(with: recognitionRequest) { [weak self] result, error in
                 Task { @MainActor in
-                    if let result, let self {
-                        let currentSegment = result.bestTranscription.formattedString
-                            .trimmingCharacters(in: .whitespacesAndNewlines)
-                        self.transcript = self.joinedTranscript(prefix: self.sessionPrefix, segment: currentSegment)
+                    guard let self, self.activeSessionID == sessionID else { return }
+                    if let result {
+                        self.apply(result.bestTranscription)
                     }
-                    if error != nil || result?.isFinal == true { self?.stop() }
+                    if error != nil || result?.isFinal == true { self.stop(sessionID: sessionID) }
                 }
             }
             audioEngine.prepare()
@@ -76,6 +90,42 @@ final class SpeechTranscriber: ObservableObject {
             stop()
             errorMessage = "Die Aufnahme konnte nicht gestartet werden: \(error.localizedDescription)"
         }
+    }
+
+    private func apply(_ transcription: SFTranscription) {
+        let hypothesis = transcription.formattedString
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !hypothesis.isEmpty else { return }
+
+        let firstTimestamp = transcription.segments.first?.timestamp ?? 0
+        let lastSegment = transcription.segments.last
+        let hypothesisEnd = (lastSegment?.timestamp ?? 0) + (lastSegment?.duration ?? 0)
+
+        // Speech may discard its previous partial result after a natural pause and
+        // continue with timestamps from later in the same audio stream. Preserve
+        // that discarded block before displaying the new hypothesis.
+        let startsAfterPreviousBlock = !currentHypothesis.isEmpty
+            && firstTimestamp > max(0.25, currentHypothesisEnd - 0.25)
+        let oldValue = currentHypothesis.lowercased()
+        let newValue = hypothesis.lowercased()
+        let sharedPrefixCount = zip(oldValue, newValue).prefix { $0.0 == $0.1 }.count
+        let isNormalRevision = oldValue.hasPrefix(newValue)
+            || newValue.hasPrefix(oldValue)
+            || sharedPrefixCount >= 4
+        let looksLikeFreshSentence = !currentHypothesis.isEmpty
+            && !isNormalRevision
+            && hypothesis.count + 8 < currentHypothesis.count
+        let beginsNewBlock = startsAfterPreviousBlock || looksLikeFreshSentence
+
+        if beginsNewBlock {
+            committedSessionText = joinedTranscript(prefix: committedSessionText, segment: currentHypothesis)
+        }
+
+        currentHypothesis = hypothesis
+        currentHypothesisEnd = beginsNewBlock ? hypothesisEnd : max(currentHypothesisEnd, hypothesisEnd)
+
+        let completeSessionText = joinedTranscript(prefix: committedSessionText, segment: currentHypothesis)
+        transcript = joinedTranscript(prefix: sessionPrefix, segment: completeSessionText)
     }
 
     private func joinedTranscript(prefix: String, segment: String) -> String {
