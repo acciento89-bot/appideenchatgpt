@@ -115,7 +115,11 @@ final class SpeechTranscriber: ObservableObject {
         let looksLikeFreshSentence = !currentHypothesis.isEmpty
             && !isNormalRevision
             && hypothesis.count + 8 < currentHypothesis.count
-        let beginsNewBlock = startsAfterPreviousBlock || looksLikeFreshSentence
+        // A later timestamp alone is not enough: Speech sometimes prunes early
+        // segments while its formatted string still contains the existing text.
+        // In that case appending would duplicate the whole dictation.
+        let beginsNewBlock = (startsAfterPreviousBlock && !isNormalRevision)
+            || looksLikeFreshSentence
 
         if beginsNewBlock {
             committedSessionText = joinedTranscript(prefix: committedSessionText, segment: currentHypothesis)
@@ -129,10 +133,31 @@ final class SpeechTranscriber: ObservableObject {
     }
 
     private func joinedTranscript(prefix: String, segment: String) -> String {
-        guard !prefix.isEmpty else { return segment }
-        guard !segment.isEmpty else { return prefix }
-        let separator = prefix.last?.isWhitespace == true ? "" : " "
-        return prefix + separator + segment
+        let left = prefix.trimmingCharacters(in: .whitespacesAndNewlines)
+        let right = segment.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !left.isEmpty else { return right }
+        guard !right.isEmpty else { return left }
+
+        let leftComparison = left.lowercased()
+        let rightComparison = right.lowercased()
+        if rightComparison.hasPrefix(leftComparison) { return right }
+        if leftComparison.hasSuffix(rightComparison) { return left }
+
+        let leftWords = left.split(whereSeparator: \.isWhitespace).map(String.init)
+        let rightWords = right.split(whereSeparator: \.isWhitespace).map(String.init)
+        let normalized: (String) -> String = {
+            $0.lowercased().trimmingCharacters(in: .punctuationCharacters)
+        }
+        let maximumOverlap = min(leftWords.count, rightWords.count)
+        for overlap in stride(from: maximumOverlap, through: 1, by: -1) {
+            let leftTail = leftWords.suffix(overlap).map(normalized)
+            let rightHead = rightWords.prefix(overlap).map(normalized)
+            if leftTail == rightHead {
+                return (leftWords + Array(rightWords.dropFirst(overlap))).joined(separator: " ")
+            }
+        }
+
+        return left + " " + right
     }
 
     private func requestSpeechPermission() async -> SFSpeechRecognizerAuthorizationStatus {
