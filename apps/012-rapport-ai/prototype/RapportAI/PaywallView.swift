@@ -35,15 +35,20 @@ struct PaywallView: View {
                             Button {
                                 Task { await entitlements.purchase(product) }
                             } label: {
-                                HStack {
-                                    VStack(alignment: .leading) {
-                                        Text(product.displayName).font(.headline)
+                                HStack(spacing: 14) {
+                                    VStack(alignment: .leading, spacing: 3) {
+                                        Text(product.displayName)
+                                            .font(.headline)
+                                            .multilineTextAlignment(.leading)
+                                            .lineLimit(2)
                                         if let period = product.subscription?.subscriptionPeriod {
                                             Text(period.unit == .year ? "Jährlich kündbar" : "Monatlich kündbar").font(.caption)
                                         }
                                     }
                                     Spacer()
-                                    Text(product.displayPrice).font(.headline)
+                                    Text(product.displayPrice)
+                                        .font(.headline)
+                                        .fixedSize(horizontal: true, vertical: false)
                                 }
                             }
                             .buttonStyle(PrimaryButtonStyle())
@@ -71,4 +76,3 @@ struct PaywallView: View {
         Label(title, systemImage: icon).foregroundStyle(.white)
     }
 }
-
