@@ -1,6 +1,7 @@
 import Foundation
 
 enum TradeCategory: String, Codable, CaseIterable, Identifiable {
+    case general
     case plumbingHeating
     case electrical
     case painting
@@ -14,6 +15,7 @@ enum TradeCategory: String, Codable, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
+        case .general: "Allgemeines Handwerk"
         case .plumbingHeating: "Sanitär & Heizung"
         case .electrical: "Elektro"
         case .painting: "Maler & Lackierer"
@@ -44,7 +46,7 @@ enum RapportTone: String, Codable, CaseIterable, Identifiable {
 
 struct RapportDraft: Identifiable, Codable, Hashable {
     var id = UUID()
-    var trade: TradeCategory = .plumbingHeating
+    var trade: TradeCategory = .general
     var customer = ""
     var location = ""
     var system = ""
