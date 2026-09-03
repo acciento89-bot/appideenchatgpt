@@ -30,12 +30,14 @@ Last updated: 2026-09-03
 - `generate-rapport` is deployed and active with explicit validation of the public Supabase client key.
 - Two authenticated live probes returned real OpenAI-generated reports for SHK and general-handwork input.
 - The app supplies only the public Supabase client key; no bearer JWT, privileged credential or OpenAI API key is committed or shipped.
-- `RAPPORT_API_URL` is configured for Debug and Release builds.
-- Build number is advanced to 4 for hosted-AI TestFlight validation.
+- Build 5 exposed that Xcode's generated `Info.plist` omitted the custom backend keys, so the app silently used its local formatter and never contacted Supabase.
+- The endpoint and public Supabase publishable key now ship as explicit client configuration; the silent local formatter has been removed.
+- CI validates that the compiled iOS app binary actually contains the endpoint and publishable key marker.
+- Build number is advanced to 6 for hosted-AI TestFlight validation.
 
 ## Next gates
 
-1. Pass simulator/device CI for the hosted-AI wiring and upload TestFlight Build 4.
+1. Pass simulator/device CI for the corrected hosted-AI wiring and upload TestFlight Build 6.
 2. Physically verify AI generation, editing, local save/history and PDF sharing on iPhone.
 3. Create matching App Store Connect subscriptions and agreements.
 4. Physically verify purchase, entitlement persistence and Restore in TestFlight.
