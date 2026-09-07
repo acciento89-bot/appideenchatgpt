@@ -27,7 +27,10 @@ class BillingManager(
     private val _state = MutableStateFlow(BillingState())
     val state: StateFlow<BillingState> = _state
 
-    private val client = BillingClient.newBuilder(context)
+    private val client: BillingClient
+
+    init {
+        client = BillingClient.newBuilder(context)
         .enablePendingPurchases(PendingPurchasesParams.newBuilder().enableOneTimeProducts().build())
         .setListener { result, purchases ->
             if (result.responseCode == BillingClient.BillingResponseCode.OK && purchases != null) {
@@ -45,6 +48,7 @@ class BillingManager(
                 _state.value = _state.value.copy(message = "Der Kauf wurde nicht abgeschlossen.")
             }
         }.build()
+    }
 
     fun connect() {
         if (client.isReady) return
