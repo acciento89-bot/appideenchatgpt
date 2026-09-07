@@ -1,0 +1,48 @@
+name: Rapport AI Android
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "apps/012-rapport-ai/android/**"
+      - ".github/workflows/rapport-android.yml"
+  push:
+    branches: [android/rapport-ai]
+    paths:
+      - "apps/012-rapport-ai/android/**"
+      - ".github/workflows/rapport-android.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: apps/012-rapport-ai/android
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: android-actions/setup-android@v3
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.11.1"
+      - name: Install Android SDK
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"
+      - name: Test and build
+        run: gradle --no-daemon :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:bundleRelease
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rapport-ai-android-preview
+          path: |
+            apps/012-rapport-ai/android/app/build/outputs/apk/debug/app-debug.apk
+            apps/012-rapport-ai/android/app/build/outputs/bundle/release/app-release.aab
+          if-no-files-found: error
+          retention-days: 7
