@@ -73,9 +73,11 @@ class BillingManager(
                 .setProductType(BillingClient.ProductType.SUBS)
                 .build()
         }
-        client.queryProductDetailsAsync(QueryProductDetailsParams.newBuilder().setProductList(products).build()) { result, details ->
+        client.queryProductDetailsAsync(QueryProductDetailsParams.newBuilder().setProductList(products).build()) { result, queryResult ->
             if (result.responseCode == BillingClient.BillingResponseCode.OK) {
-                _state.value = _state.value.copy(products = details.associateBy { it.productId })
+                _state.value = _state.value.copy(
+                    products = queryResult.productDetailsList.associateBy { it.productId }
+                )
             }
         }
     }
