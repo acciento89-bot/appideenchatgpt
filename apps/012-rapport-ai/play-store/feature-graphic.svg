@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="500" viewBox="0 0 1024 500">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#061925"/><stop offset="1" stop-color="#0A4B6D"/></linearGradient>
+    <linearGradient id="paper" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#31C7ED"/><stop offset="1" stop-color="#1185B4"/></linearGradient>
+  </defs>
+  <rect width="1024" height="500" fill="url(#bg)"/>
+  <circle cx="850" cy="80" r="250" fill="none" stroke="#2DC3E8" stroke-opacity=".13" stroke-width="25"/>
+  <circle cx="60" cy="510" r="260" fill="#FF8614" opacity=".07"/>
+  <g transform="translate(76 92)"><rect width="316" height="316" rx="70" fill="#082B3E" stroke="#2DC3E8" stroke-opacity=".38" stroke-width="4"/><path d="M94 58h103l47 47v152c0 15-12 27-27 27H94c-15 0-27-12-27-27V85c0-15 12-27 27-27z" fill="url(#paper)"/><path d="M197 58v41c0 11 9 20 20 20h27" fill="#0B3750" opacity=".85"/><rect x="99" y="133" width="114" height="12" rx="6" fill="#EAF9FD"/><rect x="99" y="160" width="91" height="12" rx="6" fill="#EAF9FD" opacity=".75"/><rect x="99" y="187" width="100" height="12" rx="6" fill="#EAF9FD" opacity=".75"/><circle cx="222" cy="230" r="51" fill="#FF8614"/><path d="M197 231l17 17 34-40" fill="none" stroke="white" stroke-width="15" stroke-linecap="round" stroke-linejoin="round"/></g>
+  <text x="440" y="176" fill="#2DC3E8" font-family="Arial, sans-serif" font-size="24" font-weight="700" letter-spacing="3">HANDWERK → RAPPORT</text>
+  <text x="440" y="244" fill="white" font-family="Arial, sans-serif" font-size="58" font-weight="800">Rapport AI</text>
+  <text x="440" y="298" fill="#D9E7ED" font-family="Arial, sans-serif" font-size="29">Sprich frei. Wir machen es professionell.</text>
+  <rect x="440" y="337" width="376" height="61" rx="30" fill="#FF8614"/><text x="628" y="377" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="25" font-weight="700">Diktieren · Prüfen · PDF</text>
+</svg>
