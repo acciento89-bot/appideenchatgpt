@@ -7,7 +7,9 @@ import de.kamilunavo.rapportai.model.Tone
 import de.kamilunavo.rapportai.model.Trade
 import org.json.JSONArray
 import org.json.JSONObject
-import java.time.YearMonth
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 class RapportRepository(context: Context) {
     private val prefs = context.getSharedPreferences("rapport_ai", Context.MODE_PRIVATE)
@@ -61,7 +63,7 @@ class RapportRepository(context: Context) {
     fun setPro(active: Boolean) = prefs.edit().putBoolean("pro_active", active).apply()
 
     fun usedThisMonth(): Int {
-        val current = YearMonth.now().toString()
+        val current = currentMonth()
         if (prefs.getString("usage_month", "") != current) {
             prefs.edit().putString("usage_month", current).putInt("usage_count", 0).apply()
             return 0
@@ -71,9 +73,11 @@ class RapportRepository(context: Context) {
 
     fun recordGeneration(): Int {
         val next = usedThisMonth() + 1
-        prefs.edit().putString("usage_month", YearMonth.now().toString()).putInt("usage_count", next).apply()
+        prefs.edit().putString("usage_month", currentMonth()).putInt("usage_count", next).apply()
         return next
     }
+
+    private fun currentMonth(): String = SimpleDateFormat("yyyy-MM", Locale.ROOT).format(Date())
 
     private fun persistReports(reports: List<Rapport>) {
         prefs.edit().putString("reports_v1", JSONArray().apply {
