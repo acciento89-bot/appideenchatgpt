@@ -37,7 +37,6 @@ jobs:
           yes | sdkmanager --licenses >/dev/null || true
           sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"
       - name: Restore upload keystore
-        if: ${{ secrets.RAPPORT_ANDROID_KEYSTORE_BASE64 != '' }}
         env:
           KEYSTORE_BASE64: ${{ secrets.RAPPORT_ANDROID_KEYSTORE_BASE64 }}
         run: |
