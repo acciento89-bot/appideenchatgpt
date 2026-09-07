@@ -36,7 +36,19 @@ jobs:
         run: |
           yes | sdkmanager --licenses >/dev/null || true
           sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"
+      - name: Restore upload keystore
+        if: ${{ secrets.RAPPORT_ANDROID_KEYSTORE_BASE64 != '' }}
+        env:
+          KEYSTORE_BASE64: ${{ secrets.RAPPORT_ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          printf '%s' "$KEYSTORE_BASE64" | base64 --decode > rapport-ai-upload.jks
+          chmod 600 rapport-ai-upload.jks
       - name: Test and build
+        env:
+          RAPPORT_ANDROID_KEYSTORE: ${{ github.workspace }}/apps/012-rapport-ai/android/rapport-ai-upload.jks
+          RAPPORT_ANDROID_KEYSTORE_PASSWORD: ${{ secrets.RAPPORT_ANDROID_KEYSTORE_PASSWORD }}
+          RAPPORT_ANDROID_KEY_ALIAS: upload
+          RAPPORT_ANDROID_KEY_PASSWORD: ${{ secrets.RAPPORT_ANDROID_KEY_PASSWORD }}
         run: gradle --no-daemon :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:bundleRelease
       - uses: actions/upload-artifact@v4
         with:
