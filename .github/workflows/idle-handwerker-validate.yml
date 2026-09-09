@@ -28,6 +28,20 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
+      - name: Install pinned Godot IAP plugin
+        shell: bash
+        run: |
+          set -euo pipefail
+          IAP_COMMIT='4c3a15ddabeeb4d9d43f3879c6d5bbf7cd85624b'
+          curl -L --fail --retry 3 -o "$RUNNER_TEMP/godot-iap.zip" \
+            "https://github.com/hyochan/godot-iap/archive/$IAP_COMMIT.zip"
+          unzip -q "$RUNNER_TEMP/godot-iap.zip" -d "$RUNNER_TEMP/godot-iap"
+          IAP_SOURCE="$RUNNER_TEMP/godot-iap/godot-iap-$IAP_COMMIT/addons/godot-iap"
+          test -s "$IAP_SOURCE/android/GodotIap.release.aar"
+          rm -rf "$PROJECT_DIR/addons/godot-iap"
+          mkdir -p "$PROJECT_DIR/addons"
+          cp -R "$IAP_SOURCE" "$PROJECT_DIR/addons/godot-iap"
+
       - name: Install pinned AdMob plugin
         shell: bash
         run: |
