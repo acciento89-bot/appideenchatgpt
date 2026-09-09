@@ -95,9 +95,10 @@ jobs:
           text = text.replace(marker, replacement)
           preset.write_text(text)
           PY
+          AAB="$GITHUB_WORKSPACE/$PROJECT_DIR/builds/android/idle-handwerker.aab"
           "$GODOT" --headless --editor --path "$PROJECT_DIR" --quit
-          "$GODOT" --headless --path "$PROJECT_DIR" --export-release "Android Play" "$PROJECT_DIR/builds/android/idle-handwerker.aab"
-          test -s "$PROJECT_DIR/builds/android/idle-handwerker.aab"
+          "$GODOT" --headless --path "$PROJECT_DIR" --export-release "Android Play" "$AAB"
+          test -s "$AAB"
 
       - uses: actions/upload-artifact@v4
         with:
