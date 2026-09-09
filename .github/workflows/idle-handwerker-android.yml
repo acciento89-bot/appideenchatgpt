@@ -2,6 +2,10 @@ name: Idle Handwerker Android Play
 
 on:
   workflow_dispatch:
+  pull_request:
+    paths:
+      - 'apps/005-idle-handwerker/**'
+      - '.github/workflows/idle-handwerker-android.yml'
 
 permissions:
   contents: read
@@ -74,28 +78,26 @@ jobs:
           printf '%s\n' "${GODOT_VERSION}.stable" > "$PROJECT_DIR/android/.build_version"
           chmod +x "$PROJECT_DIR/android/build/gradlew"
 
-      - name: Export signed release AAB
-        env:
-          IDLE_ANDROID_UPLOAD_KEYSTORE_BASE64: ${{ secrets.IDLE_ANDROID_UPLOAD_KEYSTORE_BASE64 }}
-          IDLE_ANDROID_UPLOAD_KEYSTORE_PASSWORD: ${{ secrets.IDLE_ANDROID_UPLOAD_KEYSTORE_PASSWORD }}
+      - name: Export signable release AAB
         run: |
           set -euo pipefail
           KEYSTORE="$RUNNER_TEMP/idle-handwerker-upload.jks"
-          printf '%s' "$IDLE_ANDROID_UPLOAD_KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE"
+          keytool -genkeypair -noprompt -keystore "$KEYSTORE" -storepass temporary-build-key \
+            -alias upload -keypass temporary-build-key -keyalg RSA -keysize 2048 -validity 3650 \
+            -dname 'CN=Temporary CI Build, O=Kamilunavo, C=DE'
           python3 - <<'PY'
           from pathlib import Path
           import os
           preset = Path('apps/005-idle-handwerker/export_presets.cfg')
           text = preset.read_text()
           marker = 'plugins/GodotIap=true'
-          replacement = marker + '\nkeystore/release="' + os.environ['RUNNER_TEMP'] + '/idle-handwerker-upload.jks"\nkeystore/release_user="upload"\nkeystore/release_password="' + os.environ['IDLE_ANDROID_UPLOAD_KEYSTORE_PASSWORD'] + '"'
+          replacement = marker + '\nkeystore/release="' + os.environ['RUNNER_TEMP'] + '/idle-handwerker-upload.jks"\nkeystore/release_user="upload"\nkeystore/release_password="temporary-build-key"'
           text = text.replace(marker, replacement)
           preset.write_text(text)
           PY
           "$GODOT" --headless --editor --path "$PROJECT_DIR" --quit
           "$GODOT" --headless --path "$PROJECT_DIR" --export-release "Android Play" "$PROJECT_DIR/builds/android/idle-handwerker.aab"
           test -s "$PROJECT_DIR/builds/android/idle-handwerker.aab"
-          keytool -printcert -jarfile "$PROJECT_DIR/builds/android/idle-handwerker.aab" | grep -F 'C2:89:80:08:06:F5:A0:99:23:05:3A:66:40:21:85:0C:68:80:A2:56:FE:79:66:CE:91:A9:61:D6:F2:F1:78:44'
 
       - uses: actions/upload-artifact@v4
         with:
