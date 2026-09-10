@@ -17,7 +17,7 @@ jobs:
     timeout-minutes: 45
     strategy:
       fail-fast: false
-      max-parallel: 2
+      max-parallel: 5
       matrix:
         include:
         - scheme: KalteCalc
@@ -85,13 +85,14 @@ jobs:
       working-directory: source
       run: |-
         brew install xcodegen
+        python3 scripts/generate_app_icon.py --app "$(echo "$SCHEME" | tr "[:upper:]" "[:lower:]")" --source-dir "Apps/$SCHEME"
         xcodegen generate
     - name: Archive verified build 5
       if: steps.apple.outputs.exists != 'true'
       working-directory: source
       run: |
         set -euo pipefail
-        xcodebuild -project "$XCODE_PROJECT" -scheme "$SCHEME" -configuration Release -destination 'generic/platform=iOS' -archivePath "$RUNNER_TEMP/Calc.xcarchive" DEVELOPMENT_TEAM=TKG684N5GL CURRENT_PROJECT_VERSION=5 MARKETING_VERSION=1.0 CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" archive
+        xcodebuild -project "$XCODE_PROJECT" -scheme "$SCHEME" -configuration Release -destination 'generic/platform=iOS' -archivePath "$RUNNER_TEMP/Calc.xcarchive" DEVELOPMENT_TEAM=TKG684N5GL CURRENT_PROJECT_VERSION=5 MARKETING_VERSION=1.0 ASSETCATALOG_COMPILER_APPICON_NAME=AppIcon CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" archive
         APP="$RUNNER_TEMP/Calc.xcarchive/Products/Applications/$SCHEME.app"
         test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP/Info.plist")" = "$BUNDLE_ID"
         test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$APP/Info.plist")" = '5'
