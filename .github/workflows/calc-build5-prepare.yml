@@ -1,0 +1,85 @@
+name: Calc Build 5 Store Preparation
+'on':
+  push:
+    branches:
+    - main
+    paths:
+    - .github/workflows/calc-build5-prepare.yml
+  workflow_dispatch: null
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: calc-build5-store
+  cancel-in-progress: false
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      max-parallel: 5
+      matrix:
+        include:
+        - scheme: KalteCalc
+          bundle: de.kamilunav.kaltecalc
+          app: '6804747292'
+          repo: SHK
+          ref: 39bbff277dbb46e151560c52b22a0c3004cdf770
+          project: KamilunavoSHK.xcodeproj
+        - scheme: HeizkoerperCalc
+          bundle: de.kamilunavo.heizkorpercalc
+          app: '6804748049'
+          repo: SHK
+          ref: 39bbff277dbb46e151560c52b22a0c3004cdf770
+          project: KamilunavoSHK.xcodeproj
+        - scheme: RohrCalc
+          bundle: de.kamilunavo.rohrcalc
+          app: '6804748249'
+          repo: SHK
+          ref: 39bbff277dbb46e151560c52b22a0c3004cdf770
+          project: KamilunavoSHK.xcodeproj
+        - scheme: LueftungsCalc
+          bundle: de.kamilunavo.luftungscalc
+          app: '6804747588'
+          repo: SHK
+          ref: 39bbff277dbb46e151560c52b22a0c3004cdf770
+          project: KamilunavoSHK.xcodeproj
+        - scheme: VolumeCalc
+          bundle: de.kamilunavo.volumecalc
+          app: '6804672773'
+          repo: AnlagenVolumen
+          ref: 13c66b1540f2bfc090154b3be18ced6d5354eb7d
+          project: AnlagenVolumen.xcodeproj
+    env:
+      APP_ID: ${{ matrix.app }}
+      BUNDLE_ID: ${{ matrix.bundle }}
+      SCHEME: ${{ matrix.scheme }}
+      XCODE_PROJECT: ${{ matrix.project }}
+      ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+      ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+    steps:
+    - uses: actions/checkout@v5
+      with:
+        persist-credentials: false
+    - name: Prepare existing Apple API credentials
+      env:
+        ASC_PRIVATE_KEY_B64: ${{ secrets.ASC_PRIVATE_KEY_B64 }}
+      run: |
+        set -euo pipefail
+        umask 077
+        ASC_KEY_PATH="$RUNNER_TEMP/CalcAuth.p8"
+        echo "ASC_KEY_PATH=$ASC_KEY_PATH" >> "$GITHUB_ENV"
+        test -n "$ASC_ISSUER_ID"; test -n "$ASC_KEY_ID"; test -n "$ASC_PRIVATE_KEY_B64"
+        printf '%s' "$ASC_PRIVATE_KEY_B64" | base64 --decode > "$ASC_KEY_PATH"
+    - uses: actions/download-artifact@v4
+      with:
+        name: store-captures-${{ matrix.scheme }}
+        path: release-captures
+        run-id: '34502913598'
+        github-token: ${{ github.token }}
+    - name: Prepare exact build and store entry
+      run: python3 scripts/calc-release/prepare_review.py
+    - name: Remove temporary credential file
+      if: always()
+      run: rm -f "$ASC_KEY_PATH"

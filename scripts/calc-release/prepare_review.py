@@ -31,7 +31,11 @@ def main():
  versions=api(f'/apps/{app}/appStoreVersions?filter%5Bplatform%5D=IOS&limit=20')['data']
  v=next(v for v in versions if v['attributes']['versionString']=='1.0');vid=v['id']
  assert v['attributes']['appStoreState'] in ['REJECTED','METADATA_REJECTED','PREPARE_FOR_SUBMISSION','DEVELOPER_REJECTED'],v['attributes']['appStoreState']
- builds=api(f'/builds?filter%5Bapp%5D={app}&filter%5Bversion%5D=5&limit=20')['data']
+ for attempt in range(40):
+  builds=api(f'/builds?filter%5Bapp%5D={app}&filter%5Bversion%5D=5&limit=20')['data']
+  if len(builds)==1 and builds[0]['attributes']['processingState']=='VALID':break
+  if any(b['attributes']['processingState']=='INVALID' for b in builds):raise RuntimeError('Apple rejected build processing')
+  print(scheme,'waiting for processed build 5',attempt+1,flush=True);time.sleep(30)
  assert len(builds)==1 and builds[0]['attributes']['processingState']=='VALID','Build 5 must be processed before metadata replacement'
  bid=builds[0]['id'];pr=api('/builds/'+bid+'/preReleaseVersion')['data'];assert pr['attributes']['version']=='1.0'
  if builds[0]['attributes'].get('usesNonExemptEncryption') is None:patch('builds',bid,{'usesNonExemptEncryption':False})
