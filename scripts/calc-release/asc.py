@@ -14,13 +14,21 @@ puts "#{s}.#{b(raw)}"'''
     return subprocess.check_output(['ruby','-e',ruby],text=True).strip()
 
 def api(path,method='GET',body=None):
+    for attempt in range(3):
+        try:return request_once(path,method,body)
+        except urllib.error.HTTPError as e:
+            if method=='GET' and e.code in [429,500,502,503,504] and attempt<2:
+                e.close();time.sleep(10*(attempt+1));continue
+            raise RuntimeError(f'{method} {path}: HTTP {e.code} {e.read().decode()}') from None
+
+def request_once(path,method='GET',body=None):
     data=json.dumps(body).encode() if body is not None else None
     req=urllib.request.Request('https://api.appstoreconnect.apple.com/v1'+path,data=data,headers={'Authorization':'Bearer '+token(),'Content-Type':'application/json'},method=method)
     try:
         with urllib.request.urlopen(req,timeout=90) as r:
             raw=r.read(); return json.loads(raw) if raw else {}
-    except urllib.error.HTTPError as e:
-        raise RuntimeError(f'{method} {path}: {e.code} {e.read().decode()}') from None
+    except urllib.error.HTTPError:
+        raise
 
 def inspect():
     app=os.environ['APP_ID']; bundle=os.environ['BUNDLE_ID']
