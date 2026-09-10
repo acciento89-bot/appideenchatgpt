@@ -57,7 +57,6 @@ jobs:
       XCODE_PROJECT: ${{ matrix.project }}
       ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
       ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
-      ASC_KEY_PATH: ${{ runner.temp }}/CalcAuth.p8
     steps:
     - uses: actions/checkout@v5
       with:
@@ -71,51 +70,41 @@ jobs:
     - name: Prepare existing Apple API credentials
       env:
         ASC_PRIVATE_KEY_B64: ${{ secrets.ASC_PRIVATE_KEY_B64 }}
-      run: 'set -euo pipefail
-
+      run: |
+        set -euo pipefail
         umask 077
-
+        ASC_KEY_PATH="$RUNNER_TEMP/CalcAuth.p8"
+        echo "ASC_KEY_PATH=$ASC_KEY_PATH" >> "$GITHUB_ENV"
         test -n "$ASC_ISSUER_ID"; test -n "$ASC_KEY_ID"; test -n "$ASC_PRIVATE_KEY_B64"
-
-        printf ''%s'' "$ASC_PRIVATE_KEY_B64" | base64 --decode > "$ASC_KEY_PATH"
-
-        '
+        printf '%s' "$ASC_PRIVATE_KEY_B64" | base64 --decode > "$ASC_KEY_PATH"
     - name: Inspect current Apple version and avoid duplicate upload
       id: apple
       run: python3 scripts/calc-release/asc.py
     - name: Generate SHK Xcode project
       if: matrix.repo == 'SHK' && steps.apple.outputs.exists != 'true'
       working-directory: source
-      run: 'brew install xcodegen
-
-        xcodegen generate'
+      run: |-
+        brew install xcodegen
+        xcodegen generate
     - name: Archive verified build 5
       if: steps.apple.outputs.exists != 'true'
       working-directory: source
-      run: 'set -euo pipefail
-
-        xcodebuild -project "$XCODE_PROJECT" -scheme "$SCHEME" -configuration Release
-        -destination ''generic/platform=iOS'' -archivePath "$RUNNER_TEMP/Calc.xcarchive"
-        DEVELOPMENT_TEAM=TKG684N5GL CURRENT_PROJECT_VERSION=5 MARKETING_VERSION=1.0
-        CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" archive
-
+      run: |
+        set -euo pipefail
+        xcodebuild -project "$XCODE_PROJECT" -scheme "$SCHEME" -configuration Release -destination 'generic/platform=iOS' -archivePath "$RUNNER_TEMP/Calc.xcarchive" DEVELOPMENT_TEAM=TKG684N5GL CURRENT_PROJECT_VERSION=5 MARKETING_VERSION=1.0 CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" archive
         APP="$RUNNER_TEMP/Calc.xcarchive/Products/Applications/$SCHEME.app"
-
-        test "$(/usr/libexec/PlistBuddy -c ''Print :CFBundleIdentifier'' "$APP/Info.plist")"
-        = "$BUNDLE_ID"
-
-        test "$(/usr/libexec/PlistBuddy -c ''Print :CFBundleVersion'' "$APP/Info.plist")"
-        = ''5''
-
-        '
+        test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP/Info.plist")" = "$BUNDLE_ID"
+        test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$APP/Info.plist")" = '5'
     - name: Export and upload using existing Apple signing access
       if: steps.apple.outputs.exists != 'true'
-      run: "set -euo pipefail\npython3 - <<'PYCODE'\nimport os,plistlib\nwith open(os.environ['RUNNER_TEMP']+'/Export.plist','wb')\
-        \ as f:\n plistlib.dump(dict(method='app-store-connect',destination='upload',signingStyle='automatic',teamID='TKG684N5GL',uploadSymbols=True,manageAppVersionAndBuildNumber=False),f)\n\
-        PYCODE\nxcodebuild -exportArchive -archivePath \"$RUNNER_TEMP/Calc.xcarchive\"\
-        \ -exportPath \"$RUNNER_TEMP/CalcExport\" -exportOptionsPlist \"$RUNNER_TEMP/Export.plist\"\
-        \ -allowProvisioningUpdates -authenticationKeyPath \"$ASC_KEY_PATH\" -authenticationKeyID\
-        \ \"$ASC_KEY_ID\" -authenticationKeyIssuerID \"$ASC_ISSUER_ID\"\n"
+      run: |
+        set -euo pipefail
+        python3 - <<'PYCODE'
+        import os,plistlib
+        with open(os.environ['RUNNER_TEMP']+'/Export.plist','wb') as f:
+         plistlib.dump(dict(method='app-store-connect',destination='upload',signingStyle='automatic',teamID='TKG684N5GL',uploadSymbols=True,manageAppVersionAndBuildNumber=False),f)
+        PYCODE
+        xcodebuild -exportArchive -archivePath "$RUNNER_TEMP/Calc.xcarchive" -exportPath "$RUNNER_TEMP/CalcExport" -exportOptionsPlist "$RUNNER_TEMP/Export.plist" -allowProvisioningUpdates -authenticationKeyPath "$ASC_KEY_PATH" -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID"
     - name: Remove temporary credential file
       if: always()
       run: rm -f "$ASC_KEY_PATH"
