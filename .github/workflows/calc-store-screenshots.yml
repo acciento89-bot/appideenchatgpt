@@ -1,0 +1,78 @@
+name: Calc Store Screenshots
+'on':
+  push:
+    branches:
+    - main
+    paths:
+    - .github/workflows/calc-store-screenshots.yml
+  workflow_dispatch: null
+permissions:
+  contents: read
+jobs:
+  capture:
+    runs-on: macos-26
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+        - scheme: KalteCalc
+          bundle: de.kamilunav.kaltecalc
+          app: '6804747292'
+          repo: SHK
+          ref: 39bbff277dbb46e151560c52b22a0c3004cdf770
+          project: KamilunavoSHK.xcodeproj
+        - scheme: HeizkoerperCalc
+          bundle: de.kamilunavo.heizkorpercalc
+          app: '6804748049'
+          repo: SHK
+          ref: 39bbff277dbb46e151560c52b22a0c3004cdf770
+          project: KamilunavoSHK.xcodeproj
+        - scheme: RohrCalc
+          bundle: de.kamilunavo.rohrcalc
+          app: '6804748249'
+          repo: SHK
+          ref: 39bbff277dbb46e151560c52b22a0c3004cdf770
+          project: KamilunavoSHK.xcodeproj
+        - scheme: LueftungsCalc
+          bundle: de.kamilunavo.luftungscalc
+          app: '6804747588'
+          repo: SHK
+          ref: 39bbff277dbb46e151560c52b22a0c3004cdf770
+          project: KamilunavoSHK.xcodeproj
+        - scheme: VolumeCalc
+          bundle: de.kamilunavo.volumecalc
+          app: '6804672773'
+          repo: AnlagenVolumen
+          ref: 13c66b1540f2bfc090154b3be18ced6d5354eb7d
+          project: AnlagenVolumen.xcodeproj
+    env:
+      SCHEME: ${{ matrix.scheme }}
+      XCODE_PROJECT: ${{ matrix.repo == 'SHK' && 'KamilunavoSHK.xcodeproj' || 'VolumeCalcReview.xcodeproj'
+        }}
+    steps:
+    - uses: actions/checkout@v5
+      with:
+        persist-credentials: false
+    - uses: actions/checkout@v5
+      with:
+        repository: acciento89-bot/${{ matrix.repo }}
+        ref: ${{ matrix.ref }}
+        path: source
+        persist-credentials: false
+    - run: brew install xcodegen
+    - name: Generate simulator project
+      working-directory: source
+      env:
+        SOURCE_REPO: ${{ matrix.repo }}
+      run: if [ "$SOURCE_REPO" = SHK ]; then xcodegen generate; else xcodegen generate
+        --spec review-project.yml; fi
+    - name: Capture actual workflows
+      working-directory: source
+      run: python3 ../scripts/calc-release/capture.py
+    - uses: actions/upload-artifact@v4
+      with:
+        name: store-captures-${{ matrix.scheme }}
+        path: release-captures/
+        if-no-files-found: error
+        retention-days: 14
