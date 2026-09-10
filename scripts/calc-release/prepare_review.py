@@ -44,13 +44,15 @@ def main():
    size=struct.unpack('>II',f.read_bytes()[16:24]);assert size in ([(1320,2868),(1290,2796),(1260,2736)] if family=='iPhone' else [(2064,2752),(2048,2732)])
   images[display]=files
  locs=api('/appStoreVersions/'+vid+'/appStoreVersionLocalizations?limit=50')['data']
+ support=next((l['attributes'].get('supportUrl') for l in locs if l['attributes'].get('supportUrl')),None)
+ assert support,'Existing support URL missing'
  for locale in ['de-DE','en-US']:
   if not any(l['attributes']['locale']==locale for l in locs):
    locs.append(api('/appStoreVersionLocalizations','POST',{'data':{'type':'appStoreVersionLocalizations','attributes':{'locale':locale},'relationships':{'appStoreVersion':{'data':{'type':'appStoreVersions','id':vid}}}}})['data'])
  locs=[l for l in locs if l['attributes']['locale'] in ['de-DE','en-US']]
  for loc in locs:
   lid=loc['id'];lang='de' if loc['attributes']['locale']=='de-DE' else 'en'
-  patch('appStoreVersionLocalizations',lid,{'description':m['description_'+lang],'promotionalText':m['subtitle_'+lang]})
+  patch('appStoreVersionLocalizations',lid,{'description':m['description_'+lang],'promotionalText':m['subtitle_'+lang],'supportUrl':loc['attributes'].get('supportUrl') or support})
   sets=api('/appStoreVersionLocalizations/'+lid+'/appScreenshotSets?limit=50')['data']
   keep={}
   for display,files in images.items():
