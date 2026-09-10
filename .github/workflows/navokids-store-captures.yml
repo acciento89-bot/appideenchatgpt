@@ -1,0 +1,56 @@
+name: NavoKids 0.4.0 native App Store screenshots
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/navokids-store-captures.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  capture:
+    runs-on: macos-26
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@v5
+        with:
+          repository: acciento89-bot/navokids
+          ref: 143ac57849f0f4541ec1234cf44c1c725b9b8fad
+          path: source
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm ci
+        working-directory: source
+      - name: Prepare isolated native screenshot entry
+        run: |
+          cp scripts/navokids-store-preview.js source/App.tsx
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('source/src/screens/WorldScreen.tsx');s=p.read_text()
+          s="import { useRef } from 'react';\n"+s
+          s=s.replace('interface Props {','interface Props {\n  captureAtEnd?: boolean;')
+          s=s.replace('WorldScreen({ language,','WorldScreen({ captureAtEnd, language,')
+          marker='  const completed ='; pos=s.find(marker)
+          # Insert before the component\u0027s first const without relying on its name.
+          start=s.index('export function WorldScreen(');pos=s.index('\n',start)+1
+          s=s[:pos]+'  const captureScroll = useRef<ScrollView>(null);\n'+s[pos:]
+          s=s.replace('<ScrollView contentContainerStyle=', '<ScrollView ref={captureScroll} onContentSizeChange={() => captureAtEnd && captureScroll.current?.scrollToEnd({ animated: false })} contentContainerStyle=')
+          p.write_text(s)
+          PY
+      - run: npx expo prebuild --platform ios --non-interactive
+        working-directory: source
+        env:
+          CI: '1'
+      - name: Capture actual iOS views
+        run: python3 scripts/navokids-store-capture.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: navokids-040-ios-store-captures
+          path: navokids-store-captures/
+          if-no-files-found: error
+          retention-days: 14
