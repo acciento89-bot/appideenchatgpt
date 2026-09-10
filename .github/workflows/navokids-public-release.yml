@@ -1,0 +1,36 @@
+name: NavoKids public App Store release
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/navokids-public-release.yml','scripts/navokids-public-release.py']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: navokids-public-release
+  cancel-in-progress: false
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+      ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - name: Prepare existing Apple credential
+        env:
+          ASC_PRIVATE_KEY_B64: ${{ secrets.ASC_PRIVATE_KEY_B64 }}
+        run: |
+          set -euo pipefail
+          umask 077
+          ASC_KEY_PATH="$RUNNER_TEMP/NavokidsAuth.p8"
+          echo "ASC_KEY_PATH=$ASC_KEY_PATH" >> "$GITHUB_ENV"
+          printf '%s' "$ASC_PRIVATE_KEY_B64" | base64 --decode > "$ASC_KEY_PATH"
+      - name: Inspect NavoKids public release
+        run: python3 scripts/navokids-public-release.py
+      - name: Remove temporary credential
+        if: always()
+        run: rm -f "$ASC_KEY_PATH"
