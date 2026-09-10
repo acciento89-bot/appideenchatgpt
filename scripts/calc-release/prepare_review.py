@@ -50,10 +50,11 @@ def main():
  locs=api('/appStoreVersions/'+vid+'/appStoreVersionLocalizations?limit=50')['data']
  support=next((l['attributes'].get('supportUrl') for l in locs if l['attributes'].get('supportUrl')),None)
  assert support,'Existing support URL missing'
- for locale in ['de-DE','en-US']:
+ target_locales=['de-DE'] if scheme=='VolumeCalc' else ['de-DE','en-US']
+ for locale in target_locales:
   if not any(l['attributes']['locale']==locale for l in locs):
    locs.append(api('/appStoreVersionLocalizations','POST',{'data':{'type':'appStoreVersionLocalizations','attributes':{'locale':locale},'relationships':{'appStoreVersion':{'data':{'type':'appStoreVersions','id':vid}}}}})['data'])
- locs=[l for l in locs if l['attributes']['locale'] in ['de-DE','en-US']]
+ locs=[l for l in locs if l['attributes']['locale'] in target_locales]
  for loc in locs:
   lid=loc['id'];lang='de' if loc['attributes']['locale']=='de-DE' else 'en'
   patch('appStoreVersionLocalizations',lid,{'description':m['description_'+lang],'promotionalText':m['subtitle_'+lang],'supportUrl':loc['attributes'].get('supportUrl') or support})
@@ -85,6 +86,6 @@ def main():
  for s in subs:
   if s['attributes']['state'] in ['UNRESOLVED_ISSUES','READY_FOR_REVIEW']:
    print('REVIEW_ITEMS',json.dumps(api('/reviewSubmissions/'+s['id']+'/items?limit=200')),flush=True)
- with open(os.environ['GITHUB_STEP_SUMMARY'],'a') as f:f.write(f'### {scheme}\nBuild 5 selected; DE/EN metadata, EULA, review notes and actual iPhone/iPad screenshots saved. Submission remains a separate explicit step.\n')
+ with open(os.environ['GITHUB_STEP_SUMMARY'],'a') as f:f.write(f'### {scheme}\nBuild 5 selected; requested metadata in the existing approved locales, EULA, review notes and actual iPhone/iPad screenshots saved. Submission remains a separate explicit step.\n')
 
 if __name__=='__main__':main()

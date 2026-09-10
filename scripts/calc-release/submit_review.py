@@ -10,7 +10,8 @@ v=next(v for v in api('/apps/'+app+'/appStoreVersions?filter%5Bplatform%5D=IOS&l
 b=api('/appStoreVersions/'+vid+'/build')['data'];assert b and b['attributes']['version']=='5' and b['attributes']['processingState']=='VALID'
 review=api('/appStoreVersions/'+vid+'/appStoreReviewDetail')['data'];assert review['attributes']['notes']==m['notes'] and not review['attributes']['demoAccountRequired']
 locs=api('/appStoreVersions/'+vid+'/appStoreVersionLocalizations?limit=50')['data']
-for locale,lang in [('de-DE','de'),('en-US','en')]:
+locale_pairs=[('de-DE','de')] if scheme=='VolumeCalc' else [('de-DE','de'),('en-US','en')]
+for locale,lang in locale_pairs:
  loc=next(l for l in locs if l['attributes']['locale']==locale);assert loc['attributes']['description']==m['description_'+lang]
  if locale=='en-US' and not loc['attributes'].get('keywords'):
   words={'VolumeCalc':'water,volume,heating,inventory,fill,measurement,hydronic,hvac','KalteCalc':'refrigeration,service,superheat,subcooling,temperature,hvac','HeizkoerperCalc':'radiator,heating,heatpump,room,capacity,survey,hvac','RohrCalc':'pipe,pressure,flow,hydraulic,route,loss,hvac','LueftungsCalc':'airflow,ventilation,commissioning,measurement,balance,hvac'}
@@ -40,4 +41,4 @@ for _ in range(30):
  time.sleep(4)
 assert state in ['WAITING_FOR_REVIEW','IN_REVIEW','COMPLETE'],state
 print('SUBMITTED',json.dumps({'app':app,'scheme':scheme,'version':'1.0','build':'5','submission':sid,'state':state}))
-with open(os.environ['GITHUB_STEP_SUMMARY'],'a') as f:f.write(f'### {scheme}: {state}\nVersion 1.0 (5), DE/EN metadata and actual screenshots submitted.\n')
+with open(os.environ['GITHUB_STEP_SUMMARY'],'a') as f:f.write(f'### {scheme}: {state}\nVersion 1.0 (5), Prepared metadata and actual screenshots submitted.\n')
