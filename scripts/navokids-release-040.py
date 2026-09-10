@@ -1,5 +1,5 @@
 """Publish the authorized NavoKids 0.4.0 build after Apple has validated it."""
-import json, os, sys, time
+import hashlib, json, os, struct, sys, time, urllib.request
 from pathlib import Path
 sys.path.insert(0, 'scripts/calc-release')
 from asc import api
@@ -28,6 +28,55 @@ def inspect():
         print('BUILD', json.dumps({'id':b['id'], 'version':pre['attributes']['version'], 'build':b['attributes']['version'], 'processing':b['attributes']['processingState']}), flush=True)
     print('REVIEWS', json.dumps([{'id':s['id'], 'state':s['attributes']['state']} for s in submissions()]), flush=True)
 
+def capture_files():
+    root = Path('navokids-store-captures')
+    result = {}
+    for locale in ['de-DE','en-US']:
+        result[locale] = {}
+        for family, display in [('iPhone','APP_IPHONE_67'),('iPad','APP_IPAD_PRO_3GEN_129')]:
+            files = sorted((root/locale/family).glob('*.png'))
+            assert len(files)==5, 'Expected five reviewed native screenshots per locale/device'
+            for path in files:
+                size = struct.unpack('>II',path.read_bytes()[16:24])
+                assert size in ([(1320,2868),(1290,2796),(1260,2736)] if family=='iPhone' else [(2064,2752),(2048,2732)]), size
+            result[locale][display] = files
+    return result
+
+def upload_screenshot(setid, path):
+    raw = path.read_bytes(); name = 'navokids-040-'+path.name
+    old = next((x for x in api('/appScreenshotSets/'+setid+'/appScreenshots?limit=50')['data'] if x['attributes']['fileName']==name),None)
+    if old:
+        if old['attributes']['assetDeliveryState']['state']=='COMPLETE': return old['id']
+        api('/appScreenshots/'+old['id'],'DELETE')
+    shot = api('/appScreenshots','POST',{'data':{'type':'appScreenshots','attributes':{'fileName':name,'fileSize':len(raw)},'relationships':{'appScreenshotSet':{'data':{'type':'appScreenshotSets','id':setid}}}}})['data']
+    for op in shot['attributes']['uploadOperations']:
+        request = urllib.request.Request(op['url'],data=raw[op['offset']:op['offset']+op['length']],headers={h['name']:h['value'] for h in op.get('requestHeaders',[])},method=op['method'])
+        with urllib.request.urlopen(request,timeout=120) as response: assert 200<=response.status<300
+    patch('appScreenshots',shot['id'],{'uploaded':True,'sourceFileChecksum':hashlib.md5(raw).hexdigest()})
+    for _ in range(40):
+        state = api('/appScreenshots/'+shot['id'])['data']['attributes']['assetDeliveryState']
+        if state['state']=='COMPLETE': return shot['id']
+        if state['state']=='FAILED': raise RuntimeError('Screenshot processing failed')
+        time.sleep(3)
+    raise RuntimeError('Screenshot processing timed out')
+
+def replace_screenshots(lid, images):
+    sets = api('/appStoreVersionLocalizations/'+lid+'/appScreenshotSets?limit=50')['data']; keep = {}
+    for display, files in images.items():
+        target = next((s for s in sets if s['attributes']['screenshotDisplayType']==display),None)
+        if not target:
+            target = api('/appScreenshotSets','POST',{'data':{'type':'appScreenshotSets','attributes':{'screenshotDisplayType':display},'relationships':{'appStoreVersionLocalization':{'data':{'type':'appStoreVersionLocalizations','id':lid}}}}})['data']
+        # App Store allows ten images per set: five inherited plus five replacements.
+        existing = api('/appScreenshotSets/'+target['id']+'/appScreenshots?limit=50')['data']
+        needed = sum(not any(x['attributes']['fileName']=='navokids-040-'+p.name for x in existing) for p in files)
+        assert len(existing)+needed<=10, 'Screenshot set capacity must be reconciled before replacement'
+        keep[target['id']] = [upload_screenshot(target['id'],p) for p in files]
+    # Every new family is complete before any prior screenshot is removed.
+    for target in api('/appStoreVersionLocalizations/'+lid+'/appScreenshotSets?limit=50')['data']:
+        for shot in api('/appScreenshotSets/'+target['id']+'/appScreenshots?limit=50')['data']:
+            if shot['id'] not in keep.get(target['id'],[]): api('/appScreenshots/'+shot['id'],'DELETE')
+    return {display:len(files) for display,files in images.items()}
+
 def publish():
     bid, number = os.environ['NAVOKIDS_BUILD_ID'], os.environ['NAVOKIDS_BUILD_NUMBER']
     b = api('/builds/'+bid)['data']
@@ -41,6 +90,7 @@ def publish():
         assert target['attributes']['releaseType'] == 'AFTER_APPROVAL'
         print('ALREADY_SUBMITTED', VERSION, number, target['attributes']['appStoreState'], flush=True)
         return
+    images = capture_files()
     # Only replace the known earlier NavoKids update, after the new build is valid.
     earlier = next((v for v in allversions if v['attributes']['versionString'] == '0.3.2'), None)
     if not target and earlier and earlier['attributes']['appStoreState'] in {'WAITING_FOR_REVIEW', 'IN_REVIEW'}:
@@ -83,15 +133,8 @@ def publish():
         attrs = {k:src['attributes'][k] for k in ['supportUrl','marketingUrl'] if src['attributes'].get(k)}
         attrs.update(updates)
         patch('appStoreVersionLocalizations',loc['id'],attrs)
-        counts = {}
-        for s in api('/appStoreVersionLocalizations/'+loc['id']+'/appScreenshotSets?limit=50')['data']:
-            shots = api('/appScreenshotSets/'+s['id']+'/appScreenshots?limit=50')['data']
-            assert all(x['attributes']['assetDeliveryState']['state']=='COMPLETE' for x in shots), 'Screenshot incomplete'
-            counts[s['attributes']['screenshotDisplayType']] = len(shots)
+        counts = replace_screenshots(loc['id'],images[locale])
         print('SCREENSHOTS',locale,counts,flush=True)
-        if locale == 'de-DE':
-            assert any(counts.get(k,0)>=3 for k in ['APP_IPHONE_65','APP_IPHONE_67']), 'iPhone screenshots missing'
-            assert any(counts.get(k,0)>=3 for k in ['APP_IPAD_PRO_3GEN_129','APP_IPAD_PRO_3GEN_11']), 'iPad screenshots missing'
     review = api('/appStoreVersions/'+vid+'/appStoreReviewDetail')['data']
     notes = ('NavoKids 0.4.0 ('+number+') adds Nature & Weather and Clock & Time: eight distinct illustrated islands and 30 stages per island in two age groups. The learning clocks draw mathematically accurate hour/minute hands. Shape questions now ask which shape appears only once. All new questions and answer narration use bundled German/English recordings; no device speech. Existing progress, direct next-stage navigation, free stages and parental purchase protection are retained. No child account or login required.')
     if review:
