@@ -39,6 +39,9 @@ jobs:
         for name,app in apps:
          b=api(f'/builds?filter%5Bapp%5D={app}&filter%5Bversion%5D=5&limit=20')['data']
          print(name,json.dumps([{'id':x['id'],'state':x['attributes']['processingState'],'uploaded':x['attributes']['uploadedDate']} for x in b]),flush=True)
+         if app in ['6804748049','6804672773']:
+          uploads=api(f'/apps/{app}/buildUploads?limit=10')['data']
+          print('UPLOAD_DETAILS',name,json.dumps([{'id':x['id'],'attributes':x['attributes']} for x in uploads]),flush=True)
         PYCODE
     - name: Remove temporary credential file
       if: always()
