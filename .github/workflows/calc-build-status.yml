@@ -1,0 +1,45 @@
+name: Calc Apple Build Status
+'on':
+  push:
+    branches:
+    - main
+    paths:
+    - .github/workflows/calc-build-status.yml
+  workflow_dispatch: null
+permissions:
+  contents: read
+jobs:
+  status:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+      ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+    steps:
+    - uses: actions/checkout@v5
+      with:
+        persist-credentials: false
+    - name: Prepare existing Apple API credentials
+      env:
+        ASC_PRIVATE_KEY_B64: ${{ secrets.ASC_PRIVATE_KEY_B64 }}
+      run: |
+        set -euo pipefail
+        umask 077
+        ASC_KEY_PATH="$RUNNER_TEMP/CalcAuth.p8"
+        echo "ASC_KEY_PATH=$ASC_KEY_PATH" >> "$GITHUB_ENV"
+        test -n "$ASC_ISSUER_ID"; test -n "$ASC_KEY_ID"; test -n "$ASC_PRIVATE_KEY_B64"
+        printf '%s' "$ASC_PRIVATE_KEY_B64" | base64 --decode > "$ASC_KEY_PATH"
+    - name: Read only Apple build processing states
+      run: |
+        python3 - <<'PYCODE'
+        import sys,json
+        sys.path.insert(0,'scripts/calc-release')
+        from asc import api
+        apps=[('KalteCalc', '6804747292'), ('HeizkoerperCalc', '6804748049'), ('RohrCalc', '6804748249'), ('LueftungsCalc', '6804747588'), ('VolumeCalc', '6804672773')]
+        for name,app in apps:
+         b=api(f'/builds?filter%5Bapp%5D={app}&filter%5Bversion%5D=5&limit=20')['data']
+         print(name,json.dumps([{'id':x['id'],'state':x['attributes']['processingState'],'uploaded':x['attributes']['uploadedDate']} for x in b]),flush=True)
+        PYCODE
+    - name: Remove temporary credential file
+      if: always()
+      run: rm -f "$ASC_KEY_PATH"
