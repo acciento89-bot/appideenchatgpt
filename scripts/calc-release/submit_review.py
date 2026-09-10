@@ -12,6 +12,9 @@ review=api('/appStoreVersions/'+vid+'/appStoreReviewDetail')['data'];assert revi
 locs=api('/appStoreVersions/'+vid+'/appStoreVersionLocalizations?limit=50')['data']
 for locale,lang in [('de-DE','de'),('en-US','en')]:
  loc=next(l for l in locs if l['attributes']['locale']==locale);assert loc['attributes']['description']==m['description_'+lang]
+ if locale=='en-US' and not loc['attributes'].get('keywords'):
+  words={'VolumeCalc':'water,volume,heating,inventory,fill,measurement,hydronic,hvac','KalteCalc':'refrigeration,service,superheat,subcooling,temperature,hvac','HeizkoerperCalc':'radiator,heating,heatpump,room,capacity,survey,hvac','RohrCalc':'pipe,pressure,flow,hydraulic,route,loss,hvac','LueftungsCalc':'airflow,ventilation,commissioning,measurement,balance,hvac'}
+  patch('appStoreVersionLocalizations',loc['id'],{'keywords':words[scheme]})
  sets=api('/appStoreVersionLocalizations/'+loc['id']+'/appScreenshotSets?limit=50')['data']
  for display in ['APP_IPHONE_67','APP_IPAD_PRO_3GEN_129']:
   s=next(s for s in sets if s['attributes']['screenshotDisplayType']==display)
@@ -23,7 +26,7 @@ subs=api('/apps/'+app+'/reviewSubmissions?limit=50')['data']
 active=[s for s in subs if s['attributes']['state'] in ['READY_FOR_REVIEW','UNRESOLVED_ISSUES']]
 assert len(active)<=1,'Multiple active review packages require inspection'
 s=active[0] if active else api('/reviewSubmissions','POST',{'data':{'type':'reviewSubmissions','attributes':{'platform':'IOS'},'relationships':{'app':{'data':{'type':'apps','id':app}}}}})['data'];sid=s['id']
-items=api('/reviewSubmissions/'+sid+'/items?limit=200')['data']
+items=api('/reviewSubmissions/'+sid+'/items?include=appStoreVersion&limit=200')['data']
 for item in items:
  assert item.get('relationships',{}).get('appStoreVersion',{}).get('data',{}).get('id')==vid,'Unexpected item in review package'
 if not items:
