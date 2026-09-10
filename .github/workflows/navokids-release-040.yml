@@ -6,21 +6,31 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
+  actions: read
 concurrency:
   group: navokids-public-release
   cancel-in-progress: false
 jobs:
   release:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 30
     env:
       ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
       ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
-      NAVOKIDS_RELEASE_MODE: inspect
+      NAVOKIDS_RELEASE_MODE: publish
+      NAVOKIDS_BUILD_ID: 1b859b52-96f9-4e03-ae13-06767e32890e
+      NAVOKIDS_BUILD_NUMBER: '13'
     steps:
       - uses: actions/checkout@v5
         with:
           persist-credentials: false
+      - name: Download reviewed native screenshots
+        uses: actions/download-artifact@v4
+        with:
+          name: navokids-040-ios-store-captures
+          run-id: 34539600124
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: navokids-store-captures
       - name: Prepare existing Apple credential
         env:
           ASC_PRIVATE_KEY_B64: ${{ secrets.ASC_PRIVATE_KEY_B64 }}
@@ -30,7 +40,7 @@ jobs:
           ASC_KEY_PATH="$RUNNER_TEMP/NavokidsAuth.p8"
           echo "ASC_KEY_PATH=$ASC_KEY_PATH" >> "$GITHUB_ENV"
           printf '%s' "$ASC_PRIVATE_KEY_B64" | base64 --decode > "$ASC_KEY_PATH"
-      - name: Inspect exact NavoKids release state
+      - name: Submit the authorized exact NavoKids build for public review
         run: python3 scripts/navokids-release-040.py
       - name: Remove temporary credential
         if: always()
