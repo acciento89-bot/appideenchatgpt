@@ -24,7 +24,7 @@ config/icon="res://assets/branding/app_icon.svg"
 [boot_splash]
 
 bg_color=Color(0.027, 0.063, 0.055, 1)
-image="res://assets/branding/launch_badge.svg"
+image="res://assets/branding/app_icon.svg"
 fullsize=false
 use_filter=true
 
