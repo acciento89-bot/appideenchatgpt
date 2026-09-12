@@ -1,0 +1,108 @@
+name: Idle Handwerker Android Play
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'apps/005-idle-handwerker/**'
+      - '.github/workflows/idle-handwerker-android.yml'
+
+permissions:
+  contents: read
+
+env:
+  GODOT_VERSION: "4.7.1"
+  GODOT_TAG: "4.7.1-stable"
+  PROJECT_DIR: apps/005-idle-handwerker
+
+jobs:
+  android-play:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: android-actions/setup-android@v3
+
+      - name: Install pinned Godot IAP plugin
+        run: |
+          set -euo pipefail
+          IAP_COMMIT='4c3a15ddabeeb4d9d43f3879c6d5bbf7cd85624b'
+          curl -L --fail --retry 3 -o "$RUNNER_TEMP/godot-iap.zip" \
+            "https://github.com/hyochan/godot-iap/archive/$IAP_COMMIT.zip"
+          unzip -q "$RUNNER_TEMP/godot-iap.zip" -d "$RUNNER_TEMP/godot-iap"
+          IAP_SOURCE="$RUNNER_TEMP/godot-iap/godot-iap-$IAP_COMMIT/addons/godot-iap"
+          test -s "$IAP_SOURCE/android/GodotIap.release.aar"
+          rm -rf "$PROJECT_DIR/addons/godot-iap"
+          mkdir -p "$PROJECT_DIR/addons"
+          cp -R "$IAP_SOURCE" "$PROJECT_DIR/addons/godot-iap"
+
+      - name: Install Android SDK
+        run: |
+          set -euo pipefail
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"
+
+      - name: Install pinned AdMob plugin
+        run: |
+          set -euo pipefail
+          ADMOB_VERSION='v5.0.0'
+          ADMOB_ARCHIVE="poing-godot-admob-$ADMOB_VERSION.zip"
+          curl -L --fail --retry 3 -o "$RUNNER_TEMP/$ADMOB_ARCHIVE" \
+            "https://github.com/poingstudios/godot-admob-plugin/releases/download/$ADMOB_VERSION/$ADMOB_ARCHIVE"
+          unzip -q "$RUNNER_TEMP/$ADMOB_ARCHIVE" -d "$RUNNER_TEMP/godot-admob"
+          ADMOB_SOURCE="$RUNNER_TEMP/godot-admob/poing-godot-admob/addons/admob"
+          rm -rf "$PROJECT_DIR/addons/admob"
+          mkdir -p "$PROJECT_DIR/addons"
+          cp -R "$ADMOB_SOURCE" "$PROJECT_DIR/addons/admob"
+
+      - name: Install Godot Android toolchain
+        run: |
+          set -euo pipefail
+          curl -L --fail --retry 3 -o "$RUNNER_TEMP/godot.zip" \
+            "https://github.com/godotengine/godot/releases/download/${GODOT_TAG}/Godot_v${GODOT_TAG}_linux.x86_64.zip"
+          unzip -q "$RUNNER_TEMP/godot.zip" -d "$RUNNER_TEMP/godot"
+          GODOT="$RUNNER_TEMP/godot/Godot_v${GODOT_TAG}_linux.x86_64"
+          chmod +x "$GODOT"
+          echo "GODOT=$GODOT" >> "$GITHUB_ENV"
+          T="$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable"
+          mkdir -p "$T" "$PROJECT_DIR/android/build" "$PROJECT_DIR/builds/android"
+          curl -L --fail --retry 3 -o "$RUNNER_TEMP/templates.tpz" \
+            "https://github.com/godotengine/godot/releases/download/${GODOT_TAG}/Godot_v${GODOT_TAG}_export_templates.tpz"
+          unzip -q "$RUNNER_TEMP/templates.tpz" -d "$RUNNER_TEMP/templates"
+          cp -R "$RUNNER_TEMP/templates/templates/." "$T/"
+          unzip -q "$T/android_source.zip" -d "$PROJECT_DIR/android/build"
+          printf '%s\n' "${GODOT_VERSION}.stable" > "$PROJECT_DIR/android/.build_version"
+          chmod +x "$PROJECT_DIR/android/build/gradlew"
+
+      - name: Export signable release AAB
+        run: |
+          set -euo pipefail
+          KEYSTORE="$RUNNER_TEMP/idle-handwerker-upload.jks"
+          keytool -genkeypair -noprompt -keystore "$KEYSTORE" -storepass temporary-build-key \
+            -alias upload -keypass temporary-build-key -keyalg RSA -keysize 2048 -validity 3650 \
+            -dname 'CN=Temporary CI Build, O=Kamilunavo, C=DE'
+          python3 - <<'PY'
+          from pathlib import Path
+          import os
+          preset = Path('apps/005-idle-handwerker/export_presets.cfg')
+          text = preset.read_text()
+          marker = 'plugins/GodotIap=true'
+          replacement = marker + '\nkeystore/release="' + os.environ['RUNNER_TEMP'] + '/idle-handwerker-upload.jks"\nkeystore/release_user="upload"\nkeystore/release_password="temporary-build-key"'
+          text = text.replace(marker, replacement)
+          preset.write_text(text)
+          PY
+          AAB="$GITHUB_WORKSPACE/$PROJECT_DIR/builds/android/idle-handwerker.aab"
+          "$GODOT" --headless --editor --path "$PROJECT_DIR" --quit
+          "$GODOT" --headless --path "$PROJECT_DIR" --export-release "Android Play" "$AAB"
+          test -s "$AAB"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: idle-handwerker-play-aab
+          path: apps/005-idle-handwerker/builds/android/idle-handwerker.aab
+          if-no-files-found: error
+          retention-days: 14
