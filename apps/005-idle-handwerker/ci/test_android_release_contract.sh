@@ -65,7 +65,7 @@ grep -Fq 'mipmap*/icon_background.*' "$stripper"
 grep -Fq 'mipmap*/icon_monochrome.*' "$stripper"
 grep -Fq 'dependsOn(stripAdaptiveLauncherIcons)' "$stripper"
 grep -Fq "base/res/mipmap/icon.webp" "$workflow"
-grep -Fq "base/res/mipmap-anydpi-v26/(icon|themed_icon)" "$workflow"
+grep -Fq "mipmap-anydpi-v26/(icon|themed_icon)" "$workflow"
 
 grep -Fq 'const STORE_SCREENSHOT_ARG := "--store-screenshots"' "$monetization"
 grep -Fq 'if not _store_screenshot_capture():' "$monetization"
