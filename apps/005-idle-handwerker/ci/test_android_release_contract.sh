@@ -8,15 +8,13 @@ project="$root/apps/005-idle-handwerker"
 preset="$project/export_presets.cfg"
 monetization="$project/scripts/monetization_bridge.gd"
 capture="$project/ci/capture_android_screenshots.sh"
-foreground="$project/assets/branding/app_icon_adaptive_foreground.svg"
-background="$project/assets/branding/app_icon_adaptive_background.svg"
 
 if grep -Eq 'keytool[[:space:]]+-genkeypair|Temporary CI Build|temporary-build-key' "$workflow"; then
   echo "A per-run temporary release identity is forbidden." >&2
   exit 1
 fi
 
-for file in "$workflow" "$validate" "$preset" "$monetization" "$capture" "$foreground" "$background"; do
+for file in "$workflow" "$validate" "$preset" "$monetization" "$capture"; do
   test -s "$file"
 done
 
@@ -34,6 +32,12 @@ grep -Fq "versionCode=1" "$workflow"
 grep -Fq "idle-handwerker-android-screenshots" "$workflow"
 grep -Fq "if: always()" "$workflow"
 grep -Fq "if-no-files-found: warn" "$workflow"
+grep -Fq "branches: [main]" "$workflow"
+grep -Fq "!apps/005-idle-handwerker/play-store/android-screenshots/**" "$workflow"
+grep -Fq "github.event_name == 'push' && github.ref == 'refs/heads/main'" "$workflow"
+grep -Fq 'git add -- apps/005-idle-handwerker/play-store/android-screenshots' "$workflow"
+grep -Fq 'git diff --cached --quiet' "$workflow"
+test "$(grep -Fc 'git add -- ' "$workflow")" -eq 1
 grep -Fq "reactivecircus/android-emulator-runner@v2" "$workflow"
 grep -Fq "sudo chmod 666 /dev/kvm" "$workflow"
 if ! grep -Fq 'touch "$PROJECT_DIR/android/build/.gdignore"' "$workflow"; then
@@ -47,8 +51,11 @@ grep -Fq 'name="Android Screenshots"' "$preset"
 grep -Fq 'command_line/extra_args="--store-screenshots"' "$preset"
 grep -Fq 'architectures/x86_64=true' "$preset"
 grep -Fq 'launcher_icons/main_192x192="res://assets/branding/app_icon.svg"' "$preset"
-grep -Fq 'launcher_icons/adaptive_foreground_432x432="res://assets/branding/app_icon_adaptive_foreground.svg"' "$preset"
-grep -Fq 'launcher_icons/adaptive_background_432x432="res://assets/branding/app_icon_adaptive_background.svg"' "$preset"
+if grep -Fq 'launcher_icons/adaptive_' "$preset"; then
+  echo "Adaptive launcher assignments must not diverge from the canonical icon." >&2
+  exit 1
+fi
+grep -Fq 'Adaptive launcher resources are forbidden' "$workflow"
 
 grep -Fq 'const STORE_SCREENSHOT_ARG := "--store-screenshots"' "$monetization"
 grep -Fq 'if not _store_screenshot_capture():' "$monetization"
@@ -83,15 +90,15 @@ if grep -Fq 'identify -format' "$capture"; then
 fi
 grep -Fq 'standard_deviation' "$capture"
 grep -Fq 'zlib.decompress' "$capture"
-if grep -Fq 'mFocusedApp' "$capture"; then
-  echo "Foreground validation must use mCurrentFocus only." >&2
+grep -Fq 'wait_for_app_surface' "$capture"
+grep -Fq 'navy_hits' "$capture"
+grep -Fq 'accent_hits' "$capture"
+if grep -Fq 'logcat' "$capture"; then
+  echo "Capture diagnostics must not collect device logs." >&2
   exit 1
 fi
-
-grep -Fq 'viewBox="0 0 1024 1024"' "$foreground"
-grep -Fq 'fill="none"' "$background"
-if grep -Fq '<rect width="1024" height="1024"' "$foreground"; then
-  echo "Adaptive foreground must remain transparent." >&2
+if grep -Fq 'mFocusedApp' "$capture"; then
+  echo "Foreground validation must use mCurrentFocus only." >&2
   exit 1
 fi
 

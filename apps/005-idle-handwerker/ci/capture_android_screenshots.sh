@@ -42,17 +42,17 @@ assert_clean_app_focus() {
   [[ "$focus" != *"has stopped"* ]]
 }
 
-capture_png() {
-  local filename=$1
-  assert_clean_app_focus
-  adb exec-out screencap -p > "$output_dir/$filename"
-  python3 - "$output_dir/$filename" <<'PY'
+validate_png() {
+  local path=$1
+  local mode=${2:-app}
+  python3 - "$path" "$mode" <<'PY'
 import struct
 import sys
 import zlib
 from pathlib import Path
 
 data = Path(sys.argv[1]).read_bytes()
+mode = sys.argv[2]
 assert data[:8] == b"\x89PNG\r\n\x1a\n", "not a PNG"
 width, height = struct.unpack(">II", data[16:24])
 assert (width, height) == (1080, 2400), (width, height)
@@ -87,6 +87,8 @@ def paeth(a, b, c):
 
 previous = bytearray(stride)
 colors = set()
+navy_hits = 0
+accent_hits = 0
 count = 0
 mean = 0.0
 m2 = 0.0
@@ -114,6 +116,14 @@ for y in range(height):
             start = x * bytes_per_pixel
             red, green, blue = scan[start:start + 3]
             colors.add((red, green, blue))
+            if abs(red - 7) <= 10 and abs(green - 21) <= 10 and abs(blue - 34) <= 10:
+                navy_hits += 1
+            if (
+                abs(red - 53) <= 16 and abs(green - 185) <= 16 and abs(blue - 230) <= 16
+            ) or (
+                abs(red - 242) <= 16 and abs(green - 140) <= 16 and abs(blue - 40) <= 16
+            ):
+                accent_hits += 1
             luminance = (red * 299 + green * 587 + blue * 114) / 1000
             count += 1
             delta = luminance - mean
@@ -124,11 +134,37 @@ for y in range(height):
 standard_deviation = ((m2 / count) ** 0.5) / 255
 assert len(colors) >= 16, len(colors)
 assert standard_deviation >= 0.03, standard_deviation
+if mode == "app":
+    assert navy_hits >= 100, navy_hits
+    assert accent_hits >= 10, accent_hits
 PY
 }
 
+capture_png() {
+  local filename=$1
+  assert_clean_app_focus
+  adb exec-out screencap -p > "$output_dir/$filename"
+  validate_png "$output_dir/$filename" app
+}
+
+wait_for_app_surface() {
+  local ready_frame="$output_dir/idle-handwerker-not-ready.png"
+  sleep 20
+  for _ in $(seq 1 6); do
+    assert_clean_app_focus
+    adb exec-out screencap -p > "$ready_frame"
+    if validate_png "$ready_frame" app >/dev/null 2>&1; then
+      rm -f "$ready_frame"
+      return 0
+    fi
+    sleep 2
+  done
+  printf 'Idle Handwerker never rendered its expected app palette.\n' >&2
+  return 1
+}
+
 wait_for_app_focus
-sleep 3
+wait_for_app_surface
 
 # A cleared install presents the four-page in-app tutorial. Its centered
 # 430x932 panel maps the primary button to y=1650 on this 1080x2400 profile.
