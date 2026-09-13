@@ -27,6 +27,11 @@ def stripAdaptiveLauncherIcons = tasks.register("stripAdaptiveLauncherIcons") {
         if (!remaining.isEmpty()) {
             throw new GradleException("Adaptive launcher resources remain after cleanup: " + remaining.files)
         }
+
+        def themes = file("res/values/themes.xml")
+        if (themes.isFile() && themes.getText("UTF-8").contains("@mipmap/icon_background")) {
+            throw new GradleException("Godot splash theme still references removed icon_background: " + themes)
+        }
     }
 }
 

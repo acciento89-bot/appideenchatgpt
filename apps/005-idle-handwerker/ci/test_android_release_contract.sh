@@ -68,7 +68,9 @@ grep -Fq 'dependsOn(stripAdaptiveLauncherIcons)' "$stripper"
 grep -Fq "base/res/mipmap/icon.webp" "$workflow"
 grep -Fq "mipmap-anydpi-v26/(icon|themed_icon)" "$workflow"
 test "$(grep -Fc 'version/code=2' "$preset")" -eq 2
+test "$(grep -Fc 'splash_screen/background_color=Color(0.027, 0.063, 0.055, 1)' "$preset")" -eq 2
 grep -Fq 'sanitize_godot_launcher_aar.py' "$workflow"
+grep -Fq 'Godot splash theme still references removed icon_background' "$stripper"
 
 python3 - "$aar_sanitizer" <<'PY'
 import subprocess
