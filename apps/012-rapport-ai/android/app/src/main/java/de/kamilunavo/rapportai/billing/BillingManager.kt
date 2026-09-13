@@ -9,6 +9,7 @@ import com.android.billingclient.api.BillingFlowParams
 import com.android.billingclient.api.BillingResult
 import com.android.billingclient.api.PendingPurchasesParams
 import com.android.billingclient.api.ProductDetails
+import com.android.billingclient.api.Purchase
 import com.android.billingclient.api.QueryProductDetailsParams
 import com.android.billingclient.api.QueryPurchasesParams
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -28,22 +29,18 @@ class BillingManager(
     val state: StateFlow<BillingState> = _state
 
     private val client: BillingClient
+    private val purchaseProcessor = EntitlementPurchaseProcessor(
+        productIds = PRODUCT_IDS.toSet(),
+        acknowledge = ::acknowledgePurchase,
+        onEntitlementChanged = onEntitlementChanged
+    )
 
     init {
         client = BillingClient.newBuilder(context)
         .enablePendingPurchases(PendingPurchasesParams.newBuilder().enableOneTimeProducts().build())
         .setListener { result, purchases ->
             if (result.responseCode == BillingClient.BillingResponseCode.OK && purchases != null) {
-                val active = purchases.any { it.purchaseState == com.android.billingclient.api.Purchase.PurchaseState.PURCHASED }
-                purchases.filter { it.purchaseState == com.android.billingclient.api.Purchase.PurchaseState.PURCHASED && !it.isAcknowledged }
-                    .forEach { purchase ->
-                        client.acknowledgePurchase(
-                            AcknowledgePurchaseParams.newBuilder().setPurchaseToken(purchase.purchaseToken).build()
-                        ) { acknowledge ->
-                            if (acknowledge.responseCode == BillingClient.BillingResponseCode.OK) onEntitlementChanged(true)
-                        }
-                    }
-                if (active) onEntitlementChanged(true)
+                processPurchases(purchases, revokeIfMissing = false)
             } else if (result.responseCode != BillingClient.BillingResponseCode.USER_CANCELED) {
                 _state.value = _state.value.copy(message = "Der Kauf wurde nicht abgeschlossen.")
             }
@@ -102,9 +99,33 @@ class BillingManager(
         if (!client.isReady) return
         client.queryPurchasesAsync(QueryPurchasesParams.newBuilder().setProductType(BillingClient.ProductType.SUBS).build()) { result, purchases ->
             if (result.responseCode == BillingClient.BillingResponseCode.OK) {
-                onEntitlementChanged(purchases.any { it.purchaseState == com.android.billingclient.api.Purchase.PurchaseState.PURCHASED })
+                processPurchases(purchases, revokeIfMissing = true)
             }
         }
+    }
+
+    private fun processPurchases(purchases: List<Purchase>, revokeIfMissing: Boolean) {
+        purchaseProcessor.process(
+            purchases.map { purchase ->
+                EntitlementPurchase(
+                    productIds = purchase.products,
+                    token = purchase.purchaseToken,
+                    state = when (purchase.purchaseState) {
+                        Purchase.PurchaseState.PENDING -> EntitlementPurchaseState.PENDING
+                        Purchase.PurchaseState.PURCHASED -> EntitlementPurchaseState.PURCHASED
+                        else -> EntitlementPurchaseState.OTHER
+                    },
+                    acknowledged = purchase.isAcknowledged
+                )
+            },
+            revokeIfMissing
+        )
+    }
+
+    private fun acknowledgePurchase(token: String, complete: (Boolean) -> Unit) {
+        client.acknowledgePurchase(
+            AcknowledgePurchaseParams.newBuilder().setPurchaseToken(token).build()
+        ) { result -> complete(result.responseCode == BillingClient.BillingResponseCode.OK) }
     }
 
     fun clearMessage() { _state.value = _state.value.copy(message = null) }

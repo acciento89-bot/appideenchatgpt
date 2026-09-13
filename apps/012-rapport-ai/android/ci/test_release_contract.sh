@@ -12,6 +12,7 @@ adaptive="$android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml"
 adaptive_round="$android/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml"
 foreground="$android/app/src/main/res/drawable/ic_launcher_foreground.xml"
 capture="$android/ci/capture_screenshots.sh"
+manifest="$android/app/src/main/AndroidManifest.xml"
 
 if grep -Eq 'RAPPORT_ANDROID_KEYSTORE|KEYSTORE_BASE64|secrets\.' "$workflow"; then
   echo "Branch CI must not restore app signing secrets." >&2
@@ -26,9 +27,25 @@ if grep -Eiq 'play.*upload|upload.*play|gradle-play-publisher|r0adkll/upload-goo
   exit 1
 fi
 
-for file in "$workflow" "$gradle_file" "$ios_icon" "$android_icon" "$legacy" "$capture"; do
+for file in "$workflow" "$gradle_file" "$ios_icon" "$android_icon" "$legacy" "$capture" "$manifest"; do
   test -s "$file"
 done
+
+python3 - "$manifest" <<'PY'
+import sys
+import xml.etree.ElementTree as ET
+
+android = "{http://schemas.android.com/apk/res/android}"
+root = ET.parse(sys.argv[1]).getroot()
+queries = root.findall("queries")
+services = [
+    intent.find("action").get(android + "name")
+    for query in queries
+    for intent in query.findall("intent")
+    if intent.find("action") is not None
+]
+assert services.count("android.speech.RecognitionService") == 1
+PY
 
 cmp "$ios_icon" "$android_icon"
 grep -Fq '@drawable/rapport_icon' "$legacy"

@@ -7,7 +7,7 @@ on:
       - "apps/012-rapport-ai/android/**"
       - ".github/workflows/rapport-android.yml"
   push:
-    branches: [main, android/rapport-ai]
+    branches: [main]
     paths:
       - "apps/012-rapport-ai/android/**"
       - "!apps/012-rapport-ai/play-store/android-screenshots/**"
