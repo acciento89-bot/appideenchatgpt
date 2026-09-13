@@ -20,9 +20,12 @@ for file in "$workflow" "$validate" "$preset" "$monetization" "$capture" "$foreg
   test -s "$file"
 done
 
-grep -Fq "uses: acciento89-bot/maengelfix/.github/actions/restore-android-signing@main" "$workflow"
-grep -Fq "app-id: idlehandwerker" "$workflow"
-grep -Fq "github.event_name == 'workflow_dispatch'" "$workflow"
+grep -Fq "uses: acciento89-bot/maengelfix/.github/actions/restore-central-android-signing@main" "$workflow"
+if grep -Fq "restore-android-signing@main" "$workflow" || grep -Fq "app-id:" "$workflow"; then
+  echo "Dispatch signing must use the single central identity without a per-app vault id." >&2
+  exit 1
+fi
+grep -Fq "github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'" "$workflow"
 grep -Fq "id-token: write" "$workflow"
 grep -Fq "BC:F2:33:7D:41:E6:17:C0:3B:CA:E6:98:C0:9D:15:23:65:4B:D7:90" "$workflow"
 grep -Fq "79:85:BD:6B:33:71:1B:AC:A7:E6:BA:72:2C:2B:38:70:EB:BC:80:2F:7D:B4:A7:BC:12:06:BD:AE:51:C4:D5:D6" "$workflow"
@@ -60,7 +63,12 @@ if grep -Fq 'len(data) > 100_000' "$capture"; then
   echo "Compressed PNG byte size is not a valid visual-content gate." >&2
   exit 1
 fi
+if grep -Fq 'identify -format' "$capture"; then
+  echo "Pixel validation must not depend on an undeclared runner binary." >&2
+  exit 1
+fi
 grep -Fq 'standard_deviation' "$capture"
+grep -Fq 'zlib.decompress' "$capture"
 if grep -Fq 'mFocusedApp' "$capture"; then
   echo "Foreground validation must use mCurrentFocus only." >&2
   exit 1

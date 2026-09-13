@@ -160,7 +160,7 @@ jobs:
           retention-days: 14
 
   sign-central-release:
-    if: github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
     needs: build-and-screenshot
     runs-on: ubuntu-24.04
     timeout-minutes: 15
@@ -179,9 +179,7 @@ jobs:
           path: ${{ runner.temp }}/unsigned
 
       - name: Restore central upload identity
-        uses: acciento89-bot/maengelfix/.github/actions/restore-android-signing@main
-        with:
-          app-id: idlehandwerker
+        uses: acciento89-bot/maengelfix/.github/actions/restore-central-android-signing@main
 
       - name: Sign and verify release AAB
         run: |
