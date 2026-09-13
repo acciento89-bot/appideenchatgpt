@@ -12,6 +12,13 @@ adb shell settings put global hide_error_dialogs 1
 adb shell settings put global window_animation_scale 0
 adb shell settings put global transition_animation_scale 0
 adb shell settings put global animator_duration_scale 0
+
+# The google_apis image can start its SDK setup service after boot and surface
+# a system-owned ANR over the app. Disable only that setup-only component in
+# this disposable screenshot emulator; app focus checks remain strict below.
+adb shell am force-stop com.google.android.googlesdksetup
+adb shell pm disable-user --user 0 com.google.android.googlesdksetup
+adb shell am force-stop com.google.android.googlesdksetup
 adb shell am start -W -n "$package_name/.MainActivity"
 
 dump_ui() {

@@ -58,6 +58,8 @@ if grep -Fq 'if keytool -printcert -jarfile' "$workflow"; then
   exit 1
 fi
 grep -Fq 'mCurrentFocus=' "$capture"
+grep -Fq 'pm disable-user --user 0 com.google.android.googlesdksetup' "$capture"
+grep -Fq 'am force-stop com.google.android.googlesdksetup' "$capture"
 if grep -Fq 'mFocusedApp' "$capture"; then
   echo "Foreground validation must use mCurrentFocus only." >&2
   exit 1
