@@ -8,10 +8,12 @@ on:
     paths:
       - 'apps/005-idle-handwerker/**'
       - '.github/workflows/idle-handwerker-validate.yml'
+      - '.github/workflows/idle-handwerker-android.yml'
   pull_request:
     paths:
       - 'apps/005-idle-handwerker/**'
       - '.github/workflows/idle-handwerker-validate.yml'
+      - '.github/workflows/idle-handwerker-android.yml'
 
 permissions:
   contents: read
@@ -27,6 +29,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+
+      - name: Validate Android release contract
+        run: bash "$PROJECT_DIR/ci/test_android_release_contract.sh"
 
       - name: Install pinned Godot IAP plugin
         shell: bash

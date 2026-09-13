@@ -19,6 +19,7 @@ const PRODUCTS := [
 	"de.kamilunavo.idlehandwerker.tokens.large",
 ]
 const TEST_REWARDED_ID := "ca-app-pub-3940256099942544/1712485313"
+const STORE_SCREENSHOT_ARG := "--store-screenshots"
 const REWARDED_SETTING_PATHS := {
 	"boost": "monetization/admob/rewarded_boost_id",
 	"offline": "monetization/admob/rewarded_offline_id",
@@ -146,7 +147,8 @@ func _initialize_android_store() -> void:
 		await _iap.ready
 	_android_store_ready = bool(await _iap.init_connection())
 	if not _android_store_ready:
-		purchase_failed.emit("Google Play Billing ist derzeit nicht verfügbar.")
+		if not _store_screenshot_capture():
+			purchase_failed.emit("Google Play Billing ist derzeit nicht verfügbar.")
 		return
 	var request = IAPTypes.ProductRequest.new()
 	request.skus = PRODUCTS
@@ -154,6 +156,10 @@ func _initialize_android_store() -> void:
 	var fetched = await _iap.fetch_products(request)
 	_consume_android_products(fetched)
 	await _restore_android_purchases(false)
+
+
+func _store_screenshot_capture() -> bool:
+	return OS.get_cmdline_args().has(STORE_SCREENSHOT_ARG)
 
 
 func _purchase_android(product_id: String) -> void:
