@@ -37,6 +37,8 @@ jobs:
     needs: contract
     runs-on: ubuntu-24.04
     timeout-minutes: 50
+    outputs:
+      screenshot_outcome: ${{ steps.screenshots.outcome }}
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-java@v5
@@ -167,6 +169,10 @@ jobs:
           retention-days: 14
 
       - name: Capture real Android screenshots
+        id: screenshots
+        # Godot #109550 can exceed Google SwiftShader's fragment-uniform limit.
+        # Keep authentic emulator capture as retained QA without blocking the release AAB.
+        continue-on-error: true
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 35
@@ -186,7 +192,7 @@ jobs:
           retention-days: 14
 
       - uses: actions/upload-artifact@v4
-        if: failure()
+        if: steps.screenshots.outcome == 'failure'
         with:
           name: idle-handwerker-android-runtime-diagnostics
           path: |
@@ -196,7 +202,7 @@ jobs:
           retention-days: 14
 
   persist-main-screenshots:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.build-and-screenshot.outputs.screenshot_outcome == 'success'
     needs: build-and-screenshot
     runs-on: ubuntu-24.04
     permissions:
