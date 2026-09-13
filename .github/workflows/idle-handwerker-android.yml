@@ -144,7 +144,9 @@ jobs:
           grep -F 'android:versionName="1.3.0"' "$RUNNER_TEMP/manifest.xml"
           unzip -Z1 "$AAB" > "$RUNNER_TEMP/aab-files.txt"
           grep -Fx 'base/res/mipmap/icon.webp' "$RUNNER_TEMP/aab-files.txt"
-          offending_icons=$(grep -E '^base/res/(drawable/icon_background\.xml|mipmap-anydpi-v26/(icon|themed_icon)\.xml|mipmap[^/]*/icon_(foreground|background|monochrome)\.|mipmap-[^/]*/icon\.webp)' "$RUNNER_TEMP/aab-files.txt" || true)
+          echo 'Launcher icon resource inventory:'
+          grep -E '^base/res/(drawable|mipmap)[^/]*/[^/]*icon[^/]*$' "$RUNNER_TEMP/aab-files.txt" || true
+          offending_icons=$(grep -E '^base/res/(mipmap-anydpi-v26/(icon|themed_icon)\.xml|mipmap[^/]*/icon_(foreground|background|monochrome)\.|mipmap-[^/]*/icon\.webp)' "$RUNNER_TEMP/aab-files.txt" || true)
           if [ -n "$offending_icons" ]; then
             echo "Adaptive launcher files are forbidden: use the canonical classic icon only." >&2
             printf '%s\n' "$offending_icons" >&2

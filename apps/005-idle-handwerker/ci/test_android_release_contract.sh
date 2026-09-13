@@ -64,9 +64,15 @@ grep -Fq 'mipmap-anydpi-v26/icon.xml' "$stripper"
 grep -Fq 'mipmap*/icon_foreground.*' "$stripper"
 grep -Fq 'mipmap*/icon_background.*' "$stripper"
 grep -Fq 'mipmap*/icon_monochrome.*' "$stripper"
+grep -Fq 'mipmap-*/icon.webp' "$stripper"
 grep -Fq 'dependsOn(stripAdaptiveLauncherIcons)' "$stripper"
 grep -Fq "base/res/mipmap/icon.webp" "$workflow"
 grep -Fq "mipmap-anydpi-v26/(icon|themed_icon)" "$workflow"
+grep -Fq 'Launcher icon resource inventory:' "$workflow"
+if grep -Fq 'drawable/icon_background\.xml' "$workflow"; then
+  echo "AndroidX core-splashscreen's compatibility drawable is not a launcher icon." >&2
+  exit 1
+fi
 test "$(grep -Fc 'version/code=2' "$preset")" -eq 2
 test "$(grep -Fc 'splash_screen/background_color=Color(0.027, 0.063, 0.055, 1)' "$preset")" -eq 2
 grep -Fq 'sanitize_godot_launcher_aar.py' "$workflow"

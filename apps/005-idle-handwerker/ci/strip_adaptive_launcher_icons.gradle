@@ -5,6 +5,9 @@ def adaptiveLauncherPatterns = [
     "mipmap*/icon_background.*",
     "mipmap*/icon_foreground.*",
     "mipmap*/icon_monochrome.*",
+    // Godot exports density-specific classic icons in addition to the canonical
+    // unqualified res/mipmap/icon.webp required by this release.
+    "mipmap-*/icon.webp",
 ]
 
 def stripAdaptiveLauncherIcons = tasks.register("stripAdaptiveLauncherIcons") {
