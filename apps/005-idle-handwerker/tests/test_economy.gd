@@ -2,6 +2,36 @@ extends SceneTree
 
 var storekit_grants: Array[Dictionary] = []
 var storekit_failures := 0
+var android_events: Array[String] = []
+
+
+class FakeAndroidPurchase extends RefCounted:
+	var data: Dictionary
+
+	func _init(value: Dictionary) -> void:
+		data = value
+
+	func to_dict() -> Dictionary:
+		return data
+
+
+class FakeAndroidIap extends Node:
+	var available_purchases: Array = []
+	var purchase_result: Variant = null
+	var events: Array[String]
+
+	func _init(event_log: Array[String]) -> void:
+		events = event_log
+
+	func get_available_purchases() -> Array:
+		return available_purchases
+
+	func request_purchase(_props: Variant) -> Variant:
+		return purchase_result
+
+	func finish_transaction_dict(purchase: Dictionary, consumable: bool) -> Dictionary:
+		events.append("finish:%s:%s" % [purchase.get("purchaseToken", ""), consumable])
+		return {"success": true}
 
 
 func _record_storekit_grant(product_id: String, transaction_id: String) -> void:
@@ -10,6 +40,20 @@ func _record_storekit_grant(product_id: String, transaction_id: String) -> void:
 
 func _record_storekit_failure(_message: String) -> void:
 	storekit_failures += 1
+
+
+func _record_android_grant(_product_id: String, transaction_id: String) -> void:
+	android_events.append("grant:%s" % transaction_id)
+
+
+func _accept_android_grant(product_id: String, transaction_id: String) -> bool:
+	_record_android_grant(product_id, transaction_id)
+	return true
+
+
+func _reject_android_grant(_product_id: String, transaction_id: String) -> bool:
+	android_events.append("failed-grant:%s" % transaction_id)
+	return false
 
 
 func _init() -> void:
@@ -184,6 +228,73 @@ func _init() -> void:
 		failures += 1
 		printerr("FAIL: cancelled StoreKit purchase must report failure without granting")
 	storekit.free()
+	var android := MonetizationBridge.new()
+	var fake_iap := FakeAndroidIap.new(android_events)
+	android._iap = fake_iap
+	android._android_store_ready = true
+	android.set_android_purchase_grant_handler(_accept_android_grant)
+	android._pending_product_id = small_product
+	await android._on_android_purchase_updated({
+		"productId": small_product,
+		"purchaseState": "pending",
+		"purchaseToken": "pending-token",
+	})
+	if not android_events.is_empty() or android._pending_product_id.is_empty():
+		failures += 1
+		printerr("FAIL: pending Android purchase must remain pending and ungranted")
+	android_events.clear()
+	android._pending_product_id = small_product
+	await android._on_android_purchase_updated({
+		"productId": small_product,
+		"purchaseState": "purchased",
+		"transactionId": "",
+		"purchaseToken": "token-fallback",
+	})
+	if android_events != ["grant:token-fallback", "finish:token-fallback:true"]:
+		failures += 1
+		printerr("FAIL: Android grant must use token fallback and persist before consume")
+	android_events.clear()
+	fake_iap.available_purchases = [FakeAndroidPurchase.new({
+		"productId": small_product,
+		"purchaseState": "purchased",
+		"purchaseToken": "restored-consumable",
+	})]
+	await android._restore_android_purchases(false)
+	if android_events != ["grant:restored-consumable", "finish:restored-consumable:true"]:
+		failures += 1
+		printerr("FAIL: outstanding Android consumable must be granted then consumed on restore")
+	android_events.clear()
+	android.set_android_purchase_grant_handler(_reject_android_grant)
+	await android._on_android_purchase_updated({
+		"productId": small_product,
+		"purchaseState": "purchased",
+		"purchaseToken": "save-failed",
+	})
+	if android_events != ["failed-grant:save-failed"]:
+		failures += 1
+		printerr("FAIL: Android transaction must remain unconsumed when durable grant fails")
+	android._pending_product_id = ""
+	fake_iap.purchase_result = null
+	await android._purchase_android(small_product)
+	if not android._pending_product_id.is_empty():
+		failures += 1
+		printerr("FAIL: null Android purchase result must clear pending purchase")
+	android.free()
+	var failed_save := GameState.new()
+	failed_save.save_path = "user://missing-idle-test-directory/save.json"
+	var tokens_before_failed_save := failed_save.bonus_tokens
+	if failed_save.apply_purchase(small_product, "tx-save-retry"):
+		failures += 1
+		printerr("FAIL: purchase must not report success when its save cannot be opened")
+	if failed_save.bonus_tokens != tokens_before_failed_save or failed_save.has_processed_purchase("tx-save-retry"):
+		failures += 1
+		printerr("FAIL: failed purchase save must roll back grant and in-memory deduplication")
+	failed_save.save_path = "user://idle_handwerker_failed_save_retry.json"
+	if not failed_save.apply_purchase(small_product, "tx-save-retry") or failed_save.bonus_tokens != tokens_before_failed_save + 250:
+		failures += 1
+		printerr("FAIL: purchase must grant exactly once when durable retry succeeds")
+	failed_save.delete_save()
+	failed_save.free()
 	game.daily_key = Time.get_date_string_from_system()
 	game.daily_progress.jobs = 5.0
 	var money_before := game.money

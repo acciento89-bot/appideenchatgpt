@@ -56,6 +56,7 @@ func _ready() -> void:
 	sfx = SfxBank.new()
 	add_child(sfx)
 	monetization = MonetizationBridge.new()
+	monetization.set_android_purchase_grant_handler(_grant_android_purchase)
 	add_child(monetization)
 	monetization.purchase_completed.connect(_on_purchase_completed)
 	monetization.purchase_failed.connect(_show_toast)
@@ -1377,10 +1378,22 @@ func _show_store() -> void:
 
 
 func _on_purchase_completed(product_id: String, transaction_id: String) -> void:
-	if game.apply_purchase(product_id, transaction_id):
-		sfx.play_cue("coin")
-		_haptic(80, 0.8)
-		_show_reward_burst("KAUF GUTGESCHRIEBEN", GOLD)
+	_grant_purchase(product_id, transaction_id)
+
+
+func _grant_android_purchase(product_id: String, transaction_id: String) -> bool:
+	if game.has_processed_purchase(transaction_id):
+		return true
+	return _grant_purchase(product_id, transaction_id)
+
+
+func _grant_purchase(product_id: String, transaction_id: String) -> bool:
+	if not game.apply_purchase(product_id, transaction_id):
+		return false
+	sfx.play_cue("coin")
+	_haptic(80, 0.8)
+	_show_reward_burst("KAUF GUTGESCHRIEBEN", GOLD)
+	return true
 
 
 func _on_rewarded_completed() -> void:

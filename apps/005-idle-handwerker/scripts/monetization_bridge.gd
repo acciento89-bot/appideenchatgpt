@@ -1,6 +1,9 @@
 class_name MonetizationBridge
 extends Node
 
+const IAPTypes = preload("res://addons/godot-iap/types.gd")
+const GodotIapWrapperScript = preload("res://addons/godot-iap/godot_iap.gd")
+
 signal purchase_completed(product_id: String, transaction_id: String)
 signal purchase_failed(message: String)
 signal product_prices_updated
@@ -9,13 +12,14 @@ signal rewarded_completed
 signal rewarded_unavailable(message: String)
 signal rewarded_ready_changed(placement: String, ready: bool)
 
-const PRODUCTS := [
+const PRODUCTS: Array[String] = [
 	"de.kamilunavo.idlehandwerker.noads",
 	"de.kamilunavo.idlehandwerker.starter",
 	"de.kamilunavo.idlehandwerker.tokens.small",
 	"de.kamilunavo.idlehandwerker.tokens.large",
 ]
 const TEST_REWARDED_ID := "ca-app-pub-3940256099942544/1712485313"
+const STORE_SCREENSHOT_ARG := "--store-screenshots"
 const REWARDED_SETTING_PATHS := {
 	"boost": "monetization/admob/rewarded_boost_id",
 	"offline": "monetization/admob/rewarded_offline_id",
@@ -30,10 +34,16 @@ var _active_rewarded_ad: RewardedAd
 var _ads_started := false
 var _ads_suspended := false
 var _pending_product_id := ""
+var _iap: Node
+var _android_store_ready := false
+var _android_purchase_grant_handler: Callable
 
 
 func _ready() -> void:
-	_setup_storekit()
+	if OS.get_name() == "Android":
+		_setup_android_store()
+	else:
+		_setup_storekit()
 	if OS.get_name() == "iOS":
 		_start_consent_flow()
 	set_process(_store != null)
@@ -84,6 +94,9 @@ func purchase(product_id: String) -> void:
 	if product_id not in PRODUCTS:
 		purchase_failed.emit("Unbekanntes Produkt.")
 		return
+	if OS.get_name() == "Android":
+		_purchase_android(product_id)
+		return
 	if _store != null and _store.has_method("purchase"):
 		if not _pending_product_id.is_empty():
 			purchase_failed.emit("Ein Kauf wird bereits verarbeitet.")
@@ -101,6 +114,9 @@ func purchase(product_id: String) -> void:
 
 
 func restore_purchases() -> void:
+	if OS.get_name() == "Android":
+		_restore_android_purchases()
+		return
 	if _store != null and _store.has_method("restore_purchases"):
 		var result = _store.call("restore_purchases")
 		if result != OK:
@@ -113,6 +129,159 @@ func restore_purchases() -> void:
 
 func get_localized_price(product_id: String, fallback: String = "") -> String:
 	return str(_product_prices.get(product_id, fallback))
+
+
+func set_android_purchase_grant_handler(handler: Callable) -> void:
+	_android_purchase_grant_handler = handler
+
+
+func _setup_android_store() -> void:
+	_iap = get_node_or_null("/root/GodotIapPlugin")
+	if _iap == null:
+		_iap = GodotIapWrapperScript.new()
+		_iap.name = "GodotIapFallback"
+		add_child(_iap)
+	_iap.purchase_updated.connect(_on_android_purchase_updated)
+	_iap.purchase_error.connect(_on_android_purchase_error)
+	_iap.products_fetched.connect(_on_android_products_fetched)
+	_initialize_android_store.call_deferred()
+
+
+func _initialize_android_store() -> void:
+	if not _iap.is_node_ready():
+		await _iap.ready
+	_android_store_ready = bool(await _iap.init_connection())
+	if not _android_store_ready:
+		if not _store_screenshot_capture():
+			purchase_failed.emit("Google Play Billing ist derzeit nicht verfügbar.")
+		return
+	var request = IAPTypes.ProductRequest.new()
+	request.skus = PRODUCTS
+	request.type = IAPTypes.ProductQueryType.IN_APP
+	var fetched = await _iap.fetch_products(request)
+	_consume_android_products(fetched)
+	await _restore_android_purchases(false)
+
+
+func _store_screenshot_capture() -> bool:
+	return OS.get_cmdline_args().has(STORE_SCREENSHOT_ARG)
+
+
+func _purchase_android(product_id: String) -> void:
+	if not _android_store_ready or _iap == null:
+		purchase_failed.emit("Google Play Billing ist noch nicht bereit.")
+		return
+	if not _pending_product_id.is_empty():
+		purchase_failed.emit("Ein Kauf wird bereits verarbeitet.")
+		return
+	_pending_product_id = product_id
+	var props = IAPTypes.RequestPurchaseProps.new()
+	props.request = IAPTypes.RequestPurchasePropsByPlatforms.new()
+	props.request.google = IAPTypes.RequestPurchaseAndroidProps.new()
+	var product_ids: Array[String] = [product_id]
+	props.request.google.skus = product_ids
+	props.type = IAPTypes.ProductQueryType.IN_APP
+	var result = _iap.request_purchase(props)
+	if result == null and _pending_product_id == product_id:
+		_pending_product_id = ""
+		purchase_failed.emit("Der Kauf konnte nicht gestartet werden.")
+
+
+func _restore_android_purchases(emit_result: bool = true) -> void:
+	if not _android_store_ready or _iap == null:
+		if emit_result:
+			purchase_failed.emit("Käufe konnten nicht wiederhergestellt werden.")
+		return
+	var purchases = await _iap.get_available_purchases()
+	if not (purchases is Array):
+		if emit_result:
+			purchase_failed.emit("Käufe konnten nicht wiederhergestellt werden.")
+		return
+	for purchase in purchases:
+		var purchase_data := _purchase_dictionary(purchase)
+		if not purchase_data.is_empty():
+			await _process_android_purchase(purchase_data)
+	if emit_result:
+		restore_completed.emit("Käufe wurden wiederhergestellt.")
+
+
+func _on_android_products_fetched(result: Dictionary) -> void:
+	_consume_android_products(result.get("products", []))
+
+
+func _consume_android_products(products: Array) -> void:
+	for product in products:
+		var product_id := _purchase_field(product, ["id", "productId", "product_id"])
+		var price := _purchase_field(product, ["displayPrice", "display_price", "localizedPrice"])
+		if not product_id.is_empty() and not price.is_empty():
+			_product_prices[product_id] = price
+	product_prices_updated.emit()
+
+
+func _on_android_purchase_updated(purchase_data: Dictionary) -> void:
+	await _process_android_purchase(purchase_data)
+
+
+func _process_android_purchase(purchase_data: Dictionary) -> void:
+	var product_id := _purchase_field(purchase_data, ["productId", "product_id", "id"])
+	if product_id not in PRODUCTS:
+		return
+	var purchase_state := _purchase_field(purchase_data, ["purchaseState", "purchase_state"]).to_lower()
+	if purchase_state != "purchased":
+		return
+	var transaction_id := _purchase_field(purchase_data, ["transactionId", "transaction_id", "purchaseToken"])
+	if transaction_id.is_empty():
+		_pending_product_id = ""
+		purchase_failed.emit("Der Kauf enthält keine Transaktionskennung.")
+		return
+	var consumable := product_id in [PRODUCTS[2], PRODUCTS[3]]
+	_pending_product_id = ""
+	if not _android_purchase_grant_handler.is_valid() or not bool(_android_purchase_grant_handler.call(product_id, transaction_id)):
+		purchase_failed.emit("Der Kauf konnte nicht dauerhaft gespeichert werden.")
+		return
+	var finish_result = await _iap.finish_transaction_dict(purchase_data, consumable)
+	if not _result_success(finish_result):
+		purchase_failed.emit("Der Kauf konnte nicht bestätigt werden.")
+
+
+func _on_android_purchase_error(error: Dictionary) -> void:
+	_pending_product_id = ""
+	purchase_failed.emit(str(error.get("message", "Der Kauf ist fehlgeschlagen.")))
+
+
+func _purchase_field(source: Variant, keys: Array) -> String:
+	if source is Dictionary:
+		for key in keys:
+			if source.has(key) and source[key] != null:
+				var value := str(source[key])
+				if not value.is_empty():
+					return value
+	elif typeof(source) == TYPE_OBJECT and source != null:
+		for key in keys:
+			var value = source.get(key)
+			if value != null:
+				var text := str(value)
+				if not text.is_empty():
+					return text
+	return ""
+
+
+func _purchase_dictionary(source: Variant) -> Dictionary:
+	if source is Dictionary:
+		return source
+	if typeof(source) == TYPE_OBJECT and source != null and source.has_method("to_dict"):
+		var data = source.to_dict()
+		return data if data is Dictionary else {}
+	return {}
+
+
+func _result_success(result: Variant) -> bool:
+	if result is Dictionary:
+		return bool(result.get("success", false))
+	if typeof(result) == TYPE_OBJECT and result != null:
+		var value = result.get("success")
+		return bool(value) if value != null else false
+	return false
 
 
 func show_rewarded_ad(placement: String = "boost") -> void:

@@ -272,6 +272,10 @@ func apply_purchase(product_id: String, transaction_id: String) -> bool:
 		return false
 	if bool(processed_transactions.get(transaction_id, false)):
 		return false
+	var previous_money := money
+	var previous_bonus_tokens := bonus_tokens
+	var previous_no_ads := no_ads
+	var previous_starter_pack_claimed := starter_pack_claimed
 	match product_id:
 		"de.kamilunavo.idlehandwerker.noads": no_ads = true
 		"de.kamilunavo.idlehandwerker.starter":
@@ -284,10 +288,21 @@ func apply_purchase(product_id: String, transaction_id: String) -> bool:
 		"de.kamilunavo.idlehandwerker.tokens.large": bonus_tokens += 1200
 		_: return false
 	processed_transactions[transaction_id] = true
+	if not save_game():
+		money = previous_money
+		bonus_tokens = previous_bonus_tokens
+		no_ads = previous_no_ads
+		starter_pack_claimed = previous_starter_pack_claimed
+		processed_transactions.erase(transaction_id)
+		changed.emit()
+		return false
 	notice.emit("Kauf erfolgreich gutgeschrieben.")
 	changed.emit()
-	save_game()
 	return true
+
+
+func has_processed_purchase(transaction_id: String) -> bool:
+	return not transaction_id.is_empty() and bool(processed_transactions.get(transaction_id, false))
 
 
 func streak_reward_multiplier() -> float:
@@ -645,7 +660,7 @@ func claim_offline_reward() -> float:
 	return reward
 
 
-func save_game() -> void:
+func save_game() -> bool:
 	last_saved_unix = int(Time.get_unix_time_from_system())
 	var payload := {
 		"version": 8,
@@ -693,8 +708,11 @@ func save_game() -> void:
 		"rewarded_boost_until": rewarded_boost_until,
 	}
 	var file := FileAccess.open(save_path, FileAccess.WRITE)
-	if file:
-		file.store_string(JSON.stringify(payload))
+	if not file:
+		return false
+	file.store_string(JSON.stringify(payload))
+	file.flush()
+	return file.get_error() == OK
 
 
 func delete_save() -> bool:
