@@ -111,5 +111,65 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
-# Central release signing is intentionally blocked until the KMS vault exposes
-# a verified app-id rapportai. No branch job may restore or invent key material.
+  sign-central-release:
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+    needs: build-and-screenshot
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: actions/download-artifact@v5
+        with:
+          name: rapport-ai-unsigned-v2
+          path: ${{ runner.temp }}/unsigned
+
+      - name: Select unsigned v2 AAB
+        run: |
+          set -euo pipefail
+          mapfile -t bundles < <(find "$RUNNER_TEMP/unsigned" -type f -name '*.aab' -print)
+          test "${#bundles[@]}" -eq 1
+          echo "RAPPORT_UNSIGNED_AAB=${bundles[0]}" >> "$GITHUB_ENV"
+
+      - name: Restore central upload identity
+        uses: acciento89-bot/maengelfix/.github/actions/restore-central-android-signing@main
+
+      - name: Sign and verify central v2 AAB
+        run: |
+          set -euo pipefail
+          signed="$RUNNER_TEMP/rapport-ai-v2.aab"
+          cp "$RAPPORT_UNSIGNED_AAB" "$signed"
+          jarsigner -keystore "$ANDROID_UPLOAD_KEYSTORE_PATH" \
+            -storepass "$ANDROID_UPLOAD_STORE_PASSWORD" \
+            -keypass "$ANDROID_UPLOAD_KEY_PASSWORD" \
+            "$signed" "$ANDROID_UPLOAD_KEY_ALIAS"
+          jarsigner -verify "$signed"
+          keytool -printcert -jarfile "$signed" > "$RUNNER_TEMP/signing-cert.txt"
+          grep -F 'SHA1: BC:F2:33:7D:41:E6:17:C0:3B:CA:E6:98:C0:9D:15:23:65:4B:D7:90' "$RUNNER_TEMP/signing-cert.txt"
+          grep -F 'SHA256: 79:85:BD:6B:33:71:1B:AC:A7:E6:BA:72:2C:2B:38:70:EB:BC:80:2F:7D:B4:A7:BC:12:06:BD:AE:51:C4:D5:D6' "$RUNNER_TEMP/signing-cert.txt"
+          sha256sum "$signed" > "$RUNNER_TEMP/rapport-ai-v2.aab.sha256"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rapport-ai-central-signed-v2
+          path: |
+            ${{ runner.temp }}/rapport-ai-v2.aab
+            ${{ runner.temp }}/rapport-ai-v2.aab.sha256
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Remove signing material
+        if: always()
+        run: |
+          if [ -n "${ANDROID_UPLOAD_KEYSTORE_PATH:-}" ]; then
+            rm -f "$ANDROID_UPLOAD_KEYSTORE_PATH"
+          fi
+          if [ -n "${KAMILUNAVO_SIGNING_WORKDIR:-}" ]; then
+            rm -rf "$KAMILUNAVO_SIGNING_WORKDIR"
+          fi
