@@ -1,7 +1,7 @@
 # Kamilunavo Trace — Project State
 
-Last updated: 2026-08-21
-Status: BUILD 5 PHYSICAL RELEASE QA GREEN — APP STORE SUBMISSION PREP NEXT
+Last updated: 2026-08-22
+Status: BUILD 9 + REQUIRED APP STORE METADATA GREEN — FINAL SUBMISSION AUDIT NEXT
 Portfolio slot: #002
 Repository: `acciento89-bot/appideenchatgpt`
 Implementation path: `apps/002-evidaro/`
@@ -14,28 +14,47 @@ This file is the authoritative app-specific handoff for portfolio app #002.
 For future work:
 1. Read `docs/APP_FACTORY_STATE.md` first.
 2. Read this file second.
-3. Treat the Build 5 checkpoint below as the current release-candidate baseline.
-4. Never call a queued/in-progress workflow green and never bypass integrity/relaunch/device gates.
-5. After any code change touching a passed physical gate, reopen and re-run that gate.
-6. PR #37 is historical Build 2 documentation and must remain untouched unless explicitly requested.
+3. Treat Build 9 as the current signed TestFlight release candidate.
+4. The broad physical functionality baseline remains the completed Build 5 device QA because later release work did not alter those functional paths; Build 9 additionally closes the AppIcon defect.
+5. Never call a queued/in-progress workflow green and never bypass integrity/relaunch/device gates.
+6. After any code change touching a passed physical gate, reopen and re-run that gate.
+7. PR #37 is historical Build 2 documentation and must remain untouched unless explicitly requested.
 
-## Current checkpoint — Build 5 physical release candidate — GREEN
+## Current checkpoint — Build 9 signed TestFlight release candidate — GREEN
 
-Kamilunavo Trace is currently at **0.1.0 (5)**.
+Kamilunavo Trace is currently at **0.1.0 (9)** for the accepted signed binary. App Store Connect currently has the customer-facing App Store version record **1.0** with Build **9** attached.
 
-Canonical Build 5 source:
-`128da643cb8b5320546242ba511118d18a2edb07`
+Canonical Build 9 Trace source:
+`2e2d51a26b8c07cd4555deed8f1b1466af184e83`
 
-Build 5 contains the accepted reader-focused PDF redesign and has now passed the major real-iPhone release paths.
+Build 9 preserves the accepted Build 5 app/PDF behavior and fixes the Home Screen AppIcon defect that affected Builds 6–8.
 
-### Reader-focused PDF v2 — GREEN / MERGED
+### Build 9 AppIcon repair — GREEN
 
-PR #45: `Rebuild Kamilunavo Trace PDF layout after physical QA`
+Root cause of the black/missing Home Screen icon was the damaged/truncated 1024×1024 AppIcon PNG itself, not merely Dark/Tinted asset assignment.
 
-The Build 4 document was physically rejected because it over-explained the integrity model, repeated seal/manifest material and created unnecessary pages/dead space. Build 5 replaces that presentation with a compact evidence report.
+Build 9:
+- replaces the damaged AppIcon binary with a valid 1024×1024 RGB PNG without alpha
+- keeps the AppIcon asset catalog wired correctly
+- adds a compiled-icon guard against blank/dark output
+- verifies Xcode's generated 120×120 `AppIcon60x60@2x.png`
+- was physically installed from TestFlight and the Home Screen icon was confirmed correct on a real iPhone
+
+### Build 9 signed TestFlight / Apple processing — GREEN
+
+- exact Trace source: `2e2d51a26b8c07cd4555deed8f1b1466af184e83`
+- protected TestFlight upload run: `32565389329`
+- independent App Store Connect processing check: `32565561318`
+- Apple `processingState=VALID`
+- temporary protected One More Floor bridge PR #138 — CLOSED WITHOUT MERGE
+
+No protected bridge workflow belongs on One More Floor `main`.
+
+## Reader-focused PDF v2 — GREEN / FROZEN
+
+The accepted PDF design originated with the Build 5 release candidate and remains unchanged in Build 9.
 
 Accepted visible structure:
-
 - compact case/cover summary
 - evidence metadata and original preview prioritized for the reader
 - OCR shown once as clearly derived text
@@ -44,66 +63,54 @@ Accepted visible structure:
 - no standalone snapshot/seal page
 - public branding is Kamilunavo Trace
 
-The redesign did **not** change original evidence bytes, original-media SHA-256, evidence-record hashing, snapshot-seal semantics, OCR provenance, `.evpack`, StoreKit or the local-first trust boundary.
+The presentation does **not** change original evidence bytes, original-media SHA-256, evidence-record hashing, snapshot-seal semantics, OCR provenance, `.evpack`, StoreKit or the local-first trust boundary.
 
-### Build 5 promotion / signed TestFlight upload — SUCCESS
+## Physical iPhone QA — FUNCTIONAL BASELINE GREEN
 
-Build-number source commit:
-`128da643cb8b5320546242ba511118d18a2edb07`
+Detailed completed checkpoint: `apps/002-evidaro/BUILD5_DEVICE_QA.md`
 
-A temporary protected bridge in `acciento89-bot/onemorefloor` was used because the App Store Connect signing secrets are intentionally not stored in `appideenchatgpt`.
-
-- temporary bridge PR #128 — CLOSED WITHOUT MERGE
-- bridge run `32525159929`
-- upload job `96905533457`
-- signed archive/export completed
-- App Store Connect upload reported `Upload succeeded`
-- Apple accepted the package for processing
-
-No bridge workflow belongs on One More Floor `main`.
-
-## Physical iPhone QA — BUILD 5 GREEN
-
-Detailed checkpoint: `apps/002-evidaro/BUILD5_DEVICE_QA.md`
-
-User-confirmed on signed TestFlight Build 5:
-
+User-confirmed on signed TestFlight builds across the release-candidate sequence:
 - camera capture works on real hardware
 - captured original persists through force quit/relaunch
 - original SHA-256 remains stable
 - original filename/reference is reachable
 - stored original can be shared/exported and opened normally
-- image OCR returns plausible text
-- imported-PDF OCR returns plausible text/page count
+- image OCR and imported-PDF OCR return plausible results
 - OCR refresh does not alter original SHA-256, evidence-record SHA-256 or an existing snapshot seal
 - OCR and integrity anchors survive relaunch
-- Privacy Lock uses real Face ID/device-owner authentication
-- cancelled authentication keeps evidence hidden
-- background/return requires unlock
-- enabled/disabled Privacy Lock state persists correctly
+- Privacy Lock uses real Face ID/device-owner authentication and persists correctly
 - German and English public UI/PDF surfaces are sane
 - VoiceOver navigation is usable
 - largest Dynamic Type keeps critical controls usable
 - `.evpack` exports, saves externally and re-imports successfully
 - untouched `.evpack` verifies green with plausible counts and visible hashes
-- reader-focused Build 5 PDF is visually accepted
+- reader-focused PDF is visually accepted
+- Build 9 Home Screen icon is physically confirmed correct
 
-Situational/non-blocking spot-checks still noted in the detailed QA file:
+Situational/non-blocking spot-checks remain documented in the detailed QA file: the first camera permission prompt was not forcibly reset/re-requested during the completed pass, and received `.evpack` verification while Pro is inactive/free remains an optional physical spot-check. Product policy and automated gates require received-bundle verification to stay free.
 
-- first camera permission prompt was not forcibly reset/re-requested during this Build 5 pass
-- received `.evpack` verification while Pro is inactive/free remains an optional physical spot-check; product policy and automated gates require verification to remain free
+## StoreKit / Lifetime Pro — DEVICE + APPLE METADATA GREEN
 
-## StoreKit / Lifetime Pro checkpoint
+Product: `de.kamilunavo.trace.pro.lifetime`
+Type: non-consumable Lifetime Pro
+Apple IAP ID: `6803768784`
+Launch price baseline: Germany €14.99
 
-Product:
-`de.kamilunavo.trace.pro.lifetime`
+The signed TestFlight purchase → immediate Pro activation → relaunch entitlement recovery → Restore path was physically confirmed on the earlier Build 2 checkpoint. Later PDF/AppIcon work did not change StoreKit or entitlement logic, so that signed-device checkpoint remains valid until StoreKit code changes.
 
-Type: non-consumable Lifetime Pro.
-
-The signed TestFlight purchase → immediate Pro activation → relaunch entitlement recovery → Restore path was physically confirmed on the earlier Build 2 checkpoint. The Build 5 PDF/layout work did not change StoreKit or entitlement logic, so that signed-device checkpoint remains valid until StoreKit code changes.
+Apple-side App Review metadata is complete for the Lifetime Pro item:
+- real Trace Pro UI rendered from locked Build 9 source
+- App Review screenshot artifact ID `9474287365`
+- artifact digest `sha256:6368e7eedb6f421b903e7ce1038e23081436d7dac87225c32f87a9e7f85f08f8`
+- App Store Connect screenshot ID `70780505-7af2-483e-95a4-c0fd1de03322`
+- screenshot asset delivery state `COMPLETE`
+- screenshot delivery error count `0`
+- Lifetime Pro state `READY_TO_SUBMIT`
+- upload run `32566608375`
+- independent read-only verification run `32566871126` — SUCCESS
+- temporary protected One More Floor bridge PR #141 — CLOSED WITHOUT MERGE
 
 Implementation expectations remain:
-
 - verified StoreKit 2 transactions only
 - `Transaction.currentEntitlements` recovery
 - transaction updates/unfinished recovery
@@ -112,7 +119,37 @@ Implementation expectations remain:
 - Pro: unlimited cases + PDF export + `.evpack` export
 - received `.evpack` verification remains free/read-only
 
-Apple-side App Store submission metadata/review configuration is a separate release gate and must be checked before claiming App Store submission complete.
+## App Store Connect required review metadata — GREEN
+
+App Store Connect app ID: `6803765449`
+App Store version ID: `a895fc57-7ee4-40e6-9f19-2881323068ea`
+App Store version: **1.0**
+Attached build: **9**
+
+The blocking fields reported by App Store Connect on 2026-08-22 were completed through a temporary protected One More Floor bridge and then read back from Apple.
+
+Verified live:
+- content-rights declaration: `USES_THIRD_PARTY_CONTENT`
+- primary category: `PRODUCTIVITY`
+- German privacy-policy URL: `https://www.kamilunavo.com/trace/privacy`
+- German subtitle: present
+- German description: present
+- German keywords: present
+- German support URL: `https://www.kamilunavo.com/support`
+- marketing URL: `https://www.kamilunavo.com/trace`
+- version copyright: `2026 Piotr Kaminski – Kamilunavo`
+- App Review contact information: complete
+- App Review notes: complete; no demo account required
+- age-rating declaration: completed from the actual Trace v1 feature set
+- Build 9: attached
+- German App Store screenshots currently present: 2
+- Lifetime Pro: `READY_TO_SUBMIT`
+- App Store version state after the metadata pass: `PREPARE_FOR_SUBMISSION`
+
+Final mutation + read-back run: `32567474676`, job `97018108990` — SUCCESS.
+Temporary protected One More Floor bridge PR #143 — CLOSED WITHOUT MERGE.
+
+No **Submit for Review** action was performed. Final submission remains an explicit external release action requiring direct confirmation.
 
 ## Final public identity
 
@@ -120,7 +157,7 @@ Final public release name: **Kamilunavo Trace**.
 
 - display name: `Kamilunavo Trace`
 - bundle id: `de.kamilunavo.trace`
-- category direction: Productivity
+- primary category: Productivity
 - iPhone / iOS 17+
 - public PDF metadata/filename/cover/header/footer use Kamilunavo Trace
 
@@ -170,7 +207,17 @@ Core chain:
 
 - PR #33
 - merge `69b8a1d99082ff804f2a532c636af3008d79546a`
+- Build 5 physical release QA — PR #47 — merge `97fecc80327a39833fefae10273f7e06763dcebe`
+
+## Remaining final submission audit
+
+The previously visible mandatory metadata blockers are now closed. Before the deliberate final Submit for Review action, perform one last live audit for account/submission-level blockers that are separate from the listing fields, especially:
+- App Privacy questionnaire/declaration status is complete and consistent with the local-first privacy manifest/product behavior
+- export-compliance state for the selected Build 9 is complete
+- no Paid Applications / tax / banking agreement blocks the Lifetime Pro IAP
+- the two existing App Store screenshots are accepted for the required active iPhone screenshot set
+- Lifetime Pro is included with the intended review submission if Apple requires explicit submission association
 
 ## Current next action
 
-**Treat Build 5 as the accepted physical release-candidate baseline. Do not change the app merely for more TestFlight churn. Next work should focus on App Store Connect submission readiness/metadata and only reopen app code if a real release blocker is found.**
+**Keep Build 9 frozen. Run a final read-only App Store Connect submission audit. If Apple reports no remaining blocker, ask for explicit confirmation before performing Submit for Review. Do not create Build 10 unless a real release blocker requires an app-code change.**
