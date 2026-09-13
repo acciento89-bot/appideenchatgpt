@@ -39,6 +39,11 @@ grep -Fq 'versionName = "1.0.1"' "$gradle_file"
 grep -Fq 'applicationId = "de.kamilunavo.rapportai"' "$gradle_file"
 grep -Fq 'test_release_contract.sh' "$workflow"
 grep -Fq 'reactivecircus/android-emulator-runner@v2' "$workflow"
+grep -Fq 'target: default' "$workflow"
+if grep -Fq 'target: google_apis' "$workflow"; then
+  echo "Screenshot CI must use the AOSP image without Google setup services." >&2
+  exit 1
+fi
 grep -Fq 'sudo chmod 666 /dev/kvm' "$workflow"
 grep -Fq 'rapport-ai-android-screenshots' "$workflow"
 grep -Fq 'rapport-ai-unsigned-v2' "$workflow"
@@ -58,8 +63,10 @@ if grep -Fq 'if keytool -printcert -jarfile' "$workflow"; then
   exit 1
 fi
 grep -Fq 'mCurrentFocus=' "$capture"
-grep -Fq 'pm disable-user --user 0 com.google.android.googlesdksetup' "$capture"
-grep -Fq 'am force-stop com.google.android.googlesdksetup' "$capture"
+if grep -Fq 'com.google.android.googlesdksetup' "$capture"; then
+  echo "Do not chase Google package failures in an AOSP screenshot image." >&2
+  exit 1
+fi
 if grep -Fq 'mFocusedApp' "$capture"; then
   echo "Foreground validation must use mCurrentFocus only." >&2
   exit 1
