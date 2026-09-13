@@ -32,6 +32,8 @@ grep -Fq "79:85:BD:6B:33:71:1B:AC:A7:E6:BA:72:2C:2B:38:70:EB:BC:80:2F:7D:B4:A7:B
 grep -Fq "de.kamilunavo.idlehandwerker" "$workflow"
 grep -Fq "versionCode=2" "$workflow"
 grep -Fq "idle-handwerker-android-screenshots" "$workflow"
+grep -Fq "idle-handwerker-android-runtime-diagnostics" "$workflow"
+grep -Fq "idle-handwerker-screenshots.apk" "$workflow"
 grep -Fq "if: always()" "$workflow"
 grep -Fq "if-no-files-found: warn" "$workflow"
 grep -Fq "branches: [main]" "$workflow"
@@ -125,6 +127,36 @@ grep -Fq 'if not _store_screenshot_capture():' "$monetization"
 grep -Fq 'OS.get_cmdline_args().has(STORE_SCREENSHOT_ARG)' "$monetization"
 
 grep -Fq 'mCurrentFocus=' "$capture"
+grep -Fq 'adb logcat -c' "$capture"
+grep -Fq 'adb logcat -b all -d -v threadtime' "$capture"
+grep -Fq 'dumpsys activity top' "$capture"
+grep -Fq 'dumpsys window' "$capture"
+grep -Fq 'pidof "$package_name"' "$capture"
+grep -Fq 'trap collect_android_diagnostics ERR' "$capture"
+
+diagnostics_fixture=$(mktemp -d)
+mkdir -p "$diagnostics_fixture/bin" "$diagnostics_fixture/output"
+cat > "$diagnostics_fixture/bin/adb" <<'SH'
+#!/usr/bin/env bash
+if [[ "$*" == "logcat -c" ]]; then
+  exit 0
+fi
+if [[ "$1" == "install" ]]; then
+  exit 23
+fi
+printf 'fixture diagnostics: %s\n' "$*"
+SH
+chmod +x "$diagnostics_fixture/bin/adb"
+printf fixture > "$diagnostics_fixture/app.apk"
+set +e
+PATH="$diagnostics_fixture/bin:$PATH" bash "$capture" \
+  "$diagnostics_fixture/app.apk" "$diagnostics_fixture/output"
+diagnostics_status=$?
+set -e
+test "$diagnostics_status" -eq 23
+for diagnostic in logcat.txt activity-top.txt window.txt app-pid.txt package.txt; do
+  test -s "$diagnostics_fixture/output/diagnostics/$diagnostic"
+done
 if ! grep -Fq 'settings put secure immersive_mode_confirmations confirmed' "$capture"; then
   echo "The known first-launch immersive confirmation must be suppressed before launch." >&2
   exit 1
@@ -156,10 +188,6 @@ grep -Fq 'zlib.decompress' "$capture"
 grep -Fq 'wait_for_app_surface' "$capture"
 grep -Fq 'navy_hits' "$capture"
 grep -Fq 'accent_hits' "$capture"
-if grep -Fq 'logcat' "$capture"; then
-  echo "Capture diagnostics must not collect device logs." >&2
-  exit 1
-fi
 if grep -Fq 'mFocusedApp' "$capture"; then
   echo "Foreground validation must use mCurrentFocus only." >&2
   exit 1

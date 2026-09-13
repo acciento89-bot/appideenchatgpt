@@ -185,6 +185,16 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: idle-handwerker-android-runtime-diagnostics
+          path: |
+            apps/005-idle-handwerker/builds/android/idle-handwerker-screenshots.apk
+            apps/005-idle-handwerker/builds/android/screenshots/diagnostics/**
+          if-no-files-found: error
+          retention-days: 14
+
   persist-main-screenshots:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: build-and-screenshot

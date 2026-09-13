@@ -6,6 +6,24 @@ apk=${1:?Usage: capture_android_screenshots.sh APK OUTPUT_DIR}
 output_dir=${2:?Usage: capture_android_screenshots.sh APK OUTPUT_DIR}
 
 mkdir -p "$output_dir"
+diagnostics_dir="$output_dir/diagnostics"
+
+collect_android_diagnostics() {
+  local exit_code=$?
+  trap - ERR
+  set +e
+  mkdir -p "$diagnostics_dir"
+  adb logcat -b all -d -v threadtime > "$diagnostics_dir/logcat.txt" 2>&1
+  adb shell dumpsys activity top > "$diagnostics_dir/activity-top.txt" 2>&1
+  adb shell dumpsys window > "$diagnostics_dir/window.txt" 2>&1
+  adb shell pidof "$package_name" > "$diagnostics_dir/app-pid.txt" 2>&1
+  adb shell dumpsys package "$package_name" > "$diagnostics_dir/package.txt" 2>&1
+  printf 'Android runtime diagnostics saved under %s\n' "$diagnostics_dir" >&2
+  exit "$exit_code"
+}
+
+trap collect_android_diagnostics ERR
+adb logcat -c
 adb install -r "$apk"
 adb shell pm clear "$package_name"
 adb shell settings put global hide_error_dialogs 1
@@ -190,3 +208,5 @@ adb shell input tap 990 205
 sleep 2
 wait_for_app_focus
 capture_png idle-handwerker-shop.png
+
+trap - ERR
