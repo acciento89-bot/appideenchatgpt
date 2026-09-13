@@ -8,13 +8,14 @@ project="$root/apps/005-idle-handwerker"
 preset="$project/export_presets.cfg"
 monetization="$project/scripts/monetization_bridge.gd"
 capture="$project/ci/capture_android_screenshots.sh"
+stripper="$project/ci/strip_adaptive_launcher_icons.gradle"
 
 if grep -Eq 'keytool[[:space:]]+-genkeypair|Temporary CI Build|temporary-build-key' "$workflow"; then
   echo "A per-run temporary release identity is forbidden." >&2
   exit 1
 fi
 
-for file in "$workflow" "$validate" "$preset" "$monetization" "$capture"; do
+for file in "$workflow" "$validate" "$preset" "$monetization" "$capture" "$stripper"; do
   test -s "$file"
 done
 
@@ -56,6 +57,15 @@ if grep -Fq 'launcher_icons/adaptive_' "$preset"; then
   exit 1
 fi
 grep -Fq 'Adaptive launcher resources are forbidden' "$workflow"
+grep -Fq 'strip_adaptive_launcher_icons.gradle' "$workflow"
+grep -Fq 'stripAdaptiveLauncherIcons' "$stripper"
+grep -Fq 'mipmap-anydpi-v26/icon.xml' "$stripper"
+grep -Fq 'mipmap*/icon_foreground.*' "$stripper"
+grep -Fq 'mipmap*/icon_background.*' "$stripper"
+grep -Fq 'mipmap*/icon_monochrome.*' "$stripper"
+grep -Fq 'dependsOn(stripAdaptiveLauncherIcons)' "$stripper"
+grep -Fq "base/res/mipmap/icon.webp" "$workflow"
+grep -Fq "base/res/mipmap-anydpi-v26/(icon|themed_icon)" "$workflow"
 
 grep -Fq 'const STORE_SCREENSHOT_ARG := "--store-screenshots"' "$monetization"
 grep -Fq 'if not _store_screenshot_capture():' "$monetization"
