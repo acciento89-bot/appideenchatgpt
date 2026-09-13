@@ -64,7 +64,7 @@ jobs:
             "https://github.com/google/bundletool/releases/download/${BUNDLETOOL_VERSION}/bundletool-all-${BUNDLETOOL_VERSION}.jar"
           echo "${BUNDLETOOL_SHA256}  $RUNNER_TEMP/bundletool.jar" | sha256sum --check -
 
-      - name: Test and build unsigned v2 artifacts
+      - name: Test and build unsigned v3 artifacts
         run: gradle --no-daemon :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:bundleRelease
 
       - name: Validate package, version and unsigned state
@@ -75,10 +75,10 @@ jobs:
           test -s "$AAB"
           test -s "$APK"
           java -jar "$RUNNER_TEMP/bundletool.jar" dump manifest --bundle="$AAB" > "$RUNNER_TEMP/rapport-manifest.xml"
-          expected_manifest='package=de.kamilunavo.rapportai versionCode=2 versionName=1.0.1'
+          expected_manifest='package=de.kamilunavo.rapportai versionCode=3 versionName=1.0.1'
           echo "$expected_manifest"
           grep -F 'package="de.kamilunavo.rapportai"' "$RUNNER_TEMP/rapport-manifest.xml"
-          grep -F 'android:versionCode="2"' "$RUNNER_TEMP/rapport-manifest.xml"
+          grep -F 'android:versionCode="3"' "$RUNNER_TEMP/rapport-manifest.xml"
           grep -F 'android:versionName="1.0.1"' "$RUNNER_TEMP/rapport-manifest.xml"
           if zipinfo -1 "$AAB" | grep -Eq '^base/res/mipmap-anydpi-v26/ic_launcher(_round)?\.xml$'; then
             echo "Adaptive launcher resources are forbidden: use the canonical iOS-identical bitmap only." >&2
@@ -91,7 +91,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: rapport-ai-unsigned-v2
+          name: rapport-ai-unsigned-v3
           path: |
             apps/012-rapport-ai/android/app/build/outputs/apk/debug/app-debug.apk
             apps/012-rapport-ai/android/app/build/outputs/bundle/release/app-release.aab
@@ -166,10 +166,10 @@ jobs:
           java-version: "17"
       - uses: actions/download-artifact@v5
         with:
-          name: rapport-ai-unsigned-v2
+          name: rapport-ai-unsigned-v3
           path: ${{ runner.temp }}/unsigned
 
-      - name: Select unsigned v2 AAB
+      - name: Select unsigned v3 AAB
         run: |
           set -euo pipefail
           mapfile -t bundles < <(find "$RUNNER_TEMP/unsigned" -type f -name '*.aab' -print)
@@ -179,10 +179,10 @@ jobs:
       - name: Restore central upload identity
         uses: acciento89-bot/maengelfix/.github/actions/restore-central-android-signing@main
 
-      - name: Sign and verify central v2 AAB
+      - name: Sign and verify central v3 AAB
         run: |
           set -euo pipefail
-          signed="$RUNNER_TEMP/rapport-ai-v2.aab"
+          signed="$RUNNER_TEMP/rapport-ai-v3.aab"
           cp "$RAPPORT_UNSIGNED_AAB" "$signed"
           jarsigner -keystore "$ANDROID_UPLOAD_KEYSTORE_PATH" \
             -storepass "$ANDROID_UPLOAD_STORE_PASSWORD" \
@@ -192,14 +192,14 @@ jobs:
           keytool -printcert -jarfile "$signed" > "$RUNNER_TEMP/signing-cert.txt"
           grep -F 'SHA1: BC:F2:33:7D:41:E6:17:C0:3B:CA:E6:98:C0:9D:15:23:65:4B:D7:90' "$RUNNER_TEMP/signing-cert.txt"
           grep -F 'SHA256: 79:85:BD:6B:33:71:1B:AC:A7:E6:BA:72:2C:2B:38:70:EB:BC:80:2F:7D:B4:A7:BC:12:06:BD:AE:51:C4:D5:D6' "$RUNNER_TEMP/signing-cert.txt"
-          sha256sum "$signed" > "$RUNNER_TEMP/rapport-ai-v2.aab.sha256"
+          sha256sum "$signed" > "$RUNNER_TEMP/rapport-ai-v3.aab.sha256"
 
       - uses: actions/upload-artifact@v4
         with:
-          name: rapport-ai-central-signed-v2
+          name: rapport-ai-central-signed-v3
           path: |
-            ${{ runner.temp }}/rapport-ai-v2.aab
-            ${{ runner.temp }}/rapport-ai-v2.aab.sha256
+            ${{ runner.temp }}/rapport-ai-v3.aab
+            ${{ runner.temp }}/rapport-ai-v3.aab.sha256
           if-no-files-found: error
           retention-days: 14
 

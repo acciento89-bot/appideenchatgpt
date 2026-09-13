@@ -54,7 +54,7 @@ test ! -e "$adaptive_round"
 test ! -e "$foreground"
 grep -Fq 'Adaptive launcher resources are forbidden' "$workflow"
 
-grep -Fq 'versionCode = 2' "$gradle_file"
+grep -Fq 'versionCode = 3' "$gradle_file"
 grep -Fq 'versionName = "1.0.1"' "$gradle_file"
 grep -Fq 'applicationId = "de.kamilunavo.rapportai"' "$gradle_file"
 grep -Fq 'test_release_contract.sh' "$workflow"
@@ -71,7 +71,7 @@ grep -Fq "github.event_name == 'push' && github.ref == 'refs/heads/main'" "$work
 grep -Fq 'git add -- apps/012-rapport-ai/play-store/android-screenshots' "$workflow"
 grep -Fq 'git diff --cached --quiet' "$workflow"
 test "$(grep -Fc 'git add -- ' "$workflow")" -eq 1
-grep -Fq 'rapport-ai-unsigned-v2' "$workflow"
+grep -Fq 'rapport-ai-unsigned-v3' "$workflow"
 grep -Fq 'acciento89-bot/maengelfix/.github/actions/restore-central-android-signing@main' "$workflow"
 if grep -Fq 'restore-android-signing@main' "$workflow" || grep -Fq 'app-id:' "$workflow"; then
   echo "Dispatch signing must use the single central identity without a per-app vault id." >&2
@@ -81,7 +81,7 @@ grep -Fq "github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/
 grep -Fq 'id-token: write' "$workflow"
 grep -Fq 'BC:F2:33:7D:41:E6:17:C0:3B:CA:E6:98:C0:9D:15:23:65:4B:D7:90' "$workflow"
 grep -Fq '79:85:BD:6B:33:71:1B:AC:A7:E6:BA:72:2C:2B:38:70:EB:BC:80:2F:7D:B4:A7:BC:12:06:BD:AE:51:C4:D5:D6' "$workflow"
-grep -Fq 'rapport-ai-central-signed-v2' "$workflow"
+grep -Fq 'rapport-ai-central-signed-v3' "$workflow"
 grep -Fq "grep -Eq '^META-INF/[^/]+\.(RSA|DSA|EC)$'" "$workflow"
 if grep -Fq 'if keytool -printcert -jarfile' "$workflow"; then
   echo "keytool exit status cannot prove that an AAB is unsigned." >&2
