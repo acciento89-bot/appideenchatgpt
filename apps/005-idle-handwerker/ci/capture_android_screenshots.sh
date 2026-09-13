@@ -24,9 +24,38 @@ collect_android_diagnostics() {
 
 trap collect_android_diagnostics ERR
 adb logcat -c
+adb shell settings put global hide_error_dialogs 1
+
+stabilize_system_launcher() {
+  local focus=''
+  for _ in $(seq 1 30); do
+    focus=$(adb shell dumpsys window | tr -d '\r' | sed -n '/mCurrentFocus=/p' | tail -n 1)
+    if [[ "$focus" == *"Application Not Responding: com.google.android.apps.nexuslauncher"* ]]; then
+      adb shell am force-stop com.google.android.apps.nexuslauncher
+      adb shell input keyevent HOME
+      sleep 2
+      continue
+    fi
+    if [[ "$focus" == *"Application Not Responding: com.android.launcher3"* ]]; then
+      adb shell am force-stop com.android.launcher3
+      adb shell input keyevent HOME
+      sleep 2
+      continue
+    fi
+    if [[ -n "$focus" && "$focus" != *"Application Not Responding"* ]]; then
+      printf '%s\n' "$focus"
+      return 0
+    fi
+    sleep 1
+  done
+  printf 'Android system launcher did not stabilize; last focus: %s\n' "$focus" >&2
+  return 1
+}
+
+adb shell input keyevent HOME
+stabilize_system_launcher
 adb install -r "$apk"
 adb shell pm clear "$package_name"
-adb shell settings put global hide_error_dialogs 1
 adb shell settings put global window_animation_scale 0
 adb shell settings put global transition_animation_scale 0
 adb shell settings put global animator_duration_scale 0

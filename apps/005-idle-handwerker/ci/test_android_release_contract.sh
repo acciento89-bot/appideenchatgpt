@@ -133,12 +133,29 @@ grep -Fq 'dumpsys activity top' "$capture"
 grep -Fq 'dumpsys window' "$capture"
 grep -Fq 'pidof "$package_name"' "$capture"
 grep -Fq 'trap collect_android_diagnostics ERR' "$capture"
+grep -Fq 'Application Not Responding: com.google.android.apps.nexuslauncher' "$capture"
+grep -Fq 'Application Not Responding: com.android.launcher3' "$capture"
+grep -Fq 'am force-stop com.google.android.apps.nexuslauncher' "$capture"
+grep -Fq 'am force-stop com.android.launcher3' "$capture"
 
 diagnostics_fixture=$(mktemp -d)
 mkdir -p "$diagnostics_fixture/bin" "$diagnostics_fixture/output"
 cat > "$diagnostics_fixture/bin/adb" <<'SH'
 #!/usr/bin/env bash
 if [[ "$*" == "logcat -c" ]]; then
+  exit 0
+fi
+if [[ "$*" == "shell dumpsys window" ]]; then
+  if [[ -f "$ADB_FIXTURE_DIR/launcher-recovered" ]]; then
+    echo 'mCurrentFocus=Window{fixture u0 com.google.android.apps.nexuslauncher/.NexusLauncherActivity}'
+  else
+    echo 'mCurrentFocus=Window{fixture u0 Application Not Responding: com.google.android.apps.nexuslauncher}'
+  fi
+  exit 0
+fi
+if [[ "$*" == "shell am force-stop com.google.android.apps.nexuslauncher" ]]; then
+  touch "$ADB_FIXTURE_DIR/launcher-recovered"
+  echo "$*" >> "$ADB_FIXTURE_DIR/commands"
   exit 0
 fi
 if [[ "$1" == "install" ]]; then
@@ -149,11 +166,12 @@ SH
 chmod +x "$diagnostics_fixture/bin/adb"
 printf fixture > "$diagnostics_fixture/app.apk"
 set +e
-PATH="$diagnostics_fixture/bin:$PATH" bash "$capture" \
+ADB_FIXTURE_DIR="$diagnostics_fixture" PATH="$diagnostics_fixture/bin:$PATH" bash "$capture" \
   "$diagnostics_fixture/app.apk" "$diagnostics_fixture/output"
 diagnostics_status=$?
 set -e
 test "$diagnostics_status" -eq 23
+grep -Fq 'am force-stop com.google.android.apps.nexuslauncher' "$diagnostics_fixture/commands"
 for diagnostic in logcat.txt activity-top.txt window.txt app-pid.txt package.txt; do
   test -s "$diagnostics_fixture/output/diagnostics/$diagnostic"
 done
