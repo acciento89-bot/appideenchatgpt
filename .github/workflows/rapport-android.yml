@@ -1,0 +1,214 @@
+name: Rapport AI Android
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "apps/012-rapport-ai/android/**"
+      - ".github/workflows/rapport-android.yml"
+  push:
+    branches: [main]
+    paths:
+      - "apps/012-rapport-ai/android/**"
+      - "!apps/012-rapport-ai/play-store/android-screenshots/**"
+      - ".github/workflows/rapport-android.yml"
+
+permissions:
+  contents: read
+
+env:
+  PROJECT_DIR: apps/012-rapport-ai/android
+  BUNDLETOOL_VERSION: "1.18.3"
+  BUNDLETOOL_SHA256: a099cfa1543f55593bc2ed16a70a7c67fe54b1747bb7301f37fdfd6d91028e29
+
+jobs:
+  contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v5
+      - name: Validate unsigned branch contract
+        run: bash "$PROJECT_DIR/ci/test_release_contract.sh"
+
+  build-and-screenshot:
+    needs: contract
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    defaults:
+      run:
+        working-directory: apps/012-rapport-ai/android
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: android-actions/setup-android@v3
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.11.1"
+
+      - name: Enable KVM
+        working-directory: .
+        run: |
+          if [ -e /dev/kvm ]; then
+            sudo chmod 666 /dev/kvm
+          fi
+
+      - name: Install Android SDK
+        run: |
+          set -euo pipefail
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"
+          curl -L --fail --retry 3 -o "$RUNNER_TEMP/bundletool.jar" \
+            "https://github.com/google/bundletool/releases/download/${BUNDLETOOL_VERSION}/bundletool-all-${BUNDLETOOL_VERSION}.jar"
+          echo "${BUNDLETOOL_SHA256}  $RUNNER_TEMP/bundletool.jar" | sha256sum --check -
+
+      - name: Test and build unsigned v3 artifacts
+        run: gradle --no-daemon :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:bundleRelease
+
+      - name: Validate package, version and unsigned state
+        run: |
+          set -euo pipefail
+          AAB="app/build/outputs/bundle/release/app-release.aab"
+          APK="app/build/outputs/apk/debug/app-debug.apk"
+          test -s "$AAB"
+          test -s "$APK"
+          java -jar "$RUNNER_TEMP/bundletool.jar" dump manifest --bundle="$AAB" > "$RUNNER_TEMP/rapport-manifest.xml"
+          expected_manifest='package=de.kamilunavo.rapportai versionCode=3 versionName=1.0.1'
+          echo "$expected_manifest"
+          grep -F 'package="de.kamilunavo.rapportai"' "$RUNNER_TEMP/rapport-manifest.xml"
+          grep -F 'android:versionCode="3"' "$RUNNER_TEMP/rapport-manifest.xml"
+          grep -F 'android:versionName="1.0.1"' "$RUNNER_TEMP/rapport-manifest.xml"
+          if zipinfo -1 "$AAB" | grep -Eq '^base/res/mipmap-anydpi-v26/ic_launcher(_round)?\.xml$'; then
+            echo "Adaptive launcher resources are forbidden: use the canonical iOS-identical bitmap only." >&2
+            exit 1
+          fi
+          if zipinfo -1 "$AAB" | grep -Eq '^META-INF/[^/]+\.(RSA|DSA|EC)$'; then
+            echo "Branch AAB unexpectedly contains a JAR signature block." >&2
+            exit 1
+          fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rapport-ai-unsigned-v3
+          path: |
+            apps/012-rapport-ai/android/app/build/outputs/apk/debug/app-debug.apk
+            apps/012-rapport-ai/android/app/build/outputs/bundle/release/app-release.aab
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Capture authentic Android screenshots
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: default
+          arch: x86_64
+          profile: pixel_6
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          script: bash apps/012-rapport-ai/android/ci/capture_screenshots.sh apps/012-rapport-ai/android/app/build/outputs/apk/debug/app-debug.apk apps/012-rapport-ai/android/app/build/outputs/screenshots
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rapport-ai-android-screenshots
+          path: apps/012-rapport-ai/android/app/build/outputs/screenshots/*.png
+          if-no-files-found: error
+          retention-days: 14
+
+  persist-main-screenshots:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: build-and-screenshot
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+      - uses: actions/download-artifact@v5
+        with:
+          name: rapport-ai-android-screenshots
+          path: ${{ runner.temp }}/screenshots
+      - name: Persist verified Android screenshots without a trigger loop
+        run: |
+          set -euo pipefail
+          source="$RUNNER_TEMP/screenshots"
+          target="apps/012-rapport-ai/play-store/android-screenshots"
+          for name in rapport-ai-create.png rapport-ai-settings.png; do
+            test -s "$source/$name"
+          done
+          mkdir -p "$target"
+          cp "$source"/*.png "$target/"
+          git add -- apps/012-rapport-ai/play-store/android-screenshots
+          if git diff --cached --quiet; then
+            echo "Verified screenshots are already current."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "chore(rapport): persist verified Android screenshots"
+          git push origin HEAD:main
+
+  sign-central-release:
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+    needs: build-and-screenshot
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: actions/download-artifact@v5
+        with:
+          name: rapport-ai-unsigned-v3
+          path: ${{ runner.temp }}/unsigned
+
+      - name: Select unsigned v3 AAB
+        run: |
+          set -euo pipefail
+          mapfile -t bundles < <(find "$RUNNER_TEMP/unsigned" -type f -name '*.aab' -print)
+          test "${#bundles[@]}" -eq 1
+          echo "RAPPORT_UNSIGNED_AAB=${bundles[0]}" >> "$GITHUB_ENV"
+
+      - name: Restore central upload identity
+        uses: acciento89-bot/maengelfix/.github/actions/restore-central-android-signing@main
+
+      - name: Sign and verify central v3 AAB
+        run: |
+          set -euo pipefail
+          signed="$RUNNER_TEMP/rapport-ai-v3.aab"
+          cp "$RAPPORT_UNSIGNED_AAB" "$signed"
+          jarsigner -keystore "$ANDROID_UPLOAD_KEYSTORE_PATH" \
+            -storepass "$ANDROID_UPLOAD_STORE_PASSWORD" \
+            -keypass "$ANDROID_UPLOAD_KEY_PASSWORD" \
+            "$signed" "$ANDROID_UPLOAD_KEY_ALIAS"
+          jarsigner -verify "$signed"
+          keytool -printcert -jarfile "$signed" > "$RUNNER_TEMP/signing-cert.txt"
+          grep -F 'SHA1: BC:F2:33:7D:41:E6:17:C0:3B:CA:E6:98:C0:9D:15:23:65:4B:D7:90' "$RUNNER_TEMP/signing-cert.txt"
+          grep -F 'SHA256: 79:85:BD:6B:33:71:1B:AC:A7:E6:BA:72:2C:2B:38:70:EB:BC:80:2F:7D:B4:A7:BC:12:06:BD:AE:51:C4:D5:D6' "$RUNNER_TEMP/signing-cert.txt"
+          sha256sum "$signed" > "$RUNNER_TEMP/rapport-ai-v3.aab.sha256"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rapport-ai-central-signed-v3
+          path: |
+            ${{ runner.temp }}/rapport-ai-v3.aab
+            ${{ runner.temp }}/rapport-ai-v3.aab.sha256
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Remove signing material
+        if: always()
+        run: |
+          if [ -n "${ANDROID_UPLOAD_KEYSTORE_PATH:-}" ]; then
+            rm -f "$ANDROID_UPLOAD_KEYSTORE_PATH"
+          fi
+          if [ -n "${KAMILUNAVO_SIGNING_WORKDIR:-}" ]; then
+            rm -rf "$KAMILUNAVO_SIGNING_WORKDIR"
+          fi
