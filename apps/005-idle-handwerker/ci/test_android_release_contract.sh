@@ -50,6 +50,10 @@ grep -Fq 'if not _store_screenshot_capture():' "$monetization"
 grep -Fq 'OS.get_cmdline_args().has(STORE_SCREENSHOT_ARG)' "$monetization"
 
 grep -Fq 'mCurrentFocus=' "$capture"
+if ! grep -Fq 'settings put secure immersive_mode_confirmations confirmed' "$capture"; then
+  echo "The known first-launch immersive confirmation must be suppressed before launch." >&2
+  exit 1
+fi
 grep -Fq 'idle-handwerker-home.png' "$capture"
 grep -Fq 'idle-handwerker-shop.png' "$capture"
 if grep -Fq 'mFocusedApp' "$capture"; then

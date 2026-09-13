@@ -12,6 +12,7 @@ adb shell settings put global hide_error_dialogs 1
 adb shell settings put global window_animation_scale 0
 adb shell settings put global transition_animation_scale 0
 adb shell settings put global animator_duration_scale 0
+adb shell settings put secure immersive_mode_confirmations confirmed
 
 component=$(adb shell cmd package resolve-activity --brief "$package_name" | tr -d '\r' | tail -n 1)
 test -n "$component"
