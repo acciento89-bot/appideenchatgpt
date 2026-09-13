@@ -59,6 +59,11 @@ if ! grep -Fq 'settings put secure immersive_mode_confirmations confirmed' "$cap
 fi
 grep -Fq 'idle-handwerker-home.png' "$capture"
 grep -Fq 'idle-handwerker-shop.png' "$capture"
+if grep -Fq 'input tap 540 1980' "$capture"; then
+  echo "Tutorial taps must target the centered tutorial panel button." >&2
+  exit 1
+fi
+grep -Fq 'input tap 540 1650' "$capture"
 if grep -Fq 'len(data) > 100_000' "$capture"; then
   echo "Compressed PNG byte size is not a valid visual-content gate." >&2
   exit 1

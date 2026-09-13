@@ -130,12 +130,13 @@ PY
 wait_for_app_focus
 sleep 3
 
-# A cleared install presents the four-page in-app tutorial. Advance it with
-# deterministic taps inside its primary button, without changing app state/code.
+# A cleared install presents the four-page in-app tutorial. Its centered
+# 430x932 panel maps the primary button to y=1650 on this 1080x2400 profile.
 for _ in 1 2 3 4; do
-  adb shell input tap 540 1980
+  adb shell input tap 540 1650
   sleep 1
 done
+sleep 3
 wait_for_app_focus
 capture_png idle-handwerker-home.png
 
