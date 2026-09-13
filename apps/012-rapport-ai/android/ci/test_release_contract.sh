@@ -16,6 +16,10 @@ if grep -Eq 'RAPPORT_ANDROID_KEYSTORE|KEYSTORE_BASE64|secrets\.' "$workflow"; th
   echo "Branch CI must not restore app signing secrets." >&2
   exit 1
 fi
+if grep -Eq 'RAPPORT_ANDROID|signingConfigs' "$gradle_file"; then
+  echo "Branch builds must not contain an optional signing path." >&2
+  exit 1
+fi
 if grep -Eiq 'play.*upload|upload.*play|gradle-play-publisher|r0adkll/upload-google-play' "$workflow"; then
   echo "Play upload is forbidden in this workflow." >&2
   exit 1
@@ -38,6 +42,11 @@ grep -Fq 'reactivecircus/android-emulator-runner@v2' "$workflow"
 grep -Fq 'sudo chmod 666 /dev/kvm' "$workflow"
 grep -Fq 'rapport-ai-android-screenshots' "$workflow"
 grep -Fq 'rapport-ai-unsigned-v2' "$workflow"
+grep -Fq "grep -Eq '^META-INF/[^/]+\.(RSA|DSA|EC)$'" "$workflow"
+if grep -Fq 'keytool -printcert -jarfile' "$workflow"; then
+  echo "keytool exit status cannot prove that an AAB is unsigned." >&2
+  exit 1
+fi
 grep -Fq 'mCurrentFocus=' "$capture"
 if grep -Fq 'mFocusedApp' "$capture"; then
   echo "Foreground validation must use mCurrentFocus only." >&2

@@ -79,8 +79,8 @@ jobs:
           grep -F 'package="de.kamilunavo.rapportai"' "$RUNNER_TEMP/rapport-manifest.xml"
           grep -F 'android:versionCode="2"' "$RUNNER_TEMP/rapport-manifest.xml"
           grep -F 'android:versionName="1.0.1"' "$RUNNER_TEMP/rapport-manifest.xml"
-          if keytool -printcert -jarfile "$AAB" >"$RUNNER_TEMP/unexpected-cert.txt" 2>&1; then
-            echo "Branch AAB unexpectedly contains a release certificate." >&2
+          if zipinfo -1 "$AAB" | grep -Eq '^META-INF/[^/]+\.(RSA|DSA|EC)$'; then
+            echo "Branch AAB unexpectedly contains a JAR signature block." >&2
             exit 1
           fi
 

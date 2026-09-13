@@ -16,25 +16,11 @@ android {
         versionName = "1.0.1"
     }
 
-    signingConfigs {
-        val storeFilePath = System.getenv("RAPPORT_ANDROID_KEYSTORE")
-        if (!storeFilePath.isNullOrBlank()) {
-            create("release") {
-                storeFile = file(storeFilePath)
-                storePassword = System.getenv("RAPPORT_ANDROID_KEYSTORE_PASSWORD")
-                keyAlias = System.getenv("RAPPORT_ANDROID_KEY_ALIAS") ?: "upload"
-                keyPassword = System.getenv("RAPPORT_ANDROID_KEY_PASSWORD")
-                    ?: System.getenv("RAPPORT_ANDROID_KEYSTORE_PASSWORD")
-            }
-        }
-    }
-
     buildTypes {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            if (signingConfigs.findByName("release") != null) signingConfig = signingConfigs.getByName("release")
         }
     }
 
