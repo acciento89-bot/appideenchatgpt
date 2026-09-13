@@ -45,8 +45,14 @@ def main(arguments: list[str]) -> int:
     if not arguments:
         print("usage: sanitize_godot_launcher_aar.py AAR [AAR ...]", file=sys.stderr)
         return 2
+    aars: list[Path] = []
     for value in arguments:
-        aar = Path(value)
+        path = Path(value)
+        aars.extend(sorted(path.glob("*.aar")) if path.is_dir() else [path])
+    if not aars:
+        print("no Godot library AARs found", file=sys.stderr)
+        return 1
+    for aar in aars:
         removed = sanitize(aar)
         print(f"{aar}: removed {len(removed)} Godot launcher resource(s)")
         for name in removed:

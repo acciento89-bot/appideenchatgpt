@@ -36,6 +36,7 @@ var _ads_suspended := false
 var _pending_product_id := ""
 var _iap: Node
 var _android_store_ready := false
+var _android_purchase_grant_handler: Callable
 
 
 func _ready() -> void:
@@ -128,6 +129,10 @@ func restore_purchases() -> void:
 
 func get_localized_price(product_id: String, fallback: String = "") -> String:
 	return str(_product_prices.get(product_id, fallback))
+
+
+func set_android_purchase_grant_handler(handler: Callable) -> void:
+	_android_purchase_grant_handler = handler
 
 
 func _setup_android_store() -> void:
@@ -231,9 +236,9 @@ func _process_android_purchase(purchase_data: Dictionary) -> void:
 		return
 	var consumable := product_id in [PRODUCTS[2], PRODUCTS[3]]
 	_pending_product_id = ""
-	# Signal handlers apply the idempotent grant and save it synchronously. Only
-	# then may Google Play consume or acknowledge the transaction.
-	purchase_completed.emit(product_id, transaction_id)
+	if not _android_purchase_grant_handler.is_valid() or not bool(_android_purchase_grant_handler.call(product_id, transaction_id)):
+		purchase_failed.emit("Der Kauf konnte nicht dauerhaft gespeichert werden.")
+		return
 	var finish_result = await _iap.finish_transaction_dict(purchase_data, consumable)
 	if not _result_success(finish_result):
 		purchase_failed.emit("Der Kauf konnte nicht bestätigt werden.")

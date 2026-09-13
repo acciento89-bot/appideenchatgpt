@@ -79,7 +79,13 @@ from pathlib import Path
 
 sanitizer = Path(sys.argv[1])
 with tempfile.TemporaryDirectory() as directory:
-    aar = Path(directory) / "godot-lib.aar"
+    libs = Path(directory) / "libs"
+    debug = libs / "debug"
+    release = libs / "release"
+    third_party = libs / "third-party"
+    debug.mkdir(parents=True)
+    release.mkdir()
+    third_party.mkdir()
     entries = {
         "classes.jar": b"bytecode",
         "res/drawable/keep.xml": b"<resource />",
@@ -90,14 +96,20 @@ with tempfile.TemporaryDirectory() as directory:
         "res/mipmap-hdpi/icon.webp": b"fallback-density",
         "res/mipmap-hdpi/icon_foreground.webp": b"adaptive",
     }
-    with zipfile.ZipFile(aar, "w") as archive:
-        for name, data in entries.items():
-            archive.writestr(name, data)
-    subprocess.run([sys.executable, str(sanitizer), str(aar)], check=True)
-    with zipfile.ZipFile(aar) as archive:
-        remaining = set(archive.namelist())
-        assert remaining == {"classes.jar", "res/drawable/keep.xml"}, remaining
-        assert archive.read("classes.jar") == b"bytecode"
+    targets = [debug / "godot-lib.template_debug.aar", release / "godot-lib.template_release.aar"]
+    unrelated = third_party / "unrelated.aar"
+    for aar in [*targets, unrelated]:
+        with zipfile.ZipFile(aar, "w") as archive:
+            for name, data in entries.items():
+                archive.writestr(name, data)
+    subprocess.run([sys.executable, str(sanitizer), str(debug), str(release)], check=True)
+    for aar in targets:
+        with zipfile.ZipFile(aar) as archive:
+            remaining = set(archive.namelist())
+            assert remaining == {"classes.jar", "res/drawable/keep.xml"}, remaining
+            assert archive.read("classes.jar") == b"bytecode"
+    with zipfile.ZipFile(unrelated) as archive:
+        assert "res/mipmap/icon.webp" in archive.namelist()
 PY
 
 grep -Fq 'const STORE_SCREENSHOT_ARG := "--store-screenshots"' "$monetization"

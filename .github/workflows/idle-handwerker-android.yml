@@ -101,9 +101,9 @@ jobs:
           cp -R "$RUNNER_TEMP/templates/templates/." "$T/"
           unzip -q "$T/android_source.zip" -d "$PROJECT_DIR/android/build"
           touch "$PROJECT_DIR/android/build/.gdignore"
-          mapfile -t godot_aars < <(find "$PROJECT_DIR/android/build/libs" -maxdepth 1 -type f -name '*.aar' -print)
-          test "${#godot_aars[@]}" -gt 0
-          python3 "$PROJECT_DIR/ci/sanitize_godot_launcher_aar.py" "${godot_aars[@]}"
+          python3 "$PROJECT_DIR/ci/sanitize_godot_launcher_aar.py" \
+            "$PROJECT_DIR/android/build/libs/debug" \
+            "$PROJECT_DIR/android/build/libs/release"
           printf '%s\n' "${GODOT_VERSION}.stable" > "$PROJECT_DIR/android/.build_version"
           chmod +x "$PROJECT_DIR/android/build/gradlew"
           cp "$PROJECT_DIR/ci/strip_adaptive_launcher_icons.gradle" "$PROJECT_DIR/android/build/strip_adaptive_launcher_icons.gradle"
