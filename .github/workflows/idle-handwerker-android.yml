@@ -101,6 +101,9 @@ jobs:
           cp -R "$RUNNER_TEMP/templates/templates/." "$T/"
           unzip -q "$T/android_source.zip" -d "$PROJECT_DIR/android/build"
           touch "$PROJECT_DIR/android/build/.gdignore"
+          mapfile -t godot_aars < <(find "$PROJECT_DIR/android/build/libs" -maxdepth 1 -type f -name '*.aar' -print)
+          test "${#godot_aars[@]}" -gt 0
+          python3 "$PROJECT_DIR/ci/sanitize_godot_launcher_aar.py" "${godot_aars[@]}"
           printf '%s\n' "${GODOT_VERSION}.stable" > "$PROJECT_DIR/android/.build_version"
           chmod +x "$PROJECT_DIR/android/build/gradlew"
           cp "$PROJECT_DIR/ci/strip_adaptive_launcher_icons.gradle" "$PROJECT_DIR/android/build/strip_adaptive_launcher_icons.gradle"
@@ -134,15 +137,17 @@ jobs:
           set -euo pipefail
           AAB="$PROJECT_DIR/builds/android/idle-handwerker-unsigned.aab"
           java -jar "$RUNNER_TEMP/bundletool.jar" dump manifest --bundle="$AAB" > "$RUNNER_TEMP/manifest.xml"
-          expected_manifest='package=de.kamilunavo.idlehandwerker versionCode=1 versionName=1.3.0'
+          expected_manifest='package=de.kamilunavo.idlehandwerker versionCode=2 versionName=1.3.0'
           echo "$expected_manifest"
           grep -F 'package="de.kamilunavo.idlehandwerker"' "$RUNNER_TEMP/manifest.xml"
-          grep -F 'android:versionCode="1"' "$RUNNER_TEMP/manifest.xml"
+          grep -F 'android:versionCode="2"' "$RUNNER_TEMP/manifest.xml"
           grep -F 'android:versionName="1.3.0"' "$RUNNER_TEMP/manifest.xml"
           unzip -Z1 "$AAB" > "$RUNNER_TEMP/aab-files.txt"
           grep -Fx 'base/res/mipmap/icon.webp' "$RUNNER_TEMP/aab-files.txt"
-          if grep -Eq '^base/res/(drawable/icon_background\.xml|mipmap-anydpi-v26/(icon|themed_icon)\.xml|mipmap[^/]*/icon_(foreground|background|monochrome)\.)' "$RUNNER_TEMP/aab-files.txt"; then
+          offending_icons=$(grep -E '^base/res/(drawable/icon_background\.xml|mipmap-anydpi-v26/(icon|themed_icon)\.xml|mipmap[^/]*/icon_(foreground|background|monochrome)\.|mipmap-[^/]*/icon\.webp)' "$RUNNER_TEMP/aab-files.txt" || true)
+          if [ -n "$offending_icons" ]; then
             echo "Adaptive launcher files are forbidden: use the canonical classic icon only." >&2
+            printf '%s\n' "$offending_icons" >&2
             exit 1
           fi
           java -jar "$RUNNER_TEMP/bundletool.jar" dump resources --bundle="$AAB" > "$RUNNER_TEMP/resources.txt"

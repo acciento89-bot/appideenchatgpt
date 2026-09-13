@@ -9,13 +9,14 @@ preset="$project/export_presets.cfg"
 monetization="$project/scripts/monetization_bridge.gd"
 capture="$project/ci/capture_android_screenshots.sh"
 stripper="$project/ci/strip_adaptive_launcher_icons.gradle"
+aar_sanitizer="$project/ci/sanitize_godot_launcher_aar.py"
 
 if grep -Eq 'keytool[[:space:]]+-genkeypair|Temporary CI Build|temporary-build-key' "$workflow"; then
   echo "A per-run temporary release identity is forbidden." >&2
   exit 1
 fi
 
-for file in "$workflow" "$validate" "$preset" "$monetization" "$capture" "$stripper"; do
+for file in "$workflow" "$validate" "$preset" "$monetization" "$capture" "$stripper" "$aar_sanitizer"; do
   test -s "$file"
 done
 
@@ -29,7 +30,7 @@ grep -Fq "id-token: write" "$workflow"
 grep -Fq "BC:F2:33:7D:41:E6:17:C0:3B:CA:E6:98:C0:9D:15:23:65:4B:D7:90" "$workflow"
 grep -Fq "79:85:BD:6B:33:71:1B:AC:A7:E6:BA:72:2C:2B:38:70:EB:BC:80:2F:7D:B4:A7:BC:12:06:BD:AE:51:C4:D5:D6" "$workflow"
 grep -Fq "de.kamilunavo.idlehandwerker" "$workflow"
-grep -Fq "versionCode=1" "$workflow"
+grep -Fq "versionCode=2" "$workflow"
 grep -Fq "idle-handwerker-android-screenshots" "$workflow"
 grep -Fq "if: always()" "$workflow"
 grep -Fq "if-no-files-found: warn" "$workflow"
@@ -66,6 +67,38 @@ grep -Fq 'mipmap*/icon_monochrome.*' "$stripper"
 grep -Fq 'dependsOn(stripAdaptiveLauncherIcons)' "$stripper"
 grep -Fq "base/res/mipmap/icon.webp" "$workflow"
 grep -Fq "mipmap-anydpi-v26/(icon|themed_icon)" "$workflow"
+test "$(grep -Fc 'version/code=2' "$preset")" -eq 2
+grep -Fq 'sanitize_godot_launcher_aar.py' "$workflow"
+
+python3 - "$aar_sanitizer" <<'PY'
+import subprocess
+import sys
+import tempfile
+import zipfile
+from pathlib import Path
+
+sanitizer = Path(sys.argv[1])
+with tempfile.TemporaryDirectory() as directory:
+    aar = Path(directory) / "godot-lib.aar"
+    entries = {
+        "classes.jar": b"bytecode",
+        "res/drawable/keep.xml": b"<resource />",
+        "res/drawable/icon_background.xml": b"adaptive",
+        "res/mipmap/icon.webp": b"fallback",
+        "res/mipmap-anydpi-v26/icon.xml": b"adaptive",
+        "res/mipmap-anydpi-v26/themed_icon.xml": b"adaptive",
+        "res/mipmap-hdpi/icon.webp": b"fallback-density",
+        "res/mipmap-hdpi/icon_foreground.webp": b"adaptive",
+    }
+    with zipfile.ZipFile(aar, "w") as archive:
+        for name, data in entries.items():
+            archive.writestr(name, data)
+    subprocess.run([sys.executable, str(sanitizer), str(aar)], check=True)
+    with zipfile.ZipFile(aar) as archive:
+        remaining = set(archive.namelist())
+        assert remaining == {"classes.jar", "res/drawable/keep.xml"}, remaining
+        assert archive.read("classes.jar") == b"bytecode"
+PY
 
 grep -Fq 'const STORE_SCREENSHOT_ARG := "--store-screenshots"' "$monetization"
 grep -Fq 'if not _store_screenshot_capture():' "$monetization"

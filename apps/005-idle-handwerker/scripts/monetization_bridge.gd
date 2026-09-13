@@ -12,7 +12,7 @@ signal rewarded_completed
 signal rewarded_unavailable(message: String)
 signal rewarded_ready_changed(placement: String, ready: bool)
 
-const PRODUCTS := [
+const PRODUCTS: Array[String] = [
 	"de.kamilunavo.idlehandwerker.noads",
 	"de.kamilunavo.idlehandwerker.starter",
 	"de.kamilunavo.idlehandwerker.tokens.small",
@@ -173,9 +173,13 @@ func _purchase_android(product_id: String) -> void:
 	var props = IAPTypes.RequestPurchaseProps.new()
 	props.request = IAPTypes.RequestPurchasePropsByPlatforms.new()
 	props.request.google = IAPTypes.RequestPurchaseAndroidProps.new()
-	props.request.google.skus = [product_id]
+	var product_ids: Array[String] = [product_id]
+	props.request.google.skus = product_ids
 	props.type = IAPTypes.ProductQueryType.IN_APP
-	_iap.request_purchase(props)
+	var result = _iap.request_purchase(props)
+	if result == null and _pending_product_id == product_id:
+		_pending_product_id = ""
+		purchase_failed.emit("Der Kauf konnte nicht gestartet werden.")
 
 
 func _restore_android_purchases(emit_result: bool = true) -> void:
@@ -183,17 +187,15 @@ func _restore_android_purchases(emit_result: bool = true) -> void:
 		if emit_result:
 			purchase_failed.emit("Käufe konnten nicht wiederhergestellt werden.")
 		return
-	var result = await _iap.get_available_purchases_result()
-	if not (result is Dictionary) or not bool(result.get("success", false)):
+	var purchases = await _iap.get_available_purchases()
+	if not (purchases is Array):
 		if emit_result:
 			purchase_failed.emit("Käufe konnten nicht wiederhergestellt werden.")
 		return
-	for purchase_data in result.get("purchases", []):
-		var product_id := _purchase_field(purchase_data, ["productId", "product_id", "id"])
-		if product_id in [PRODUCTS[0], PRODUCTS[1]]:
-			var transaction_id := _purchase_field(purchase_data, ["transactionId", "transaction_id", "purchaseToken"])
-			if not transaction_id.is_empty():
-				purchase_completed.emit(product_id, transaction_id)
+	for purchase in purchases:
+		var purchase_data := _purchase_dictionary(purchase)
+		if not purchase_data.is_empty():
+			await _process_android_purchase(purchase_data)
 	if emit_result:
 		restore_completed.emit("Käufe wurden wiederhergestellt.")
 
@@ -212,19 +214,29 @@ func _consume_android_products(products: Array) -> void:
 
 
 func _on_android_purchase_updated(purchase_data: Dictionary) -> void:
+	await _process_android_purchase(purchase_data)
+
+
+func _process_android_purchase(purchase_data: Dictionary) -> void:
 	var product_id := _purchase_field(purchase_data, ["productId", "product_id", "id"])
 	if product_id not in PRODUCTS:
 		return
+	var purchase_state := _purchase_field(purchase_data, ["purchaseState", "purchase_state"]).to_lower()
+	if purchase_state != "purchased":
+		return
 	var transaction_id := _purchase_field(purchase_data, ["transactionId", "transaction_id", "purchaseToken"])
+	if transaction_id.is_empty():
+		_pending_product_id = ""
+		purchase_failed.emit("Der Kauf enthält keine Transaktionskennung.")
+		return
 	var consumable := product_id in [PRODUCTS[2], PRODUCTS[3]]
+	_pending_product_id = ""
+	# Signal handlers apply the idempotent grant and save it synchronously. Only
+	# then may Google Play consume or acknowledge the transaction.
+	purchase_completed.emit(product_id, transaction_id)
 	var finish_result = await _iap.finish_transaction_dict(purchase_data, consumable)
 	if not _result_success(finish_result):
-		_pending_product_id = ""
 		purchase_failed.emit("Der Kauf konnte nicht bestätigt werden.")
-		return
-	_pending_product_id = ""
-	if not transaction_id.is_empty():
-		purchase_completed.emit(product_id, transaction_id)
 
 
 func _on_android_purchase_error(error: Dictionary) -> void:
@@ -236,13 +248,26 @@ func _purchase_field(source: Variant, keys: Array) -> String:
 	if source is Dictionary:
 		for key in keys:
 			if source.has(key) and source[key] != null:
-				return str(source[key])
+				var value := str(source[key])
+				if not value.is_empty():
+					return value
 	elif typeof(source) == TYPE_OBJECT and source != null:
 		for key in keys:
 			var value = source.get(key)
 			if value != null:
-				return str(value)
+				var text := str(value)
+				if not text.is_empty():
+					return text
 	return ""
+
+
+func _purchase_dictionary(source: Variant) -> Dictionary:
+	if source is Dictionary:
+		return source
+	if typeof(source) == TYPE_OBJECT and source != null and source.has_method("to_dict"):
+		var data = source.to_dict()
+		return data if data is Dictionary else {}
+	return {}
 
 
 func _result_success(result: Variant) -> bool:
