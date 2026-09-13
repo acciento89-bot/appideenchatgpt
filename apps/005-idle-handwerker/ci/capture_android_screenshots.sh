@@ -55,7 +55,17 @@ data = Path(sys.argv[1]).read_bytes()
 assert data[:8] == b"\x89PNG\r\n\x1a\n", "not a PNG"
 width, height = struct.unpack(">II", data[16:24])
 assert (width, height) == (1080, 2400), (width, height)
-assert len(data) > 100_000, len(data)
+PY
+  read -r colors standard_deviation < <(
+    identify -format '%k %[fx:standard_deviation]\n' "$output_dir/$filename"
+  )
+  python3 - "$colors" "$standard_deviation" <<'PY'
+import sys
+
+colors = int(sys.argv[1])
+standard_deviation = float(sys.argv[2])
+assert colors >= 16, colors
+assert standard_deviation >= 0.03, standard_deviation
 PY
 }
 

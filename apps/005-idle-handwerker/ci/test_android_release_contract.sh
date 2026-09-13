@@ -56,6 +56,11 @@ if ! grep -Fq 'settings put secure immersive_mode_confirmations confirmed' "$cap
 fi
 grep -Fq 'idle-handwerker-home.png' "$capture"
 grep -Fq 'idle-handwerker-shop.png' "$capture"
+if grep -Fq 'len(data) > 100_000' "$capture"; then
+  echo "Compressed PNG byte size is not a valid visual-content gate." >&2
+  exit 1
+fi
+grep -Fq 'standard_deviation' "$capture"
 if grep -Fq 'mFocusedApp' "$capture"; then
   echo "Foreground validation must use mCurrentFocus only." >&2
   exit 1
