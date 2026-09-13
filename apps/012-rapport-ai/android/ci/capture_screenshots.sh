@@ -16,8 +16,8 @@ adb shell settings put global animator_duration_scale 0
 adb shell am start -W -n "$package_name/.MainActivity"
 
 dump_ui() {
-  adb shell uiautomator dump /sdcard/rapport-window.xml >/dev/null
-  adb shell cat /sdcard/rapport-window.xml | tr -d '\r'
+  adb shell uiautomator dump /sdcard/rapport-window.xml >/dev/null 2>&1 || true
+  adb shell cat /sdcard/rapport-window.xml 2>/dev/null | tr -d '\r' || true
 }
 
 wait_for_app_focus() {
