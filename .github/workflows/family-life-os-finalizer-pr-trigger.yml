@@ -1,0 +1,42 @@
+name: Family Life OS Finalizer PR Trigger
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/family-life-os-finalizer-pr-trigger.yml'
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  trigger-and-wait:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - name: Dispatch final App Store workflow and wait
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          BEFORE=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow family-life-os-ipad-appstore-submit.yml --event workflow_dispatch --limit 20 --json databaseId --jq '.[].databaseId' || true)
+          gh workflow run family-life-os-ipad-appstore-submit.yml --repo "$GITHUB_REPOSITORY" --ref main
+          RUN_ID=''
+          for i in {1..30}; do
+            sleep 2
+            CANDIDATES=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow family-life-os-ipad-appstore-submit.yml --event workflow_dispatch --limit 20 --json databaseId --jq '.[].databaseId')
+            while read -r id; do
+              [[ -z "$id" ]] && continue
+              if ! grep -qx "$id" <<<"$BEFORE"; then RUN_ID="$id"; break 2; fi
+            done <<<"$CANDIDATES"
+          done
+          test -n "$RUN_ID"
+          echo "Finalizer run: $RUN_ID"
+          echo "FINALIZER_RUN_ID=$RUN_ID" >> "$GITHUB_ENV"
+          if ! gh run watch "$RUN_ID" --repo "$GITHUB_REPOSITORY" --exit-status; then
+            echo '--- failed finalizer logs ---'
+            gh run view "$RUN_ID" --repo "$GITHUB_REPOSITORY" --log-failed || true
+            exit 1
+          fi
+          gh run view "$RUN_ID" --repo "$GITHUB_REPOSITORY" --json status,conclusion,url --jq '.status+" "+.conclusion+" "+.url'
