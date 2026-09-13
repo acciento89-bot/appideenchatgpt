@@ -140,8 +140,17 @@ sleep 3
 wait_for_app_focus
 capture_png idle-handwerker-home.png
 
-# SHOP is the lower of the two compact header actions on a 1080x2400 Pixel 6.
-adb shell input tap 1010 245
+# The third of five bottom navigation actions is the Android Ausbau/
+# Fortschritt counterpart. Its center is stable on the fixed Pixel 6 profile.
+adb shell input tap 540 2220
+sleep 2
+wait_for_app_focus
+capture_png idle-handwerker-progress.png
+
+# Compact layout math: safe top ≈24 logical px + 6 px padding; the two
+# 42x30 header actions therefore place SHOP at logical y=64..94, which maps
+# to screen y≈165..242. Stay well inside that hitbox.
+adb shell input tap 990 205
 sleep 2
 wait_for_app_focus
 capture_png idle-handwerker-shop.png

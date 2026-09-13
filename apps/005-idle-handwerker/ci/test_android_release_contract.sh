@@ -32,6 +32,8 @@ grep -Fq "79:85:BD:6B:33:71:1B:AC:A7:E6:BA:72:2C:2B:38:70:EB:BC:80:2F:7D:B4:A7:B
 grep -Fq "de.kamilunavo.idlehandwerker" "$workflow"
 grep -Fq "versionCode=1" "$workflow"
 grep -Fq "idle-handwerker-android-screenshots" "$workflow"
+grep -Fq "if: always()" "$workflow"
+grep -Fq "if-no-files-found: warn" "$workflow"
 grep -Fq "reactivecircus/android-emulator-runner@v2" "$workflow"
 grep -Fq "sudo chmod 666 /dev/kvm" "$workflow"
 if ! grep -Fq 'touch "$PROJECT_DIR/android/build/.gdignore"' "$workflow"; then
@@ -58,12 +60,19 @@ if ! grep -Fq 'settings put secure immersive_mode_confirmations confirmed' "$cap
   exit 1
 fi
 grep -Fq 'idle-handwerker-home.png' "$capture"
+grep -Fq 'idle-handwerker-progress.png' "$capture"
 grep -Fq 'idle-handwerker-shop.png' "$capture"
 if grep -Fq 'input tap 540 1980' "$capture"; then
   echo "Tutorial taps must target the centered tutorial panel button." >&2
   exit 1
 fi
 grep -Fq 'input tap 540 1650' "$capture"
+if grep -Fq 'input tap 1010 245' "$capture"; then
+  echo "Shop taps must stay inside the computed compact header button bounds." >&2
+  exit 1
+fi
+grep -Fq 'input tap 990 205' "$capture"
+grep -Fq 'input tap 540 2220' "$capture"
 if grep -Fq 'len(data) > 100_000' "$capture"; then
   echo "Compressed PNG byte size is not a valid visual-content gate." >&2
   exit 1

@@ -153,10 +153,11 @@ jobs:
           script: bash apps/005-idle-handwerker/ci/capture_android_screenshots.sh apps/005-idle-handwerker/builds/android/idle-handwerker-screenshots.apk apps/005-idle-handwerker/builds/android/screenshots
 
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: idle-handwerker-android-screenshots
           path: apps/005-idle-handwerker/builds/android/screenshots/*.png
-          if-no-files-found: error
+          if-no-files-found: warn
           retention-days: 14
 
   sign-central-release:
