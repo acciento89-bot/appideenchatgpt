@@ -9,6 +9,7 @@ ios_icon="$root/apps/012-rapport-ai/prototype/RapportAI/Assets.xcassets/AppIcon.
 android_icon="$android/app/src/main/res/drawable-nodpi/rapport_icon.png"
 legacy="$android/app/src/main/res/mipmap-anydpi/ic_launcher.xml"
 adaptive="$android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml"
+adaptive_round="$android/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml"
 foreground="$android/app/src/main/res/drawable/ic_launcher_foreground.xml"
 capture="$android/ci/capture_screenshots.sh"
 
@@ -25,14 +26,16 @@ if grep -Eiq 'play.*upload|upload.*play|gradle-play-publisher|r0adkll/upload-goo
   exit 1
 fi
 
-for file in "$workflow" "$gradle_file" "$ios_icon" "$android_icon" "$legacy" "$adaptive" "$foreground" "$capture"; do
+for file in "$workflow" "$gradle_file" "$ios_icon" "$android_icon" "$legacy" "$capture"; do
   test -s "$file"
 done
 
 cmp "$ios_icon" "$android_icon"
 grep -Fq '@drawable/rapport_icon' "$legacy"
-grep -Fq '@drawable/rapport_icon' "$foreground"
-grep -Fq '@color/navy' "$adaptive"
+test ! -e "$adaptive"
+test ! -e "$adaptive_round"
+test ! -e "$foreground"
+grep -Fq 'Adaptive launcher resources are forbidden' "$workflow"
 
 grep -Fq 'versionCode = 2' "$gradle_file"
 grep -Fq 'versionName = "1.0.1"' "$gradle_file"
@@ -46,6 +49,11 @@ if grep -Fq 'target: google_apis' "$workflow"; then
 fi
 grep -Fq 'sudo chmod 666 /dev/kvm' "$workflow"
 grep -Fq 'rapport-ai-android-screenshots' "$workflow"
+grep -Fq '!apps/012-rapport-ai/play-store/android-screenshots/**' "$workflow"
+grep -Fq "github.event_name == 'push' && github.ref == 'refs/heads/main'" "$workflow"
+grep -Fq 'git add -- apps/012-rapport-ai/play-store/android-screenshots' "$workflow"
+grep -Fq 'git diff --cached --quiet' "$workflow"
+test "$(grep -Fc 'git add -- ' "$workflow")" -eq 1
 grep -Fq 'rapport-ai-unsigned-v2' "$workflow"
 grep -Fq 'acciento89-bot/maengelfix/.github/actions/restore-central-android-signing@main' "$workflow"
 if grep -Fq 'restore-android-signing@main' "$workflow" || grep -Fq 'app-id:' "$workflow"; then
@@ -73,5 +81,13 @@ if grep -Fq 'mFocusedApp' "$capture"; then
 fi
 grep -Fq 'rapport-ai-create.png' "$capture"
 grep -Fq 'rapport-ai-settings.png' "$capture"
+python3 - "$capture" <<'PY'
+import sys
+from pathlib import Path
+
+text = Path(sys.argv[1]).read_text()
+assert text.index("wait_for_initial_state") < text.rindex('wait_for_text "Neuer Rapport"')
+assert text.index("if grep -Fq 'text=\"Hinweis\"'") < text.rindex('wait_for_text "Neuer Rapport"')
+PY
 
 echo "Rapport AI Android branch contract passed."

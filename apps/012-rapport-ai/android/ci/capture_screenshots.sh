@@ -47,6 +47,20 @@ wait_for_text() {
   return 1
 }
 
+wait_for_initial_state() {
+  initial_ui=''
+  for _ in $(seq 1 30); do
+    initial_ui=$(dump_ui)
+    if grep -Fq 'text="Hinweis"' <<< "$initial_ui" || grep -Fq 'text="Neuer Rapport"' <<< "$initial_ui"; then
+      return 0
+    fi
+    sleep 1
+  done
+  printf 'Neither the expected Billing notice nor the create screen appeared.\n' >&2
+  printf '%s\n' "$initial_ui" >&2
+  return 1
+}
+
 tap_text() {
   local wanted=$1
   local bounds
@@ -95,14 +109,14 @@ PY
 }
 
 wait_for_app_focus
-wait_for_text "Neuer Rapport"
+wait_for_initial_state
 
 # A sideloaded debug APK can show the app's own transient Billing notice.
-# Dismiss it; screenshots still fail if any system window owns focus.
-if dump_ui | grep -Fq 'text="Hinweis"'; then
+# Dismiss exactly that app-owned notice once, before waiting for create UI.
+if grep -Fq 'text="Hinweis"' <<< "$initial_ui"; then
   tap_text "OK"
-  wait_for_text "Neuer Rapport"
 fi
+wait_for_text "Neuer Rapport"
 capture_png rapport-ai-create.png
 
 tap_text "Mehr"

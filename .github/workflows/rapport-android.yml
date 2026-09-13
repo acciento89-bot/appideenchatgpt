@@ -7,9 +7,10 @@ on:
       - "apps/012-rapport-ai/android/**"
       - ".github/workflows/rapport-android.yml"
   push:
-    branches: [android/rapport-ai]
+    branches: [main, android/rapport-ai]
     paths:
       - "apps/012-rapport-ai/android/**"
+      - "!apps/012-rapport-ai/play-store/android-screenshots/**"
       - ".github/workflows/rapport-android.yml"
 
 permissions:
@@ -79,6 +80,10 @@ jobs:
           grep -F 'package="de.kamilunavo.rapportai"' "$RUNNER_TEMP/rapport-manifest.xml"
           grep -F 'android:versionCode="2"' "$RUNNER_TEMP/rapport-manifest.xml"
           grep -F 'android:versionName="1.0.1"' "$RUNNER_TEMP/rapport-manifest.xml"
+          if zipinfo -1 "$AAB" | grep -Eq '^base/res/mipmap-anydpi-v26/ic_launcher(_round)?\.xml$'; then
+            echo "Adaptive launcher resources are forbidden: use the canonical iOS-identical bitmap only." >&2
+            exit 1
+          fi
           if zipinfo -1 "$AAB" | grep -Eq '^META-INF/[^/]+\.(RSA|DSA|EC)$'; then
             echo "Branch AAB unexpectedly contains a JAR signature block." >&2
             exit 1
@@ -110,6 +115,40 @@ jobs:
           path: apps/012-rapport-ai/android/app/build/outputs/screenshots/*.png
           if-no-files-found: error
           retention-days: 14
+
+  persist-main-screenshots:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: build-and-screenshot
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+      - uses: actions/download-artifact@v5
+        with:
+          name: rapport-ai-android-screenshots
+          path: ${{ runner.temp }}/screenshots
+      - name: Persist verified Android screenshots without a trigger loop
+        run: |
+          set -euo pipefail
+          source="$RUNNER_TEMP/screenshots"
+          target="apps/012-rapport-ai/play-store/android-screenshots"
+          for name in rapport-ai-create.png rapport-ai-settings.png; do
+            test -s "$source/$name"
+          done
+          mkdir -p "$target"
+          cp "$source"/*.png "$target/"
+          git add -- apps/012-rapport-ai/play-store/android-screenshots
+          if git diff --cached --quiet; then
+            echo "Verified screenshots are already current."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "chore(rapport): persist verified Android screenshots"
+          git push origin HEAD:main
 
   sign-central-release:
     if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'

@@ -1,9 +1,0 @@
-<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- The adaptive layer uses the canonical iOS artwork. Android alone applies
-         the launcher mask; there is no independently redrawn Android motif. -->
-    <item>
-        <bitmap
-            android:src="@drawable/rapport_icon"
-            android:gravity="fill" />
-    </item>
-</layer-list>
