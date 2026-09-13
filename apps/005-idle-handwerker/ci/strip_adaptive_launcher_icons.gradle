@@ -1,0 +1,35 @@
+def adaptiveLauncherPatterns = [
+    "drawable/icon_background.xml",
+    "mipmap-anydpi-v26/icon.xml",
+    "mipmap-anydpi-v26/themed_icon.xml",
+    "mipmap*/icon_background.*",
+    "mipmap*/icon_foreground.*",
+    "mipmap*/icon_monochrome.*",
+]
+
+def stripAdaptiveLauncherIcons = tasks.register("stripAdaptiveLauncherIcons") {
+    doLast {
+        def legacyIcon = file("res/mipmap/icon.webp")
+        if (!legacyIcon.isFile()) {
+            throw new GradleException("Canonical classic launcher icon is missing: " + legacyIcon)
+        }
+
+        def adaptiveFiles = fileTree(file("res")) {
+            adaptiveLauncherPatterns.each { pattern -> include pattern }
+        }
+        adaptiveFiles.each { adaptiveFile ->
+            delete adaptiveFile
+        }
+
+        def remaining = fileTree(file("res")) {
+            adaptiveLauncherPatterns.each { pattern -> include pattern }
+        }
+        if (!remaining.isEmpty()) {
+            throw new GradleException("Adaptive launcher resources remain after cleanup: " + remaining.files)
+        }
+    }
+}
+
+tasks.named("preBuild").configure {
+    dependsOn(stripAdaptiveLauncherIcons)
+}
