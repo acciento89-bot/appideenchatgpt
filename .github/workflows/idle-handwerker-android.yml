@@ -93,6 +93,7 @@ jobs:
           unzip -q "$RUNNER_TEMP/templates.tpz" -d "$RUNNER_TEMP/templates"
           cp -R "$RUNNER_TEMP/templates/templates/." "$T/"
           unzip -q "$T/android_source.zip" -d "$PROJECT_DIR/android/build"
+          touch "$PROJECT_DIR/android/build/.gdignore"
           printf '%s\n' "${GODOT_VERSION}.stable" > "$PROJECT_DIR/android/.build_version"
           chmod +x "$PROJECT_DIR/android/build/gradlew"
           curl -L --fail --retry 3 -o "$RUNNER_TEMP/bundletool.jar" \

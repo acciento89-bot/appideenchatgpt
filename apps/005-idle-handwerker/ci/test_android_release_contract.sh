@@ -31,6 +31,10 @@ grep -Fq "versionCode=1" "$workflow"
 grep -Fq "idle-handwerker-android-screenshots" "$workflow"
 grep -Fq "reactivecircus/android-emulator-runner@v2" "$workflow"
 grep -Fq "sudo chmod 666 /dev/kvm" "$workflow"
+if ! grep -Fq 'touch "$PROJECT_DIR/android/build/.gdignore"' "$workflow"; then
+  echo "Generated Android resources must be hidden from Godot's importer." >&2
+  exit 1
+fi
 grep -Fq "test_android_release_contract.sh" "$workflow"
 grep -Fq "test_android_release_contract.sh" "$validate"
 
