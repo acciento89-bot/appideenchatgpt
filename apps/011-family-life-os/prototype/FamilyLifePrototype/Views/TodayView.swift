@@ -83,10 +83,33 @@ struct TodayView: View {
     }
 
     private var header: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(Self.longDate(referenceDate)).font(.subheadline.weight(.medium)).foregroundStyle(.secondary)
-            Text(greeting).font(.largeTitle.bold())
+        VStack(alignment: .leading, spacing: 16) {
+            HStack(alignment: .top, spacing: 14) {
+                Image("FamilyBrand")
+                    .resizable().scaledToFit().frame(width: 60, height: 60)
+                    .clipShape(RoundedRectangle(cornerRadius: 16)).accessibilityHidden(true)
+                VStack(alignment: .leading, spacing: 5) {
+                    Text(Self.longDate(referenceDate)).font(.subheadline.weight(.medium)).foregroundStyle(.secondary)
+                    Text(greeting).font(.title.bold())
+                    if let household = store.household {
+                        Text(household.name).font(.subheadline.weight(.semibold)).foregroundStyle(FamilyPalette.accent)
+                    }
+                }
+                .fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: 0)
+            }
+            Button { isCapturePresented = true } label: {
+                Label("Info hinzufügen", systemImage: "plus.circle.fill")
+                    .font(.headline).frame(maxWidth: .infinity, minHeight: 44)
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(FamilyPalette.accent)
+            .foregroundStyle(FamilyPalette.buttonInk)
+            .accessibilityIdentifier("today-add-information")
         }
+        .padding(20)
+        .background(FamilyPalette.wash, in: RoundedRectangle(cornerRadius: 24))
+        .overlay { RoundedRectangle(cornerRadius: 24).stroke(FamilyPalette.accent.opacity(0.16)) }
         .padding(.top, 8)
     }
 
@@ -143,7 +166,7 @@ struct TodayView: View {
 
     private var familyBrief: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Label("Familienüberblick", systemImage: "sparkles").font(.headline).foregroundStyle(.primary)
+            Label("Familienüberblick", systemImage: "person.3.fill").font(.headline).foregroundStyle(FamilyPalette.accent)
             Text(briefText).font(.body)
         }
         .padding(16)

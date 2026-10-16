@@ -4,6 +4,7 @@ import SwiftUI
 struct FamilyLifePrototypeApp: App {
     var body: some Scene {
         WindowGroup {
+            Group {
 #if DEBUG
             if let screenshotSection = FamilyAppScreenshotSection(arguments: ProcessInfo.processInfo.arguments) {
                 FamilyAppScreenshotView(section: screenshotSection)
@@ -15,6 +16,7 @@ struct FamilyLifePrototypeApp: App {
 #else
             HostedCompleteV1View()
 #endif
+            }
         }
     }
 }
@@ -67,52 +69,8 @@ private struct FamilyAppScreenshotView: View {
     private let store = DemoStore()
 
     var body: some View {
-        NavigationSplitView {
-            List {
-                ForEach(FamilyAppScreenshotSection.allCases) { item in
-                    Label(item.title, systemImage: item.systemImage)
-                        .font(.body.weight(item == section ? .semibold : .regular))
-                        .foregroundStyle(item == section ? Color.accentColor : Color.primary)
-                        .padding(.vertical, 5)
-                        .listRowBackground(
-                            item == section
-                                ? Color.accentColor.opacity(0.12)
-                                : Color.clear
-                        )
-                }
-            }
-            .navigationTitle(store.household?.name ?? "Familie")
-            .navigationSplitViewColumnWidth(min: 220, ideal: 260, max: 320)
-        } detail: {
-            NavigationStack {
-                destination
-                    .toolbar {
-                        ToolbarItem(placement: .topBarTrailing) {
-                            Image(systemName: "gearshape")
-                                .foregroundStyle(.secondary)
-                                .accessibilityLabel("Einstellungen")
-                        }
-                    }
-            }
-        }
-        .navigationSplitViewStyle(.balanced)
-    }
-
-    @ViewBuilder
-    private var destination: some View {
-        switch section {
-        case .today:
-            TodayView(
-                store: store,
-                referenceDate: TodayView.previewDate(2026, 8, 18, 12, 0)
-            )
-        case .inbox:
-            InboxView(store: store)
-        case .plan:
-            PlanView(store: store)
-        case .family:
-            FamilyView(store: store)
-        }
+        RootView(store: store, initialSection: section.rawValue,
+                 referenceDate: TodayView.previewDate(2026, 8, 18, 12, 0))
     }
 }
 

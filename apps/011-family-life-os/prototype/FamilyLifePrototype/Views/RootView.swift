@@ -8,6 +8,13 @@ struct RootView: View {
     @State private var selectedSection: AppSection = .today
     @State private var isShowingSettings = false
     @State private var appLock = FamilyAppLock()
+    private let referenceDate: Date?
+
+    init(store: DemoStore, initialSection: String = "today", referenceDate: Date? = nil) {
+        self.store = store
+        self.referenceDate = referenceDate
+        _selectedSection = State(initialValue: AppSection(rawValue: initialSection) ?? .today)
+    }
 
     private enum AppSection: String, CaseIterable, Identifiable, Hashable {
         case today, inbox, plan, family
@@ -84,7 +91,7 @@ struct RootView: View {
 
     private var phoneShell: some View {
         TabView(selection: $selectedSection) {
-            NavigationStack { TodayView(store: store) }
+            NavigationStack { TodayView(store: store, referenceDate: referenceDate ?? .now) }
                 .tag(AppSection.today)
                 .tabItem { Label(AppSection.today.title, systemImage: AppSection.today.systemImage) }
 
@@ -134,7 +141,7 @@ struct RootView: View {
     @ViewBuilder
     private func destination(for section: AppSection) -> some View {
         switch section {
-        case .today: TodayView(store: store)
+        case .today: TodayView(store: store, referenceDate: referenceDate ?? .now)
         case .inbox: InboxView(store: store)
         case .plan: PlanView(store: store)
         case .family: FamilyView(store: store)

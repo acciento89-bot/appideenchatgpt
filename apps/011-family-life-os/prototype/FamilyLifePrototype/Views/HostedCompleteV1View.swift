@@ -105,15 +105,10 @@ private struct CompleteAuthView: View {
         NavigationStack {
             Form {
                 Section {
-                    VStack(alignment: .leading, spacing: 10) {
-                        Image(systemName: "person.3.sequence.fill")
-                            .font(.system(size: 44)).foregroundStyle(.indigo).accessibilityHidden(true)
-                        Text("Familienalltag rein. Klarer Plan raus.").font(.title2.bold())
-                        Text("Melde dich an, damit euer gemeinsamer Plan, eure Inbox und privaten Quellen sicher synchronisiert werden.")
-                            .font(.subheadline).foregroundStyle(.secondary)
-                    }
-                    .padding(.vertical, 8)
+                    FamilyWelcomeCard()
                 }
+                .listRowInsets(EdgeInsets())
+                .listRowBackground(Color.clear)
 
                 Section("Mit E-Mail und Passwort") {
                     TextField("name@beispiel.de", text: $email)
@@ -130,6 +125,7 @@ private struct CompleteAuthView: View {
                             if isSigningIn { ProgressView() }
                             Text(isSigningIn ? "Anmeldung läuft …" : "Anmelden")
                                 .frame(maxWidth: .infinity)
+                                .foregroundStyle(validCredentials && !isSigningIn && !isSendingLink ? FamilyPalette.buttonInk : Color.secondary)
                         }
                     }
                     .buttonStyle(.borderedProminent)
@@ -150,7 +146,7 @@ private struct CompleteAuthView: View {
                 } header: {
                     Text("Anmeldung ohne Passwort")
                 } footer: {
-                    Text("Der Anmeldelink öffnet diese App wieder und erstellt eine sichere Supabase-Session.")
+                    Text("Der Anmeldelink öffnet diese App und meldet dich sicher an.")
                 }
 
                 if didSendLink {
@@ -167,6 +163,7 @@ private struct CompleteAuthView: View {
                 }
             }
             .navigationTitle("Anmelden")
+            .tint(FamilyPalette.accent)
         }
     }
 

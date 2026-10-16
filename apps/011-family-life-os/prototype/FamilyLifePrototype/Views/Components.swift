@@ -1,5 +1,51 @@
 import SwiftUI
 
+enum FamilyPalette {
+    static let accent = Color("FamilyAccent")
+    static let wash = Color("FamilyWash")
+    static let buttonInk = Color(uiColor: UIColor { traits in
+        traits.userInterfaceStyle == .dark
+            ? UIColor(red: 0.055, green: 0.12, blue: 0.09, alpha: 1)
+            : .white
+    })
+}
+
+struct FamilyWelcomeCard: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            Image("FamilyBrand")
+                .resizable().scaledToFit().frame(width: 76, height: 76)
+                .clipShape(RoundedRectangle(cornerRadius: 20))
+                .accessibilityHidden(true)
+            Text("Weniger organisieren.\nMehr Familie.")
+                .font(.title2.weight(.bold)).foregroundStyle(.primary)
+                .fixedSize(horizontal: false, vertical: true)
+            Text("Aus Briefen und Nachrichten wird euer gemeinsamer Plan. Du prüfst jeden Vorschlag, bevor er übernommen wird.")
+                .font(.subheadline).foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            if dynamicTypeSize.isAccessibilitySize {
+                VStack(alignment: .leading, spacing: 10) { steps }
+            } else {
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: 16) { steps }.fixedSize()
+                    VStack(alignment: .leading, spacing: 10) { steps }
+                }
+            }
+        }
+        .padding(20).frame(maxWidth: .infinity, alignment: .leading)
+        .background(FamilyPalette.wash, in: RoundedRectangle(cornerRadius: 24))
+        .overlay { RoundedRectangle(cornerRadius: 24).stroke(FamilyPalette.accent.opacity(0.16)) }
+    }
+
+    @ViewBuilder private var steps: some View {
+        Label("Erfassen", systemImage: "tray.and.arrow.down")
+        Label("Prüfen", systemImage: "checkmark.circle")
+        Label("Planen", systemImage: "calendar")
+    }
+}
+
 extension MemberAccent {
     var color: Color {
         switch self {

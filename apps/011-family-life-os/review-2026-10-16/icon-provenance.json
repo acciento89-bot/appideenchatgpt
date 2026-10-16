@@ -1,0 +1,13 @@
+{
+  "tool": "built-in image_gen",
+  "prompt": "Use case: logo-brand. Asset type: original finished iOS app icon for Family Life OS, a calm native family information organizer. The actual workflow transforms incoming school letters and messages into human-reviewed appointments and shared family tasks. Design one premium square opaque full-bleed icon. A single elegant folded ivory letter transitions through a small coral approval check into a simplified sage-green shared calendar with three rounded person tabs integrated along its top. Treat this as one coherent sculpted symbol, not a crowded collage or generic calendar keypad. Warm off-white background, deep forest-teal structure, soft sage and muted terracotta accents. Refined tactile paper and softly rounded solid forms, precise soft contact shadows, warm indirect studio lighting. Adult, reassuring, polished and original, neither corporate analytics nor childish game art. Large centered silhouette with 15 percent safe inset, readable at small icon size. No text, letters, numerals, logos, watermarks, exterior border or externally rounded canvas corners. No identifiable real people, faces, AI sparkles, coins, clocks, padlock, vehicles, house mascot, generic letter monogram or third-party branding. Fully opaque from edge to edge.",
+  "sourceFile": "/Users/piotrkaminski/.codex/generated_images/01a11788-3eb6-7e32-963e-51b37d78e2ed/exec-8646e490-eea1-4dac-98ea-92cdbecedbb8.png",
+  "visualReview": "Opaque ivory, forest/sage and terracotta symbol: incoming letter, human approval check, family calendar. Corresponds to actual information-to-proposal-to-confirmed-plan workflow. No third-party brand or misleading game subject.",
+  "sourceSha256": "3f47295dd76ffae5b61e7b007313fe1332e0f4db8c959c73e77e3a5edba8d104",
+  "appIconSha256": "e87e657d8ff833799b54b8afa01e844a3e0c944d0bdd28b3b40deeba771bd9e1",
+  "appIconSize": [
+    1024,
+    1024
+  ],
+  "appIconMode": "RGB"
+}
