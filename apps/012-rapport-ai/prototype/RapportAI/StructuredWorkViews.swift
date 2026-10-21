@@ -103,7 +103,8 @@ private struct WorkItemEditor: View {
     @State private var minutes: String
     @State private var amount: String
     @State private var unit: String
-    @FocusState private var numericFocus: Bool
+    private enum Field: Hashable { case description, minutes, amount, unit }
+    @FocusState private var focusedField: Field?
     init(item: RapportWorkItem, onSave: @escaping (RapportWorkItem) -> Void) {
         self.item = item; self.onSave = onSave
         _kind = State(initialValue: item.kind); _description = State(initialValue: item.description)
@@ -123,11 +124,13 @@ private struct WorkItemEditor: View {
             Form {
                 Picker("work.kind", selection: $kind) { ForEach(RapportWorkKind.allCases, id: \.self) { Text(workKind($0)).tag($0) } }
                 TextField("work.description", text: $description, axis: .vertical)
+                    .focused($focusedField, equals: .description)
                 if kind == .labor {
-                    TextField("work.minutes", text: $minutes).keyboardType(.numberPad).focused($numericFocus)
+                    TextField("work.minutes", text: $minutes).keyboardType(.numberPad).focused($focusedField, equals: .minutes)
                 } else {
-                    TextField("work.quantity", text: $amount).keyboardType(.decimalPad).focused($numericFocus)
+                    TextField("work.quantity", text: $amount).keyboardType(.decimalPad).focused($focusedField, equals: .amount)
                     TextField("work.unit", text: $unit)
+                        .focused($focusedField, equals: .unit)
                 }
                 if validated == nil { Text("work.invalid").font(.footnote).foregroundStyle(.secondary) }
                 Text("work.enteredOnly").font(.footnote)
@@ -137,7 +140,7 @@ private struct WorkItemEditor: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("work.cancel") { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) { Button("work.save") { if let validated { onSave(validated); dismiss() } }.disabled(validated == nil) }
-                ToolbarItemGroup(placement: .keyboard) { Spacer(); Button("work.done") { numericFocus = false } }
+                ToolbarItemGroup(placement: .keyboard) { Spacer(); Button("work.done") { focusedField = nil } }
             }
         }
     }
