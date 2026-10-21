@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="work_back">Back</string>
+    <string name="work_title">Work line items</string>
+    <string name="work_facts">Manually entered facts. These line items are not sent to AI.</string>
+    <string name="work_narrative">Report text – editable without AI</string>
+    <string name="work_edit">Edit</string>
+    <string name="work_delete">Delete</string>
+    <string name="work_add">Add line item</string>
+    <string name="work_total_minutes">Total labor: %1$d min</string>
+    <string name="work_incomplete">Unfilled entries: %1$d</string>
+    <string name="work_templates">Templates</string>
+    <string name="work_save_template">Save line items as template</string>
+    <string name="work_save">Save</string>
+    <string name="work_history">Revisions and acknowledgements</string>
+    <string name="work_template_boundary">Templates copy only labels, units and trade. Quantities and durations stay blank; customer details and revisions are not copied.</string>
+    <string name="work_name">Name</string>
+    <string name="work_cancel">Cancel</string>
+    <string name="work_load_error">Local data could not be read. Existing files are preserved. Saving is blocked.</string>
+    <string name="work_retry">Retry load</string>
+    <string name="work_item">Work line item</string>
+    <string name="work_description">Description</string>
+    <string name="work_minutes">Duration in whole minutes</string>
+    <string name="work_quantity">Quantity / measurement</string>
+    <string name="work_unit">Unit</string>
+    <string name="work_number_help">Minutes: 0–1000000. Quantities: 0–999999999.999 with at most 3 decimal places. Units are not converted.</string>
+    <string name="work_invalid">Enter a description and a valid value; quantities also require a unit.</string>
+    <string name="work_no_templates">No templates yet</string>
+    <string name="work_use_template">Add with blank values</string>
+    <string name="work_close">Close</string>
+    <string name="work_saved_only">Only explicitly saved revisions appear here. Save pending changes first.</string>
+    <string name="work_revision">Revision</string>
+    <string name="work_share_history">Share saved history</string>
+    <string name="work_original_notes">Original notes</string>
+    <string name="work_ack">Local acknowledgement</string>
+    <string name="work_ack_boundary">An acknowledgement is a locally entered name for this exact revision. It is not a digital signature, identity verification or legally verified acceptance. Time comes from the device clock. Later edits do not inherit it.</string>
+    <string name="work_record_ack">Record acknowledgement</string>
+    <string name="work_note">Note (optional)</string>
+    <string name="work_ack_consent">I reviewed this exact saved revision and want to associate the entered name locally.</string>
+    <string name="work_delete_question">Delete entry?</string>
+    <string name="work_delete_warning">The selected entry will be removed locally. Previously saved revisions remain available.</string>
+    <string name="work_labor">Labor</string>
+    <string name="work_material">Material</string>
+    <string name="work_measurement">Measurement</string>
+    <string name="work_not_entered">Not entered</string>
+    <string name="work_pdf">Share PDF with line items and revisions</string>
+</resources>

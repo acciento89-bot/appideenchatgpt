@@ -4,50 +4,60 @@ import SwiftUI
 @MainActor
 final class RapportStore: ObservableObject {
     @Published private(set) var reports: [RapportDraft] = []
-
-    private let fileURL: URL
-    private let encoder: JSONEncoder
-    private let decoder: JSONDecoder
+    @Published private(set) var templates: [RapportWorkTemplate] = []
+    @Published private(set) var loadBlocked = false
+    @Published var errorMessage: String?
+    private let archive: RapportArchive
 
     init(fileManager: FileManager = .default) {
         let base = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
-        let directory = base.appendingPathComponent("RapportAI", isDirectory: true)
-        try? fileManager.createDirectory(at: directory, withIntermediateDirectories: true)
-        fileURL = directory.appendingPathComponent("reports.json")
-
-        encoder = JSONEncoder()
-        encoder.dateEncodingStrategy = .iso8601
-        decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .iso8601
-        load()
+        archive = RapportArchive(url: base.appendingPathComponent("RapportAI/reports.json"))
+        reload()
     }
-
-    func save(_ report: RapportDraft) {
-        var updated = report
-        updated.updatedAt = Date()
-        if let index = reports.firstIndex(where: { $0.id == report.id }) {
-            reports[index] = updated
-        } else {
-            reports.insert(updated, at: 0)
-        }
-        reports.sort { $0.updatedAt > $1.updatedAt }
-        persist()
+    func reload() {
+        do {
+            let snapshot = try archive.load()
+            reports = snapshot.reports.sorted { $0.updatedAt > $1.updatedAt }
+            templates = snapshot.templates
+            loadBlocked = false; errorMessage = nil
+        } catch { loadBlocked = true; errorMessage = "work.loadError" }
     }
-
-    func delete(at offsets: IndexSet) {
-        reports.remove(atOffsets: offsets)
-        persist()
+    @discardableResult func save(_ report: RapportDraft) -> RapportDraft? {
+        guard !loadBlocked else { errorMessage = "work.loadError"; return nil }
+        guard !report.reportText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || !report.rawText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || !report.workItems.isEmpty else { errorMessage = "work.empty"; return nil }
+        do {
+            let updated = try report.preparingSave(preserving: reports.first { $0.id == report.id })
+            var next = reports
+            if let index = next.firstIndex(where: { $0.id == updated.id }) { next[index] = updated }
+            else { next.insert(updated, at: 0) }
+            return persist(RapportArchiveSnapshot(reports: next, templates: templates)) ? updated : nil
+        } catch { errorMessage = "work.invalid"; return nil }
     }
-
-    private func load() {
-        guard let data = try? Data(contentsOf: fileURL),
-              let decoded = try? decoder.decode([RapportDraft].self, from: data) else { return }
-        reports = decoded.sorted { $0.updatedAt > $1.updatedAt }
+    func delete(at offsets: IndexSet) { _ = deleteReports(offsets.compactMap { reports.indices.contains($0) ? reports[$0].id : nil }) }
+    @discardableResult func deleteReports(_ ids: [UUID]) -> Bool { persist(RapportArchiveSnapshot(reports: reports.filter { !ids.contains($0.id) }, templates: templates)) }
+    @discardableResult func saveTemplate(_ template: RapportWorkTemplate) -> Bool {
+        do { try template.validate() } catch { errorMessage = "work.invalid"; return false }
+        let next = templates.filter { $0.id != template.id } + [template]
+        return persist(RapportArchiveSnapshot(reports: reports, templates: next))
     }
-
-    private func persist() {
-        guard let data = try? encoder.encode(reports) else { return }
-        try? data.write(to: fileURL, options: .atomic)
+    @discardableResult func deleteTemplate(_ id: UUID) -> Bool { persist(RapportArchiveSnapshot(reports: reports, templates: templates.filter { $0.id != id })) }
+    func acknowledge(reportID: UUID, revisionID: UUID, name: String, note: String) -> Bool {
+        guard let index = reports.firstIndex(where: { $0.id == reportID }) else { errorMessage = "work.saveError"; return false }
+        do {
+            var next = reports
+            next[index] = try next[index].acknowledging(revisionID: revisionID, name: name, note: note)
+            return persist(RapportArchiveSnapshot(reports: next, templates: templates))
+        } catch { errorMessage = "work.invalid"; return false }
+    }
+    private func persist(_ snapshot: RapportArchiveSnapshot) -> Bool {
+        guard !loadBlocked else { errorMessage = "work.loadError"; return false }
+        do {
+            try archive.save(snapshot)
+            reports = snapshot.reports.sorted { $0.updatedAt > $1.updatedAt }
+            templates = snapshot.templates
+            errorMessage = nil
+            return true
+        } catch { errorMessage = "work.saveError"; return false }
     }
 }
 

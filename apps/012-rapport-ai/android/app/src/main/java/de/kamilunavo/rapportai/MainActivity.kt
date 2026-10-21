@@ -6,6 +6,7 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -73,6 +74,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -179,7 +182,10 @@ private fun RapportApp(
     onRestore: () -> Unit,
     onSharePdf: (Rapport) -> Unit
 ) {
-    var tab by remember { mutableStateOf(AppTab.CREATE) }
+    var tabName by rememberSaveable { mutableStateOf(AppTab.CREATE.name) }
+    var workOpen by rememberSaveable { mutableStateOf(false) }
+    val tab = AppTab.valueOf(tabName)
+    BackHandler(enabled = workOpen) { workOpen = false }
     var showPaywall by remember { mutableStateOf(false) }
     Scaffold(
         containerColor = Navy,
@@ -188,8 +194,8 @@ private fun RapportApp(
                 title = { Text(if (tab == AppTab.CREATE) "Neuer Rapport" else tab.title, fontWeight = FontWeight.Bold) },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Navy, titleContentColor = Color.White),
                 actions = {
-                    if (tab == AppTab.CREATE && (state.draft.rawText.isNotBlank() || state.draft.reportText.isNotBlank())) {
-                        IconButton(onClick = viewModel::newDraft) { Icon(Icons.Default.Add, "Neuen Rapport beginnen") }
+                    if (tab == AppTab.CREATE && (state.draft.rawText.isNotBlank() || state.draft.reportText.isNotBlank() || state.draft.workItems.isNotEmpty())) {
+                        IconButton(onClick = { viewModel.newDraft(); workOpen = false }) { Icon(Icons.Default.Add, "Neuen Rapport beginnen") }
                     }
                 }
             )
@@ -199,7 +205,7 @@ private fun RapportApp(
                 AppTab.entries.forEach { item ->
                     NavigationBarItem(
                         selected = tab == item,
-                        onClick = { tab = item },
+                        onClick = { tabName = item.name; workOpen = false },
                         icon = { Icon(item.icon, null) },
                         label = { Text(item.title) }
                     )
@@ -207,9 +213,9 @@ private fun RapportApp(
             }
         }
     ) { padding ->
-        when (tab) {
-            AppTab.CREATE -> CreateScreen(state, viewModel, onRecord, { showPaywall = true }, onSharePdf, padding)
-            AppTab.REPORTS -> ReportsScreen(state, viewModel, onSharePdf, { report -> viewModel.open(report); tab = AppTab.CREATE }, padding)
+        if (workOpen) androidx.compose.runtime.key(state.draft.id) { StructuredWorkScreen(state, viewModel, { workOpen = false }, padding) } else when (tab) {
+            AppTab.CREATE -> CreateScreen(state, viewModel, onRecord, { showPaywall = true }, onSharePdf, { workOpen = true }, padding)
+            AppTab.REPORTS -> ReportsScreen(state, viewModel, onSharePdf, { report -> viewModel.open(report); tabName = AppTab.CREATE.name }, padding)
             AppTab.SETTINGS -> SettingsScreen(state, viewModel, { showPaywall = true }, onRestore, padding)
         }
     }
@@ -230,6 +236,7 @@ private fun CreateScreen(
     onRecord: () -> Unit,
     onPaywall: () -> Unit,
     onSharePdf: (Rapport) -> Unit,
+    onWork: () -> Unit,
     padding: PaddingValues
 ) {
     val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
@@ -257,7 +264,9 @@ private fun CreateScreen(
                 }
             }
         }
+        if (state.storageBlocked) item { StorageWarning(viewModel) }
         item { ContextCard(state.draft, viewModel::updateDraft) }
+        item { OutlinedButton(onClick = onWork, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.work_title)) } }
         item {
             CraftCard {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -298,7 +307,7 @@ private fun CreateScreen(
                 }
             }
         }
-        if (state.draft.reportText.isNotBlank()) item {
+        if (state.draft.reportText.isNotBlank() || state.draft.workItems.isNotEmpty()) item {
             CraftCard {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.CheckCircle, null, tint = Cyan)
@@ -314,9 +323,9 @@ private fun CreateScreen(
                     label = { Text("Rapporttext") }
                 )
                 Text("Bitte Inhalt, Messwerte und ausgeführte Arbeiten vor Verwendung prüfen.", color = Muted, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(top = 8.dp))
-                Row(Modifier.fillMaxWidth().padding(top = 12.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    OutlinedButton(onClick = viewModel::saveDraft, modifier = Modifier.weight(1f)) { Icon(Icons.Default.Save, null); Spacer(Modifier.width(6.dp)); Text("Speichern") }
-                    OutlinedButton(onClick = { viewModel.saveDraft(); onSharePdf(state.draft) }, modifier = Modifier.weight(1f)) { Icon(Icons.Default.PictureAsPdf, null); Spacer(Modifier.width(6.dp)); Text("PDF teilen") }
+                Column(Modifier.fillMaxWidth().padding(top = 12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    OutlinedButton(onClick = { viewModel.saveDraft() }, enabled = !state.storageBlocked, modifier = Modifier.fillMaxWidth()) { Icon(Icons.Default.Save, null); Spacer(Modifier.width(6.dp)); Text("Speichern") }
+                    OutlinedButton(onClick = { viewModel.saveDraft()?.let(onSharePdf) }, enabled = !state.storageBlocked, modifier = Modifier.fillMaxWidth()) { Icon(Icons.Default.PictureAsPdf, null); Spacer(Modifier.width(6.dp)); Text(stringResource(R.string.work_pdf)) }
                 }
             }
         }
@@ -350,6 +359,7 @@ private fun ReportsScreen(state: RapportUiState, viewModel: MainViewModel, onSha
                 Icon(Icons.Default.History, null, tint = Cyan, modifier = Modifier.size(54.dp))
                 Text("Noch keine Rapporte", fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 12.dp))
                 Text("Gespeicherte Arbeitsrapporte erscheinen hier.", color = Muted)
+                if (state.storageBlocked) StorageWarning(viewModel)
             }
         }
     } else LazyColumn(Modifier.fillMaxSize().padding(padding), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -358,7 +368,7 @@ private fun ReportsScreen(state: RapportUiState, viewModel: MainViewModel, onSha
                 Text(report.displayTitle, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
                 Text(listOf(report.trade.title, report.location, report.system).filter(String::isNotBlank).joinToString(" · "), color = Muted, maxLines = 2, overflow = TextOverflow.Ellipsis)
                 Text(SimpleDateFormat("dd.MM.yyyy, HH:mm", Locale.GERMANY).format(Date(report.updatedAt)), color = Orange, style = MaterialTheme.typography.bodySmall)
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                Column(Modifier.fillMaxWidth()) {
                     TextButton(onClick = { onEdit(report) }) { Text("Bearbeiten") }
                     TextButton(onClick = { onSharePdf(report) }) { Icon(Icons.Default.PictureAsPdf, null); Text(" PDF") }
                     TextButton(onClick = { deleteTarget = report }) { Icon(Icons.Default.Delete, null); Text(" Löschen") }

@@ -1,11 +1,7 @@
 package de.kamilunavo.rapportai.data
 
 import android.content.Context
-import de.kamilunavo.rapportai.model.CompanyProfile
-import de.kamilunavo.rapportai.model.Rapport
-import de.kamilunavo.rapportai.model.Tone
-import de.kamilunavo.rapportai.model.Trade
-import org.json.JSONArray
+import de.kamilunavo.rapportai.model.*
 import org.json.JSONObject
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -14,25 +10,44 @@ import java.util.Locale
 class RapportRepository(context: Context) {
     private val prefs = context.getSharedPreferences("rapport_ai", Context.MODE_PRIVATE)
 
-    fun loadReports(): List<Rapport> = runCatching {
-        val array = JSONArray(prefs.getString("reports_v1", "[]"))
-        buildList {
-            for (index in 0 until array.length()) add(array.getJSONObject(index).toRapport())
-        }.sortedByDescending { it.updatedAt }
-    }.getOrDefault(emptyList())
-
-    fun save(report: Rapport): List<Rapport> {
-        val updated = report.copy(updatedAt = System.currentTimeMillis())
-        val reports = loadReports().filterNot { it.id == report.id }.toMutableList()
-        reports.add(0, updated)
-        persistReports(reports)
-        return reports
+    private val archive = WorkWorkspaceArchive(java.io.File(context.filesDir, "RapportAI/workspace.json")) {
+        prefs.getString("reports_v1", null)
     }
 
-    fun delete(id: String): List<Rapport> {
-        val reports = loadReports().filterNot { it.id == id }
-        persistReports(reports)
-        return reports
+    fun loadWorkspace(): WorkWorkspace = archive.load().let { it.copy(reports = it.reports.sortedByDescending(Rapport::updatedAt)) }
+
+    fun save(report: Rapport): WorkWorkspace {
+        val current = loadWorkspace()
+        val saved = report.preparingSave(current.reports.firstOrNull { it.id == report.id })
+        return persist(current.copy(reports = listOf(saved) + current.reports.filterNot { it.id == saved.id }))
+    }
+
+    fun delete(id: String): WorkWorkspace {
+        val current = loadWorkspace()
+        return persist(current.copy(reports = current.reports.filterNot { it.id == id }))
+    }
+
+    fun saveTemplate(template: WorkTemplate): WorkWorkspace {
+        template.validate()
+        val current = loadWorkspace()
+        return persist(current.copy(templates = current.templates.filterNot { it.id == template.id } + template))
+    }
+
+    fun deleteTemplate(id: String): WorkWorkspace {
+        val current = loadWorkspace()
+        return persist(current.copy(templates = current.templates.filterNot { it.id == id }))
+    }
+
+    fun acknowledge(reportID: String, revisionID: String, name: String, note: String): WorkWorkspace {
+        val current = loadWorkspace()
+        val stored = requireNotNull(current.reports.firstOrNull { it.id == reportID })
+        val updated = stored.acknowledging(revisionID, name, note)
+        return persist(current.copy(reports = current.reports.map { if (it.id == reportID) updated else it }))
+    }
+
+    private fun persist(workspace: WorkWorkspace): WorkWorkspace {
+        archive.save(workspace)
+        return workspace
     }
 
     fun loadProfile(): CompanyProfile = runCatching {
@@ -79,28 +94,4 @@ class RapportRepository(context: Context) {
 
     private fun currentMonth(): String = SimpleDateFormat("yyyy-MM", Locale.ROOT).format(Date())
 
-    private fun persistReports(reports: List<Rapport>) {
-        prefs.edit().putString("reports_v1", JSONArray().apply {
-            reports.forEach { put(it.toJson()) }
-        }.toString()).apply()
-    }
-
-    private fun Rapport.toJson() = JSONObject().apply {
-        put("id", id); put("trade", trade.name); put("customer", customer); put("location", location)
-        put("system", system); put("rawText", rawText); put("reportText", reportText)
-        put("tone", tone.name); put("createdAt", createdAt); put("updatedAt", updatedAt)
-    }
-
-    private fun JSONObject.toRapport() = Rapport(
-        id = optString("id"),
-        trade = runCatching { Trade.valueOf(optString("trade")) }.getOrDefault(Trade.GENERAL),
-        customer = optString("customer"),
-        location = optString("location"),
-        system = optString("system"),
-        rawText = optString("rawText"),
-        reportText = optString("reportText"),
-        tone = runCatching { Tone.valueOf(optString("tone")) }.getOrDefault(Tone.FACTUAL),
-        createdAt = optLong("createdAt", System.currentTimeMillis()),
-        updatedAt = optLong("updatedAt", System.currentTimeMillis())
-    )
 }

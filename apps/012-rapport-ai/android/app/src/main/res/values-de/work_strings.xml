@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="work_back">Zurück</string>
+    <string name="work_title">Arbeitspositionen</string>
+    <string name="work_facts">Manuell erfasste Fakten. Diese Positionen werden nicht an die KI gesendet.</string>
+    <string name="work_narrative">Rapporttext – auch ohne KI bearbeitbar</string>
+    <string name="work_edit">Bearbeiten</string>
+    <string name="work_delete">Löschen</string>
+    <string name="work_add">Position hinzufügen</string>
+    <string name="work_total_minutes">Arbeitszeit gesamt: %1$d min</string>
+    <string name="work_incomplete">Nicht ausgefüllte Positionen: %1$d</string>
+    <string name="work_templates">Vorlagen</string>
+    <string name="work_save_template">Positionen als Vorlage speichern</string>
+    <string name="work_save">Speichern</string>
+    <string name="work_history">Versionen und Bestätigungen</string>
+    <string name="work_template_boundary">Vorlagen kopieren nur Bezeichnungen, Einheiten und Gewerk. Mengen und Zeiten bleiben leer; Kundendaten und Versionen werden nicht kopiert.</string>
+    <string name="work_name">Name</string>
+    <string name="work_cancel">Abbrechen</string>
+    <string name="work_load_error">Lokale Daten konnten nicht gelesen werden. Bestehende Dateien bleiben erhalten. Speichern ist gesperrt.</string>
+    <string name="work_retry">Erneut laden</string>
+    <string name="work_item">Arbeitsposition</string>
+    <string name="work_description">Bezeichnung</string>
+    <string name="work_minutes">Dauer in ganzen Minuten</string>
+    <string name="work_quantity">Menge / Messwert</string>
+    <string name="work_unit">Einheit</string>
+    <string name="work_number_help">Minuten: 0–1000000. Mengen: 0–999999999,999 mit höchstens 3 Nachkommastellen. Einheiten werden nicht umgerechnet.</string>
+    <string name="work_invalid">Bezeichnung und gültigen Wert eingeben; bei Mengen auch eine Einheit.</string>
+    <string name="work_no_templates">Noch keine Vorlagen</string>
+    <string name="work_use_template">Mit leeren Werten hinzufügen</string>
+    <string name="work_close">Schließen</string>
+    <string name="work_saved_only">Hier stehen nur explizit gespeicherte Versionen. Ungespeicherte Änderungen zuerst speichern.</string>
+    <string name="work_revision">Version</string>
+    <string name="work_share_history">Gespeicherte Historie teilen</string>
+    <string name="work_original_notes">Ursprüngliche Notizen</string>
+    <string name="work_ack">Lokale Bestätigung</string>
+    <string name="work_ack_boundary">Eine Bestätigung ist eine lokale Namenseingabe für genau diese Version. Sie ist keine digitale Signatur, Identitätsprüfung oder rechtssichere Abnahme. Die Zeit stammt von der Geräteuhr. Spätere Änderungen übernehmen sie nicht.</string>
+    <string name="work_record_ack">Bestätigung erfassen</string>
+    <string name="work_note">Notiz (optional)</string>
+    <string name="work_ack_consent">Ich habe genau diese gespeicherte Version geprüft und möchte den Namen lokal zuordnen.</string>
+    <string name="work_delete_question">Eintrag löschen?</string>
+    <string name="work_delete_warning">Der ausgewählte Eintrag wird lokal entfernt. Gespeicherte frühere Versionen bleiben erhalten.</string>
+    <string name="work_labor">Arbeitszeit</string>
+    <string name="work_material">Material</string>
+    <string name="work_measurement">Messwert</string>
+    <string name="work_not_entered">Nicht angegeben</string>
+    <string name="work_pdf">PDF mit Positionen und Versionen teilen</string>
+</resources>
