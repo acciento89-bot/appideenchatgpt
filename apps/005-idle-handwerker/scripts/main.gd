@@ -42,6 +42,7 @@ var rewarded_context := "boost"
 var offline_reward_doubled := false
 var offline_reward_label: Label
 var offline_double_button: Button
+var window_safe_insets := Vector4.ZERO
 
 
 func _ready() -> void:
@@ -272,21 +273,19 @@ func _apply_responsive_layout() -> void:
 		return
 	var compact := get_viewport_rect().size.x <= 480.0
 	var side := 12 if compact else 20
-	var safe_top := 0
-	var safe_bottom := 0
-	var screen_size := DisplayServer.screen_get_size()
-	var safe_area := DisplayServer.get_display_safe_area()
-	if screen_size.y > 0 and safe_area.size.y > 0:
-		var scale_y := get_viewport_rect().size.y / float(screen_size.y)
-		safe_top = int(float(safe_area.position.y) * scale_y)
-		safe_bottom = int(float(screen_size.y - safe_area.end.y) * scale_y)
-	header_margin.add_theme_constant_override("margin_left", side)
-	header_margin.add_theme_constant_override("margin_right", side)
+	var window_rect := Rect2i(DisplayServer.window_get_position(), DisplayServer.window_get_size())
+	window_safe_insets = ResponsiveGeometry.insets(window_rect, DisplayServer.get_display_safe_area(), get_viewport_rect().size)
+	var safe_left := int(ceil(window_safe_insets.x))
+	var safe_top := int(ceil(window_safe_insets.y))
+	var safe_right := int(ceil(window_safe_insets.z))
+	var safe_bottom := int(ceil(window_safe_insets.w))
+	header_margin.add_theme_constant_override("margin_left", side + safe_left)
+	header_margin.add_theme_constant_override("margin_right", side + safe_right)
 	header_margin.add_theme_constant_override("margin_top", maxi(14 if compact else 18, safe_top + 6))
-	body_margin.add_theme_constant_override("margin_left", 10 if compact else 16)
-	body_margin.add_theme_constant_override("margin_right", 10 if compact else 16)
-	nav_margin.add_theme_constant_override("margin_left", 4 if compact else 8)
-	nav_margin.add_theme_constant_override("margin_right", 4 if compact else 8)
+	body_margin.add_theme_constant_override("margin_left", (10 if compact else 16) + safe_left)
+	body_margin.add_theme_constant_override("margin_right", (10 if compact else 16) + safe_right)
+	nav_margin.add_theme_constant_override("margin_left", (4 if compact else 8) + safe_left)
+	nav_margin.add_theme_constant_override("margin_right", (4 if compact else 8) + safe_right)
 	nav_margin.add_theme_constant_override("margin_bottom", maxi(10 if compact else 14, safe_bottom + 6))
 	for button in nav_buttons.values():
 		button.add_theme_font_size_override("font_size", 9 if compact else 11)
@@ -299,6 +298,7 @@ func _apply_responsive_layout() -> void:
 	settings_button.custom_minimum_size = Vector2(42, 30) if compact else Vector2(48, 34)
 	store_button.custom_minimum_size = Vector2(42, 30) if compact else Vector2(48, 34)
 	store_button.add_theme_font_size_override("font_size", 8 if compact else 9)
+	_apply_modal_safe_areas()
 
 
 func _build_dashboard() -> void:
@@ -410,6 +410,12 @@ func _build_team() -> void:
 	var passive := _highlight_card("PASSIVES EINKOMMEN", GameData.format_money(game.passive_income_per_second(), true) + " / Sek.", "Team + Verträge · offline bis zu 8 Stunden")
 	content.add_child(passive)
 	content.add_child(_team_progress_card())
+	var dispatch_entry := _settings_button("TEAM-EINSATZTAFEL", "%d / 3 parallel · Spezialisierungen und Arbeitsweise planen" % game.dispatch_board.tasks.size())
+	dispatch_entry.name = "DispatchEntry"
+	dispatch_entry.pressed.connect(_show_dispatch)
+	content.add_child(dispatch_entry)
+	if game.storage_blocked:
+		content.add_child(_label("Spielstand konnte nicht geladen werden. Die vorhandene Datei bleibt erhalten. Bitte Speicher prüfen und App neu starten.", 12, RED))
 	content.add_child(_section_title("Stammkundenverträge", "%d / %d AKTIV" % [game.active_contracts.size(), GameData.CONTRACTS.size()]))
 	for contract in GameData.CONTRACTS:
 		content.add_child(_contract_card(contract))
@@ -1072,6 +1078,7 @@ func _show_offline_dialog() -> void:
 	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	overlay.z_index = 70
 	add_child(overlay)
+	_apply_responsive_layout.call_deferred()
 	var center := CenterContainer.new()
 	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	overlay.add_child(center)
@@ -1174,6 +1181,7 @@ func _show_settings() -> void:
 	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	overlay.z_index = 60
 	add_child(overlay)
+	_apply_responsive_layout.call_deferred()
 	var center := CenterContainer.new()
 	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	overlay.add_child(center)
@@ -1290,6 +1298,7 @@ func _show_store() -> void:
 	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	overlay.z_index = 60
 	add_child(overlay)
+	_apply_responsive_layout.call_deferred()
 	var center := CenterContainer.new()
 	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	overlay.add_child(center)
@@ -1450,6 +1459,7 @@ func _show_action_modal(title: String, body: String, confirm_text: String, confi
 	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	overlay.z_index = 100
 	add_child(overlay)
+	_apply_responsive_layout.call_deferred()
 	var center := CenterContainer.new()
 	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	overlay.add_child(center)
@@ -1533,6 +1543,7 @@ func _show_tutorial() -> void:
 	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	overlay.z_index = 50
 	add_child(overlay)
+	_apply_responsive_layout.call_deferred()
 	var center := CenterContainer.new()
 	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	overlay.add_child(center)
@@ -1870,3 +1881,53 @@ func _business_title() -> String:
 
 func _business_subtitle() -> String:
 	return "%d Aufträge erledigt  •  %d Mitarbeiter" % [game.completed_jobs, _employee_count()]
+
+
+func _show_dispatch() -> void:
+	sfx.play_cue("click")
+	var overlay := ColorRect.new()
+	overlay.name = "DispatchOverlay"
+	overlay.color = Color("071522f8")
+	overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	overlay.z_index = 80
+	add_child(overlay)
+	var safe_margin := MarginContainer.new()
+	safe_margin.name = "DispatchSafeMargin"
+	safe_margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	overlay.add_child(safe_margin)
+	var panel := DispatchPanel.new()
+	panel.game = game
+	panel.close_requested.connect(func() -> void:
+		overlay.queue_free()
+		_refresh_current_tab()
+	)
+	safe_margin.add_child(panel)
+	_apply_modal_safe_areas()
+
+
+func _apply_modal_safe_areas() -> void:
+	# Insets are measured from the current window intersection, never from an
+	# assumed fold, device name, full-screen height or manufactured hinge.
+	var left := int(ceil(window_safe_insets.x)) + 10
+	var top := int(ceil(window_safe_insets.y)) + 10
+	var right := int(ceil(window_safe_insets.z)) + 10
+	var bottom := int(ceil(window_safe_insets.w)) + 10
+	var dispatch_margin := get_node_or_null("DispatchOverlay/DispatchSafeMargin") as MarginContainer
+	if dispatch_margin:
+		_set_margins(dispatch_margin, left, right, top, bottom)
+	for node in find_children("*", "CenterContainer", true, false):
+		var center := node as CenterContainer
+		# Existing overlays are direct children; other centered scene art is not a modal.
+		if not center.get_parent() is ColorRect or center.get_parent().get_parent() != self:
+			continue
+		center.offset_left = left
+		center.offset_top = top
+		center.offset_right = -right
+		center.offset_bottom = -bottom
+		for child in center.get_children():
+			if child is PanelContainer:
+				if not child.has_meta("dispatch_original_minimum"):
+					child.set_meta("dispatch_original_minimum", child.custom_minimum_size)
+				var desired: Vector2 = child.get_meta("dispatch_original_minimum")
+				child.custom_minimum_size = Vector2(minf(desired.x, maxf(0.0, size.x - left - right)), minf(desired.y, maxf(0.0, size.y - top - bottom)))
