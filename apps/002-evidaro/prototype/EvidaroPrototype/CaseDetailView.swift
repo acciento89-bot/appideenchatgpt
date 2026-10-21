@@ -39,11 +39,9 @@ struct CaseDetailView: View {
                 }
                 .sheet(item: $evidencePackShareItem) { shareItem in
                     EvidencePackShareSheet(url: shareItem.url)
-                        .ignoresSafeArea()
                 }
                 .sheet(item: $verificationBundleShareItem) { shareItem in
                     EvidencePackShareSheet(url: shareItem.url)
-                        .ignoresSafeArea()
                 }
                 .alert("snapshot.sealed_title", isPresented: Binding(
                     get: { latestSeal != nil },

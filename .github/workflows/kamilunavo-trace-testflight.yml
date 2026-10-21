@@ -107,6 +107,7 @@ jobs:
 
       - name: Detect App Store Connect signing secrets
         id: asc
+        if: github.event_name == 'workflow_dispatch'
         shell: bash
         env:
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
@@ -126,10 +127,10 @@ jobs:
         if: github.event_name == 'pull_request'
         shell: bash
         run: |
-          echo 'PR validation only: release device build completed; TestFlight upload is disabled until main.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'PR validation only: release device build completed; TestFlight upload requires an explicit manual workflow_dispatch run.' >> "$GITHUB_STEP_SUMMARY"
 
       - name: Prepare App Store Connect API key
-        if: github.event_name != 'pull_request' && steps.asc.outputs.available == 'true'
+        if: github.event_name == 'workflow_dispatch' && github.event_name != 'pull_request' && steps.asc.outputs.available == 'true'
         shell: bash
         env:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
@@ -143,7 +144,7 @@ jobs:
           echo "ASC_KEY_PATH=$KEY_PATH" >> "$GITHUB_ENV"
 
       - name: Create unsigned release archive
-        if: github.event_name != 'pull_request' && steps.asc.outputs.available == 'true'
+        if: github.event_name == 'workflow_dispatch' && github.event_name != 'pull_request' && steps.asc.outputs.available == 'true'
         working-directory: ${{ env.PROJECT_DIR }}
         shell: bash
         run: |
@@ -166,7 +167,7 @@ jobs:
           test -d "$RUNNER_TEMP/EvidaroPrototype.xcarchive/Products/Applications/EvidaroPrototype.app"
 
       - name: Create TestFlight export options
-        if: github.event_name != 'pull_request' && steps.asc.outputs.available == 'true'
+        if: github.event_name == 'workflow_dispatch' && github.event_name != 'pull_request' && steps.asc.outputs.available == 'true'
         shell: bash
         run: |
           cat > "$RUNNER_TEMP/ExportOptions.plist" <<PLIST
@@ -186,7 +187,7 @@ jobs:
 
       - name: Upload to TestFlight with Apple cloud distribution signing
         id: testflight
-        if: github.event_name != 'pull_request' && steps.asc.outputs.available == 'true'
+        if: github.event_name == 'workflow_dispatch' && github.event_name != 'pull_request' && steps.asc.outputs.available == 'true'
         continue-on-error: true
         shell: bash
         env:
@@ -217,7 +218,7 @@ jobs:
           exit 0
 
       - name: Upload TestFlight diagnostics
-        if: always() && github.event_name != 'pull_request' && steps.asc.outputs.available == 'true'
+        if: always() && github.event_name == 'workflow_dispatch' && github.event_name != 'pull_request' && steps.asc.outputs.available == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: kamilunavo-trace-testflight-diagnostics
@@ -228,14 +229,14 @@ jobs:
           retention-days: 7
 
       - name: Explain skipped TestFlight upload
-        if: github.event_name != 'pull_request' && steps.asc.outputs.available != 'true'
+        if: github.event_name == 'workflow_dispatch' && github.event_name != 'pull_request' && steps.asc.outputs.available != 'true'
         shell: bash
         run: |
           echo 'TestFlight upload skipped: ASC_ISSUER_ID, ASC_KEY_ID and ASC_PRIVATE_KEY_B64 are not configured in acciento89-bot/appideenchatgpt.' >> "$GITHUB_STEP_SUMMARY"
           echo 'The Release iphoneos build remains a required and successful validation gate.' >> "$GITHUB_STEP_SUMMARY"
 
       - name: Publish TestFlight result status
-        if: always() && github.event_name != 'pull_request'
+        if: always() && github.event_name == 'workflow_dispatch' && github.event_name != 'pull_request'
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
@@ -269,7 +270,7 @@ jobs:
             -d "$PAYLOAD" >/dev/null
 
       - name: Fail if TestFlight upload failed
-        if: github.event_name != 'pull_request' && steps.asc.outputs.available == 'true' && steps.testflight.outputs.status != '0'
+        if: github.event_name == 'workflow_dispatch' && github.event_name != 'pull_request' && steps.asc.outputs.available == 'true' && steps.testflight.outputs.status != '0'
         shell: bash
         run: |
           echo "TestFlight upload failed with exit code ${{ steps.testflight.outputs.status }}."
