@@ -55,6 +55,9 @@ class StructuredWorkNativeTest {
         assertEquals("1",device.executeShellCommand("getprop ro.kernel.qemu").trim())
         assertEquals("de.kamilunavo.rapportai",context.packageName)
         assertEquals("1.2.0",context.packageManager.getPackageInfo(context.packageName,0).versionName)
+        acknowledgeUnavailableBilling()
+    }
+    private fun acknowledgeUnavailableBilling() {
         // A clean, account-free Google APIs device has no billing service. Acknowledge only this
         // exact known notice; never dismiss crashes, permission dialogs or unknown application errors.
         ui.waitUntil(10000) { ui.onAllNodesWithText("Google Play Billing ist gerade nicht verfügbar.").fetchSemanticsNodes().isNotEmpty() }
@@ -68,7 +71,15 @@ class StructuredWorkNativeTest {
         enter(amountLabel,""); button(s(R.string.work_save)).assertIsNotEnabled()
         enter(amountLabel,amount)
         if(unit!=null) enter(s(R.string.work_unit),unit)
-        if(rotate) { ui.activityRule.scenario.recreate(); ui.waitForIdle(); field(amountLabel).assertTextContains(amount); field(s(R.string.work_description)).assertTextContains(label) }
+        if(rotate) {
+            ui.activityRule.scenario.recreate()
+            ui.waitForIdle()
+            // Recreation reconnects billing asynchronously; wait for this same exact notice
+            // before interacting with the preserved draft beneath it.
+            acknowledgeUnavailableBilling()
+            field(amountLabel).assertTextContains(amount)
+            field(s(R.string.work_description)).assertTextContains(label)
+        }
         // Complete the real single-line IME action before tapping the dialog button.
         field(if(unit!=null) s(R.string.work_unit) else amountLabel).performImeAction()
         ui.waitForIdle()
