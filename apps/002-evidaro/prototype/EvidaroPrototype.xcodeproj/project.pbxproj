@@ -22,6 +22,8 @@
 		A2000000000000000000000D /* ProUpgradeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000010 /* ProUpgradeView.swift */; };
 		A2000000000000000000000E /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000012 /* Assets.xcassets */; };
 		A2000000000000000000000F /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000013 /* PrivacyInfo.xcprivacy */; };
+		A20000000000000000000014 /* TracePacketComparison.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000014 /* TracePacketComparison.swift */; };
+		A20000000000000000000015 /* TracePacketComparisonView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000015 /* TracePacketComparisonView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -44,6 +46,8 @@
 		B20000000000000000000011 /* KamilunavoTrace.storekit */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = StoreKit/KamilunavoTrace.storekit; sourceTree = "<group>"; };
 		B20000000000000000000012 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		B20000000000000000000013 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		B20000000000000000000014 /* TracePacketComparison.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TracePacketComparison.swift; sourceTree = "<group>"; };
+		B20000000000000000000015 /* TracePacketComparisonView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TracePacketComparisonView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -74,6 +78,8 @@
 				B2000000000000000000000F /* EntitlementStore.swift */,
 				B20000000000000000000010 /* ProUpgradeView.swift */,
 				B20000000000000000000002 /* Models.swift */,
+				B20000000000000000000015 /* TracePacketComparisonView.swift */,
+				B20000000000000000000014 /* TracePacketComparison.swift */,
 				B20000000000000000000003 /* EvidenceStore.swift */,
 				B20000000000000000000008 /* EvidencePackExporter.swift */,
 				B20000000000000000000004 /* RootView.swift */,
@@ -198,6 +204,8 @@
 				A2000000000000000000000C /* EntitlementStore.swift in Sources */,
 				A2000000000000000000000D /* ProUpgradeView.swift in Sources */,
 				A20000000000000000000002 /* Models.swift in Sources */,
+				A20000000000000000000015 /* TracePacketComparisonView.swift in Sources */,
+				A20000000000000000000014 /* TracePacketComparison.swift in Sources */,
 				A20000000000000000000003 /* EvidenceStore.swift in Sources */,
 				A20000000000000000000007 /* EvidencePackExporter.swift in Sources */,
 				A20000000000000000000004 /* RootView.swift in Sources */,

@@ -20,6 +20,14 @@ struct RootView: View {
                     hero
                     stats
 
+                    NavigationLink {
+                        TracePacketComparisonView()
+                    } label: {
+                        Label("comparison.open", systemImage: "doc.on.doc")
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    .buttonStyle(.bordered)
+
                     HStack {
                         Text("home.cases")
                             .font(.title2.bold())

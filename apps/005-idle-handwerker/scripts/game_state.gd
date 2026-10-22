@@ -61,6 +61,8 @@ var processed_transactions: Dictionary = {}
 var rewarded_boost_until := 0
 var save_path := SAVE_PATH
 var _autosave_elapsed := 0.0
+var dispatch_board: DispatchBoard = DispatchBoard.new()
+var storage_blocked := false
 
 
 func _ready() -> void:
@@ -69,6 +71,7 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
+	dispatch_board.advance(delta)
 	var passive := passive_income_per_second()
 	if passive > 0.0:
 		money += passive * delta
@@ -221,7 +224,7 @@ func rewarded_income_multiplier() -> float:
 
 
 func can_prestige() -> bool:
-	return level >= PRESTIGE_LEVEL and company_value() >= PRESTIGE_VALUE and active_job_id == ""
+	return level >= PRESTIGE_LEVEL and company_value() >= PRESTIGE_VALUE and active_job_id == "" and dispatch_board.tasks.is_empty()
 
 
 func prestige_reward() -> int:
@@ -245,6 +248,7 @@ func perform_prestige() -> bool:
 	employees = {"azubi": 0, "monteur": 0, "meisterin": 0}
 	active_contracts.clear()
 	job_cooldowns.clear()
+	dispatch_board = DispatchBoard.new()
 	current_location_id = "neighborhood"
 	visited_locations = {"neighborhood": true}
 	reputation = 0
@@ -351,8 +355,8 @@ func select_location(location_id: String) -> bool:
 		if level < int(location.level):
 			notice.emit("Standort ab Betriebsstufe %d verfügbar." % int(location.level))
 			return false
-		if active_job_id != "":
-			notice.emit("Standortwechsel erst nach dem laufenden Auftrag.")
+		if active_job_id != "" or not dispatch_board.tasks.is_empty():
+			notice.emit("Standortwechsel erst nach dem Auftrag und allen eingesammelten Teameinsätzen.")
 			return false
 		var opening_new_location := requires_location_restart(location_id)
 		if opening_new_location:
@@ -371,6 +375,7 @@ func requires_location_restart(location_id: String) -> bool:
 
 
 func _reset_operating_progress() -> void:
+	dispatch_board = DispatchBoard.new()
 	money = 0.0
 	upgrades = {"tools": 0, "van": 0, "office": 0}
 	employees = {"azubi": 0, "monteur": 0, "meisterin": 0}
@@ -661,9 +666,15 @@ func claim_offline_reward() -> float:
 
 
 func save_game() -> bool:
+	if storage_blocked or not _existing_save_readable():
+		notice.emit("Spielstand nicht gespeichert. Vorhandene Daten bleiben erhalten; bitte Speicher prüfen und neu laden.")
+		return false
+	if DispatchBoard.from_payload(dispatch_board.to_payload()) == null:
+		return false
 	last_saved_unix = int(Time.get_unix_time_from_system())
 	var payload := {
-		"version": 8,
+		"version": 9,
+		"dispatch_board": dispatch_board.to_payload(),
 		"money": money,
 		"lifetime_earnings": lifetime_earnings,
 		"level": level,
@@ -707,12 +718,21 @@ func save_game() -> bool:
 		"processed_transactions": processed_transactions,
 		"rewarded_boost_until": rewarded_boost_until,
 	}
-	var file := FileAccess.open(save_path, FileAccess.WRITE)
+	# Balance and task collection share one atomic snapshot. Never delete the
+	# previous save to make replacement succeed.
+	var temporary := save_path + ".dispatch-tmp"
+	var file := FileAccess.open(temporary, FileAccess.WRITE)
 	if not file:
 		return false
 	file.store_string(JSON.stringify(payload))
 	file.flush()
-	return file.get_error() == OK
+	var wrote := file.get_error() == OK
+	file.close()
+	if wrote:
+		wrote = DirAccess.rename_absolute(ProjectSettings.globalize_path(temporary), ProjectSettings.globalize_path(save_path)) == OK
+	if not wrote:
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(temporary))
+	return wrote
 
 
 func delete_save() -> bool:
@@ -727,10 +747,15 @@ func load_game() -> void:
 		return
 	var file := FileAccess.open(save_path, FileAccess.READ)
 	if not file:
+		storage_blocked = true
 		return
 	var parsed = JSON.parse_string(file.get_as_text())
-	if not parsed is Dictionary:
+	file.close()
+	if not _valid_save_payload(parsed):
+		storage_blocked = true
 		return
+	storage_blocked = false
+	dispatch_board = DispatchBoard.from_payload(parsed.dispatch_board) if parsed.has("dispatch_board") else DispatchBoard.new()
 	money = maxf(0.0, float(parsed.get("money", money)))
 	lifetime_earnings = maxf(0.0, float(parsed.get("lifetime_earnings", 0.0)))
 	level = maxi(1, int(parsed.get("level", 1)))
@@ -777,6 +802,7 @@ func load_game() -> void:
 	processed_transactions = parsed.get("processed_transactions", {})
 	rewarded_boost_until = maxi(0, int(parsed.get("rewarded_boost_until", 0)))
 	var elapsed := clampf(float(Time.get_unix_time_from_system() - last_saved_unix), 0.0, OFFLINE_CAP_SECONDS)
+	dispatch_board.advance(elapsed)
 	if elapsed > 10.0:
 		offline_reward += passive_income_per_second() * elapsed * OFFLINE_EFFICIENCY
 		offline_elapsed_seconds = minf(OFFLINE_CAP_SECONDS, offline_elapsed_seconds + elapsed)
@@ -785,3 +811,80 @@ func load_game() -> void:
 			active_job_remaining = maxf(0.0, active_job_remaining - elapsed)
 			if active_job_remaining <= 0.0:
 				complete_active_job(maxf(0.0, elapsed - remaining_before_offline))
+
+
+func _valid_save_payload(value: Variant) -> bool:
+	if not value is Dictionary:
+		return false
+	var version: Variant = value.get("version", 1)
+	if not (version is int or version is float) or not is_finite(float(version)) or floor(float(version)) != float(version) or float(version) < 1.0 or float(version) > 9.0:
+		return false
+	if int(version) == 9 and not value.has("dispatch_board"):
+		return false
+	if value.has("dispatch_board"):
+		var loaded: Variant = DispatchBoard.from_payload(value.dispatch_board)
+		if loaded == null or not value.get("employees", {}) is Dictionary:
+			return false
+		for employee in DispatchBoard.STAFF:
+			var busy := 0
+			for task in loaded.tasks:
+				if task.employee_id == employee: busy += 1
+			var owned: Variant = value.get("employees", {}).get(employee, 0)
+			if not DispatchBoard._integer(owned, 0, 1000000) or busy > int(owned): return false
+	return true
+
+
+func _existing_save_readable() -> bool:
+	if not FileAccess.file_exists(save_path):
+		return true
+	var file := FileAccess.open(save_path, FileAccess.READ)
+	if not file: return false
+	var parsed: Variant = JSON.parse_string(file.get_as_text())
+	file.close()
+	return _valid_save_payload(parsed)
+
+
+func dispatch_available(employee_id: String) -> int:
+	return dispatch_board.available(employee_id, employees)
+
+
+func dispatch_assign(order_id: String, employee_id: String, pace: String) -> bool:
+	var previous: Dictionary = dispatch_board.to_payload()
+	if storage_blocked or dispatch_board.assign(order_id, employee_id, pace, employees, level).is_empty():
+		notice.emit("Teameinsatz nicht verfügbar. Stufe, freie Mitarbeiter und drei Einsatzplätze prüfen.")
+		return false
+	return _persist_dispatch(previous)
+
+
+func dispatch_specialize(employee_id: String, specialization: String) -> bool:
+	var previous: Dictionary = dispatch_board.to_payload()
+	if storage_blocked or not dispatch_board.set_specialization(employee_id, specialization): return false
+	return _persist_dispatch(previous)
+
+
+func dispatch_collect(id: String) -> bool:
+	var previous: Dictionary = dispatch_board.to_payload()
+	var previous_money := money
+	var previous_lifetime := lifetime_earnings
+	if storage_blocked: return false
+	var receipt: Dictionary = dispatch_board.collect(id)
+	if receipt.is_empty(): return false
+	var reward := float(receipt.reward_cents) / 100.0
+	money += reward
+	lifetime_earnings += reward
+	if not _persist_dispatch(previous):
+		money = previous_money
+		lifetime_earnings = previous_lifetime
+		return false
+	notice.emit("Teameinsatz eingesammelt: %s" % GameData.format_money(reward, true))
+	return true
+
+
+func _persist_dispatch(previous: Dictionary) -> bool:
+	if not save_game():
+		dispatch_board = DispatchBoard.from_payload(previous)
+		notice.emit("Teameinsatz nicht gespeichert. Spielstand und Belohnung bleiben erhalten.")
+		changed.emit()
+		return false
+	changed.emit()
+	return true

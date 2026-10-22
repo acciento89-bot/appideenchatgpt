@@ -77,7 +77,7 @@ jobs:
       - name: Compile project
         shell: bash
         run: |
-          set -o pipefail
+          set -euo pipefail
           "$GODOT" --headless --editor --path "$PROJECT_DIR" --quit 2>&1 | tee godot-import.log
           if grep -E "SCRIPT ERROR|Parse Error|Compile Error|Failed to load script|Failed loading resource" godot-import.log; then
             exit 1
@@ -118,16 +118,45 @@ jobs:
       - name: Run economy tests
         shell: bash
         run: |
-          set -o pipefail
+          set -euo pipefail
           "$GODOT" --headless --path "$PROJECT_DIR" --script res://tests/test_economy.gd 2>&1 | tee godot-tests.log
+          if grep -E "SCRIPT ERROR|Parse Error|Compile Error|Failed to load script|Failed loading resource|^FAIL:" godot-tests.log; then
+            exit 1
+          fi
           grep -q "All economy tests passed." godot-tests.log
 
       - name: Run responsive UI smoke tests
         shell: bash
         run: |
-          set -o pipefail
+          set -euo pipefail
           "$GODOT" --headless --path "$PROJECT_DIR" --script res://tests/test_ui_smoke.gd 2>&1 | tee godot-ui-tests.log
+          if grep -E "SCRIPT ERROR|Parse Error|Compile Error|Failed to load script|Failed loading resource|^FAIL:" godot-ui-tests.log; then
+            exit 1
+          fi
           grep -q "All responsive UI smoke tests passed." godot-ui-tests.log
+
+      - name: Run staff dispatch regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          run_dispatch_test() {
+            local script="$1"
+            local receipt="$2"
+            local expected="$3"
+            "$GODOT" --headless --path "$PROJECT_DIR" --script "res://tests/$script" 2>&1 | tee "$receipt"
+            # Godot can return zero on a script parse error. A PASS marker alone
+            # also cannot excuse a script failure elsewhere in the process.
+            if grep -E "SCRIPT ERROR|Parse Error|Compile Error|Failed to load script|Failed loading resource|^FAIL:" "$receipt"; then
+              return 1
+            fi
+            # The malformed JSON protection fixture deliberately logs ERROR;
+            # require its successful assertions instead of rejecting all ERRORs.
+            grep -Fq "$expected" "$receipt"
+          }
+          run_dispatch_test test_dispatch_board.gd godot-dispatch-board.log 'ALL IDLE DISPATCH BOARD TESTS PASSED:'
+          run_dispatch_test test_dispatch_integration.gd godot-dispatch-integration.log 'ALL IDLE DISPATCH INTEGRATION TESTS PASSED:'
+          run_dispatch_test test_dispatch_ui.gd godot-dispatch-ui.log 'ALL IDLE DISPATCH UI TESTS PASSED:'
+          run_dispatch_test test_dispatch_archive_contract.gd godot-dispatch-archive.log 'ALL IDLE REQUIRED-BOARD ARCHIVE CHECKS PASSED'
 
       - name: Upload failure logs
         if: failure()
@@ -138,4 +167,5 @@ jobs:
             godot-import.log
             godot-tests.log
             godot-ui-tests.log
+            godot-dispatch-*.log
           if-no-files-found: ignore

@@ -113,3 +113,21 @@ Das Projekt nutzt Godot und GDScript ohne Expo. Für den späteren iOS-Export ka
 - Ziehen funktioniert nun über die gesamte Fläche der Karten in Optionen, Shop und Hauptansichten
 - Buttons reichen Touch-Gesten an den umgebenden Scrollbereich weiter, bleiben aber normal antippbar
 - Niedrigere Drag-Schwelle und neutrale Hover-/Pressed-Darstellung verhindern blockiertes Scrollen und kurzes Aufblitzen
+
+## Team-Einsatztafel — vorbereitete Erweiterung
+
+In **Firma → TEAM-EINSATZTAFEL** planen eingestellte Mitarbeiter bis zu drei zusätzliche kleine Teamaufträge. Spezialisierung und Arbeitsweise bestimmen die vorher sichtbare simulierte Qualität, Dauer und Bonuszahlung. Fertige Einsätze werden einzeln eingesammelt; der Bonus wird gemeinsam mit dem Einsatzstatus gespeichert. Laufende Einsätze behalten ihre ursprüngliche Auswahl, auch wenn die Spezialisierung später geändert wird.
+
+Das bisherige passive Personal- und Vertragseinkommen läuft weiter. Teameinsätze geben keine manuellen Auftrags-XP, Kundenbewertungen oder Serienpunkte. Sie laufen offline höchstens acht Stunden weiter, starten keine Folgeaufträge und müssen vor Standortwechsel/Meisterbrief eingesammelt werden. Die letzten fünf eingesammelten Einsätze bleiben als Übersicht erhalten.
+
+Alte Spielstände erhalten eine leere Einsatztafel. Neue Daten werden atomar mit dem bisherigen Spielstand gespeichert; unlesbare oder unbekannte neue Daten werden nicht durch einen leeren Spielstand überschrieben. Die bestehende Produktversion bleibt unverändert, bis die koordinierte native Abnahme abgeschlossen ist.
+
+Zusätzliche lokale Prüfungen (vom Testkoordinator seriell auszuführen):
+
+```bash
+godot --headless --path . --script tests/test_dispatch_board.gd
+godot --headless --path . --script tests/test_dispatch_integration.gd
+godot --headless --path . --script tests/test_dispatch_ui.gd
+```
+
+Die fokussierten Headless-Prüfungen ersetzen keine native iOS-/Android-/Duo-Abnahme. Vor vollständigen Engine-Prüfungen die bereits im CI gepinnten AdMob-/IAP-Abhängigkeiten bereitstellen; bei GDScript-Parsefehlern genügt ein Prozess-Exitcode0 nicht als Erfolg.
