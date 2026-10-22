@@ -12,8 +12,9 @@ android {
         applicationId = "de.kamilunavo.rapportai"
         minSdk = 24
         targetSdk = 36
-        versionCode = 3
-        versionName = "1.0.1"
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        versionCode = 4
+        versionName = "1.2.0"
     }
 
     buildTypes {
@@ -38,6 +39,7 @@ android {
 }
 
 dependencies {
+    constraints { implementation("androidx.fragment:fragment:1.9.1") { because("Replace obsolete Fragment 1.1.0 requested by the existing billing dependency") } }
     val composeBom = platform("androidx.compose:compose-bom:2025.05.01")
     implementation(composeBom)
     androidTestImplementation(composeBom)
@@ -57,6 +59,23 @@ dependencies {
     debugImplementation("androidx.compose.ui:ui-tooling")
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.json:json:20240303")
-    androidTestImplementation("androidx.test.ext:junit:1.2.1")
+    androidTestImplementation("androidx.test.ext:junit:1.3.0")
+    androidTestImplementation("androidx.test:runner:1.7.0")
+    androidTestImplementation("androidx.test.uiautomator:uiautomator:2.3.0")
+    debugImplementation("androidx.compose.ui:ui-test-manifest")
     androidTestImplementation("androidx.compose.ui:ui-test-junit4")
+}
+
+// Check both actual runtime graphs; a declaration alone does not prove the packaged version.
+tasks.register("verifyFragmentRuntime") {
+    doLast {
+        listOf("debugRuntimeClasspath", "releaseRuntimeClasspath").forEach { name ->
+            val selected = configurations.getByName(name).resolvedConfiguration.resolvedArtifacts.filter {
+                it.moduleVersion.id.group == "androidx.fragment" && it.name == "fragment"
+            }
+            check(selected.size == 1 && selected.single().moduleVersion.id.version == "1.9.1") {
+                "Expected Fragment 1.9.1 in $name; found ${selected.map { it.moduleVersion.id }}"
+            }
+        }
+    }
 }

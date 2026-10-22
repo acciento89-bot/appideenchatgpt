@@ -2,14 +2,7 @@ name: Rapport AI Validate
 
 on:
   workflow_dispatch:
-  push:
-    paths:
-      - "apps/012-rapport-ai/**"
-      - ".github/workflows/rapport-ai-validate.yml"
-  pull_request:
-    paths:
-      - "apps/012-rapport-ai/**"
-      - ".github/workflows/rapport-ai-validate.yml"
+
 
 jobs:
   build:
