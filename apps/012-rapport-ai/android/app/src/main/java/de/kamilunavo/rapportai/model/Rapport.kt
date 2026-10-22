@@ -30,7 +30,10 @@ data class Rapport(
     val reportText: String = "",
     val tone: Tone = Tone.FACTUAL,
     val createdAt: Long = System.currentTimeMillis(),
-    val updatedAt: Long = System.currentTimeMillis()
+    val updatedAt: Long = System.currentTimeMillis(),
+    val workItems: List<WorkItem> = emptyList(),
+    val revisions: List<WorkRevision> = emptyList(),
+    val acknowledgements: List<WorkAcknowledgement> = emptyList()
 ) {
     val displayTitle: String
         get() = customer.trim().ifEmpty { system.trim().ifEmpty { "Neuer Arbeitsrapport" } }

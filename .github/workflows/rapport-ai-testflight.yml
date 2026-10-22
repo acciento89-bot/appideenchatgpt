@@ -7,10 +7,7 @@ on:
         description: App Store Connect build number
         required: false
         default: ""
-  pull_request:
-    paths:
-      - ".github/workflows/rapport-ai-testflight.yml"
-      - "apps/012-rapport-ai/prototype/**"
+
 
 permissions:
   contents: read

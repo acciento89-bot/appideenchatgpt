@@ -40,7 +40,9 @@ enum PDFExporter {
         let renderer = UIGraphicsPDFRenderer(bounds: Layout.page, format: format)
         let url = FileManager.default.temporaryDirectory
             .appendingPathComponent("Rapport-\(report.id.uuidString.prefix(8)).pdf")
-        let body = report.reportText.trimmingCharacters(in: .whitespacesAndNewlines)
+        let narrative = report.reportText.trimmingCharacters(in: .whitespacesAndNewlines)
+        let appendix = report.structuredWorkText(german: Locale.current.language.languageCode?.identifier == "de")
+        let body = narrative + "\n\n" + appendix
         let pages = paginate(body)
 
         try renderer.writePDF(to: url) { context in

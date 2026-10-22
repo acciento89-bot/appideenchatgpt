@@ -34,6 +34,11 @@ struct CreateRapportView: View {
                 hero
                 contextCard
                 inputCard
+                NavigationLink { StructuredWorkView(draft: $draft) } label: {
+                    Label("work.title", systemImage: "list.bullet.clipboard").frame(maxWidth: .infinity)
+                }.buttonStyle(.bordered).tint(CraftTheme.cyan)
+                if let message = store.errorMessage { Text(LocalizedStringKey(message)).foregroundStyle(.red) }
+                if store.loadBlocked { Button("work.retry") { store.reload() } }
                 if !draft.reportText.isEmpty { resultCard }
             }
             .padding(16)
@@ -150,14 +155,15 @@ struct CreateRapportView: View {
                     .background(CraftTheme.background.opacity(0.7), in: RoundedRectangle(cornerRadius: 14))
                 Text("Bitte Inhalt, Messwerte und ausgeführte Arbeiten vor Verwendung prüfen.")
                     .font(.caption).foregroundStyle(CraftTheme.textMuted)
-                HStack {
-                    Button("Speichern", systemImage: "square.and.arrow.down") { store.save(draft) }
-                    Spacer()
-                    Button("PDF teilen", systemImage: "square.and.arrow.up") {
-                        store.save(draft)
-                        do { shareItem = ShareItem(url: try PDFExporter.makePDF(for: draft, profile: profileStore.profile)) } catch { errorMessage = error.localizedDescription }
+                VStack(alignment: .leading, spacing: 12) {
+                    Button("work.saveReport", systemImage: "square.and.arrow.down") { if let saved = store.save(draft) { draft = saved } }
+                    Button("work.sharePDF", systemImage: "square.and.arrow.up") {
+                        guard let saved = store.save(draft) else { return }
+                        draft = saved
+                        do { shareItem = ShareItem(url: try PDFExporter.makePDF(for: saved, profile: profileStore.profile)) } catch { errorMessage = error.localizedDescription }
                     }
                 }
+                .disabled(store.loadBlocked)
                 .buttonStyle(.bordered)
                 .tint(CraftTheme.cyan)
             }
@@ -179,23 +185,33 @@ struct CreateRapportView: View {
 
 struct HistoryView: View {
     @EnvironmentObject private var store: RapportStore
+    @State private var deleting: [UUID] = []
 
     var body: some View {
         Group {
-            if store.reports.isEmpty {
+            if store.loadBlocked {
+                VStack(spacing: 16) {
+                    Text("work.loadError")
+                    Button("work.retry") { store.reload() }
+                }.padding()
+            } else if store.reports.isEmpty {
                 ContentUnavailableView("Noch keine Rapporte", systemImage: "doc.text.magnifyingglass", description: Text("Gespeicherte Arbeitsrapporte erscheinen hier."))
             } else {
                 List {
-                    ForEach(store.reports) { report in NavigationLink(value: report) { ReportRow(report: report) } }
-                        .onDelete(perform: store.delete)
+                    if let message = store.errorMessage { Text(LocalizedStringKey(message)).foregroundStyle(.red) }
+                    ForEach(store.reports) { report in NavigationLink(value: report.id) { ReportRow(report: report) } }
+                        .onDelete { offsets in deleting = offsets.compactMap { store.reports.indices.contains($0) ? store.reports[$0].id : nil } }
                 }
                 .scrollContentBackground(.hidden)
             }
         }
         .background(CraftTheme.background.ignoresSafeArea())
         .navigationTitle("Rapporte")
-        .navigationDestination(for: RapportDraft.self) { report in
-            ReportDetailView(report: report)
+        .navigationDestination(for: UUID.self) { id in
+            if let report = store.reports.first(where: { $0.id == id }) { ReportDetailView(report: report) }
+        }
+        .confirmationDialog("work.deleteReport", isPresented: Binding(get: { !deleting.isEmpty }, set: { if !$0 { deleting = [] } }), titleVisibility: .visible) {
+            Button("work.delete", role: .destructive) { _ = store.deleteReports(deleting); deleting = [] }
         }
     }
 }
@@ -216,6 +232,7 @@ struct ReportDetailView: View {
     @EnvironmentObject private var profileStore: CompanyProfileStore
     @State var report: RapportDraft
     @State private var shareItem: ShareItem?
+    @State private var exportError = false
 
     var body: some View {
         ScrollView {
@@ -226,11 +243,18 @@ struct ReportDetailView: View {
                     if !report.system.isEmpty { Label(report.system, systemImage: "wrench.adjustable") }
                     Divider()
                     TextEditor(text: $report.reportText).frame(minHeight: 360).scrollContentBackground(.hidden)
-                    Button("Änderungen speichern") { store.save(report) }.buttonStyle(PrimaryButtonStyle())
-                    Button("PDF teilen", systemImage: "square.and.arrow.up") {
-                        if let url = try? PDFExporter.makePDF(for: report, profile: profileStore.profile) { shareItem = ShareItem(url: url) }
-                    }
+                    NavigationLink { StructuredWorkView(draft: $report) } label: { Label("work.title", systemImage: "list.bullet.clipboard") }
                         .buttonStyle(.bordered).tint(CraftTheme.cyan)
+                    Button("work.saveReport") { if let saved = store.save(report) { report = saved } }.buttonStyle(PrimaryButtonStyle()).disabled(store.loadBlocked)
+                    Button("work.sharePDF", systemImage: "square.and.arrow.up") {
+                        guard let saved = store.save(report) else { return }
+                        report = saved
+                        do { shareItem = ShareItem(url: try PDFExporter.makePDF(for: saved, profile: profileStore.profile)) }
+                        catch { exportError = true }
+                    }.disabled(store.loadBlocked)
+                        .buttonStyle(.bordered).tint(CraftTheme.cyan)
+                    if let message = store.errorMessage { Text(LocalizedStringKey(message)).foregroundStyle(.red) }
+                    if exportError { Text("work.exportError").foregroundStyle(.red) }
                 }
             }.padding(16).padding(.bottom, 112)
         }

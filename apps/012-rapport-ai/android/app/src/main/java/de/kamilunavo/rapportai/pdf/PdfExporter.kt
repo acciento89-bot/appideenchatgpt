@@ -9,6 +9,7 @@ import android.graphics.Typeface
 import android.graphics.pdf.PdfDocument
 import de.kamilunavo.rapportai.model.CompanyProfile
 import de.kamilunavo.rapportai.model.Rapport
+import de.kamilunavo.rapportai.model.structuredWorkText
 import java.io.File
 import java.io.FileOutputStream
 import java.text.SimpleDateFormat
@@ -28,7 +29,7 @@ object PdfExporter {
         val safeName = report.displayTitle.replace(Regex("[^A-Za-z0-9ÄÖÜäöüß_-]"), "_").take(40)
         val file = File(directory, "Rapport_${safeName}_${report.updatedAt}.pdf")
         val document = PdfDocument()
-        val bodyLines = wrap(report.reportText.ifBlank { report.rawText }, 88)
+        val bodyLines = wrap(report.reportText.ifBlank { report.rawText } + "\n\n" + report.structuredWorkText(Locale.getDefault().language == "de"), 88)
         var pageNumber = 1
         var index = 0
 
