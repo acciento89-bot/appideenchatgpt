@@ -62,7 +62,11 @@ class StructuredWorkNativeTest {
         enter(amountLabel,amount)
         if(unit!=null) enter(s(R.string.work_unit),unit)
         if(rotate) { ui.activityRule.scenario.recreate(); ui.waitForIdle(); field(amountLabel).assertTextContains(amount); field(s(R.string.work_description)).assertTextContains(label) }
+        // Complete the real single-line IME action before tapping the dialog button.
+        field(if(unit!=null) s(R.string.work_unit) else amountLabel).performImeAction()
+        ui.waitForIdle()
         click(s(R.string.work_save))
+        ui.onNodeWithText(s(R.string.work_item)).assertDoesNotExist()
     }
     private fun openRevision(number: Int) {
         val n=ui.onNode(hasText(s(R.string.work_revision)+" $number ·",substring=true) and hasClickAction())
