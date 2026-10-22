@@ -36,3 +36,7 @@ class WindowTests(unittest.TestCase):
 
  def test_normal_launcher_after_test_teardown_is_not_an_anr(self):
   m.reject_anr_window(b"Window{abc u0 com.google.android.apps.nexuslauncher/.NexusLauncherActivity}")
+
+ def test_empty_or_nonwindow_response_is_not_acceptance_evidence(self):
+  for value in [b"",b"Unable to inspect windows",b"Permission denied"]:
+   with self.assertRaises(RuntimeError):m.reject_anr_window(value)

@@ -11,6 +11,8 @@ def reject_anr(evidence):
   raise RuntimeError('System/launcher ANR; evidence rejected without dialog dismissal')
 
 def reject_anr_window(evidence):
+ if not re.search(rb'Window\{[^}]+\}',evidence):
+  raise RuntimeError('Actual window inventory required')
  if re.search(rb'ANR in|Application Not Responding|isn.t responding',evidence,re.I):
   raise RuntimeError('ANR window; evidence rejected without dialog dismissal')
 
