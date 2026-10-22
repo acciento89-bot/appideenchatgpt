@@ -143,6 +143,7 @@ class StructuredWorkNativeTest {
         }
         ui.onNodeWithContentDescription("Neuen Rapport beginnen").performClick()
         click(s(R.string.work_title)); click(s(R.string.work_templates)); click(s(R.string.work_use_template))
+        ensureComposed(hasText(context.getString(R.string.work_incomplete,6)))
         ui.onNodeWithText(context.getString(R.string.work_incomplete,6)).performScrollTo().assertIsDisplayed()
         capture("04-blank-template")
         assertEquals(1,archive().reports.size); assertEquals(1,archive().templates.size)
