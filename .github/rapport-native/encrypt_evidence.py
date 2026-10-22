@@ -35,8 +35,8 @@ if raw.is_symlink() or not raw.is_dir() or raw.stat().st_uid != os.getuid():
 if output.exists() or output.is_symlink() or raw.resolve() in output.resolve().parents:
     sys.exit('Diagnostic ciphertext must use a fresh path outside raw evidence')
 import json
-from run_acceptance import GENERIC_FILES,NATIVE_FILES
-allowed=GENERIC_FILES | NATIVE_FILES
+from run_acceptance import GENERIC_FILES,NATIVE_FILES,OPTIONAL_FILES
+allowed=GENERIC_FILES | NATIVE_FILES | OPTIONAL_FILES
 files = sorted(raw.iterdir())
 total = 0
 for file in files:

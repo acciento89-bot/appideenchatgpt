@@ -3,6 +3,7 @@ import hashlib,io,json,os,pathlib,re,subprocess,tarfile,datetime
 PACKAGE='de.kamilunavo.rapportai'
 METHODS=['positionsTemplateAcknowledgementRevisionAndPdfThroughRealUi','coldReopenRetainsExactHistoryAndTemplate']
 NATIVE_FILES={f'{i:02d}-{name}.png' for i,name in enumerate(['entered-positions','local-acknowledgement','new-unacknowledged-revision','blank-template','cold-reopened'],1)}
+OPTIONAL_FILES={'failure-screen.png','failure-semantics.txt'}
 NATIVE_FILES |= {'actual-report.pdf','pdf-page-count.txt'} | {f'pdf-page-{i}.png' for i in range(1,13)}
 GENERIC_FILES={'result.json','source-commit.txt','build.log','preflight-anr.txt','installed-identity.txt','scenario.txt','cold-reopen.txt','actual-archive.json','before-cold-archive.json','final-screen.png','window.txt','logcat.txt','final-ui.xml','emulator-stop.txt','avd-delete.txt','remaining-avds.txt','remaining-devices.txt','cleanup.json','cleanup-failed.txt'}
 def preflight(call,serial):
@@ -61,7 +62,7 @@ def run(execute=subprocess.run):
     with tarfile.open(fileobj=io.BytesIO(packed)) as t:
      for m in t.getmembers():
       if m.isdir():continue
-      p=pathlib.PurePosixPath(m.name);assert m.isfile() and p.parent==pathlib.PurePosixPath('native-proof') and p.name in NATIVE_FILES and p.name not in found and m.size<8*1024*1024
+      p=pathlib.PurePosixPath(m.name);assert m.isfile() and p.parent==pathlib.PurePosixPath('native-proof') and p.name in NATIVE_FILES | OPTIONAL_FILES and p.name not in found and m.size<8*1024*1024
       found.add(p.name);(proof/p.name).write_bytes(t.extractfile(m).read())
     if result['status']=='PASSED':
      count=int((proof/'pdf-page-count.txt').read_text());assert 2<=count<=12

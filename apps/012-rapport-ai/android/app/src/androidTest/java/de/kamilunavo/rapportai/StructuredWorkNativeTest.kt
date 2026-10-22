@@ -29,7 +29,15 @@ class StructuredWorkNativeTest {
     private val firstText = "Heizkreis geprüft und Wartung dokumentiert."
     private val secondText = "Heizkreis geprüft; zweite gespeicherte Fassung mit Ergänzung."
     private fun s(id: Int) = context.getString(id)
-    private fun button(value: String) = ui.onNode(hasText(value) and hasClickAction())
+    private fun button(value: String): SemanticsNodeInteraction {
+        val match=hasText(value) and hasClickAction()
+        val modal=match and hasAnyAncestor(isDialog())
+        return if(ui.onAllNodes(modal).fetchSemanticsNodes().size==1) ui.onNode(modal) else ui.onNode(match)
+    }
+    private fun closeDialog(title: String) {
+        ui.onNode(hasText(s(R.string.work_close)) and hasClickAction() and hasAnyAncestor(isDialog() and hasAnyDescendant(hasText(title)))).performClick()
+        ui.waitForIdle()
+    }
     private fun field(value: String) = ui.onNode(hasText(value) and hasSetTextAction())
     private fun click(value: String) { val n=button(value); if (!n.isDisplayed()) n.performScrollTo(); n.assertIsDisplayed().assertIsEnabled().performClick(); ui.waitForIdle() }
     private fun enter(label: String, value: String) { val n=field(label); if (!n.isDisplayed()) n.performScrollTo(); n.performTextReplacement(value); ui.waitForIdle() }
@@ -61,6 +69,9 @@ class StructuredWorkNativeTest {
         if(!n.isDisplayed()) n.performScrollTo(); n.performClick(); ui.waitForIdle()
     }
     @Test fun positionsTemplateAcknowledgementRevisionAndPdfThroughRealUi() {
+        try { exercisePositionsTemplateAndPdf() } catch(t: Throwable) { runCatching { capture("failure-screen"); File(context.filesDir,"native-proof/failure-semantics.txt").writeText(ui.onAllNodes(isRoot(),useUnmergedTree=true).printToString()) }; throw t }
+    }
+    private fun exercisePositionsTemplateAndPdf() {
         startup()
         enter("Kunde / Auftraggeber",customer); enter("Einsatzort","Musterstraße 12"); enter("Objekt / Anlage / Bauteil","Heizkreis EG")
         enter("Notizen vom Einsatz",notes)
@@ -82,14 +93,14 @@ class StructuredWorkNativeTest {
         enter(s(R.string.work_name),"Alex Muster"); enter(s(R.string.work_note),"Vor Ort geprüft Ä Δ Σ")
         button(s(R.string.work_save)).assertIsNotEnabled(); ui.onNode(isToggleable()).performClick(); click(s(R.string.work_save))
         ui.onNodeWithText("Alex Muster",substring=true).performScrollTo().assertIsDisplayed(); capture("02-local-acknowledgement")
-        click(s(R.string.work_close)); click(s(R.string.work_close))
+        closeDialog(s(R.string.work_revision)+" 1"); closeDialog(s(R.string.work_history))
         enter(s(R.string.work_narrative),secondText); click(s(R.string.work_save))
         val saved=archive().reports.single(); assertEquals(2,saved.revisions.size); assertEquals(firstText,saved.revisions.first().content.reportText)
         assertEquals(secondText,saved.revisions.last().content.reportText); assertEquals(1,saved.acknowledgements.size)
         assertEquals(saved.revisions.first().id,saved.acknowledgements.single().revisionID); assertFalse(saved.latestIsAcknowledged)
         click(s(R.string.work_history)); openRevision(2)
         ui.onAllNodesWithText("Alex Muster",substring=true).assertCountEquals(0); capture("03-new-unacknowledged-revision")
-        click(s(R.string.work_close)); click(s(R.string.work_close)); click(s(R.string.work_back))
+        closeDialog(s(R.string.work_revision)+" 2"); closeDialog(s(R.string.work_history)); click(s(R.string.work_back))
         click(s(R.string.work_pdf))
         // The actual production button saved then generated the real PDF and launched Android's chooser.
         assertTrue(device.wait(androidx.test.uiautomator.Until.hasObject(androidx.test.uiautomator.By.pkg("android")),10000))
