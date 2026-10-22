@@ -126,7 +126,9 @@ class StructuredWorkNativeTest {
         closeDialog(s(R.string.work_revision)+" 2"); closeDialog(s(R.string.work_history)); click(s(R.string.work_back))
         click(s(R.string.work_pdf))
         // The actual production button saved then generated the real PDF and launched Android's chooser.
-        assertTrue(device.wait(androidx.test.uiautomator.Until.hasObject(androidx.test.uiautomator.By.pkg("android")),10000))
+        // API35's real sharesheet is hosted by the modular intent resolver, not "android".
+        assertTrue(device.wait(androidx.test.uiautomator.Until.hasObject(androidx.test.uiautomator.By.pkg("com.android.intentresolver")),10000))
+        assertEquals("com.android.intentresolver",device.currentPackageName)
         device.pressBack(); ui.waitForIdle()
         val files=File(context.filesDir,"reports").listFiles()!!.filter { it.extension=="pdf" }; assertEquals(1,files.size)
         val dir=File(context.filesDir,"native-proof").apply { mkdirs() }; files.single().copyTo(File(dir,"actual-report.pdf"))
