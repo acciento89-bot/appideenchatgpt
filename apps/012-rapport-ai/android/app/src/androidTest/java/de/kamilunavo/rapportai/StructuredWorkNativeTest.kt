@@ -39,8 +39,15 @@ class StructuredWorkNativeTest {
         ui.waitForIdle()
     }
     private fun field(value: String) = ui.onNode(hasText(value) and hasSetTextAction())
-    private fun click(value: String) { val n=button(value); if (!n.isDisplayed()) n.performScrollTo(); n.assertIsDisplayed().assertIsEnabled().performClick(); ui.waitForIdle() }
-    private fun enter(label: String, value: String) { val n=field(label); if (!n.isDisplayed()) n.performScrollTo(); n.performTextReplacement(value); ui.waitForIdle() }
+    private fun ensureComposed(match: SemanticsMatcher) {
+        if(ui.onAllNodes(match).fetchSemanticsNodes().isEmpty() && ui.onAllNodes(isDialog()).fetchSemanticsNodes().isEmpty()) {
+            // LazyColumn only composes visible rows. Scroll its real list to the exact target,
+            // never retry an action or select a neighbouring report/dialog control.
+            ui.onNode(hasScrollToIndexAction()).performScrollToNode(match)
+        }
+    }
+    private fun click(value: String) { ensureComposed(hasText(value) and hasClickAction()); val n=button(value); if (!n.isDisplayed()) n.performScrollTo(); n.assertIsDisplayed().assertIsEnabled().performClick(); ui.waitForIdle() }
+    private fun enter(label: String, value: String) { ensureComposed(hasText(label) and hasSetTextAction()); val n=field(label); if (!n.isDisplayed()) n.performScrollTo(); n.performTextReplacement(value); ui.waitForIdle() }
     private fun archive() = WorkWorkspaceArchive(File(context.filesDir,"RapportAI/workspace.json")).load()
     private fun capture(name: String) { ui.waitForIdle(); val f=File(context.filesDir,"native-proof/$name.png"); f.parentFile!!.mkdirs(); assertTrue(device.takeScreenshot(f)) }
     private fun startup() {
@@ -86,6 +93,7 @@ class StructuredWorkNativeTest {
         add(R.string.work_material,"Rohr Abschnitt B", "0.2","m")
         add(R.string.work_measurement,"Rohrdurchmesser", "25","mm")
         add(R.string.work_measurement,"Anlagendruck", "1.5","bar")
+        ensureComposed(hasText(context.getString(R.string.work_total_minutes,120)))
         ui.onNodeWithText(context.getString(R.string.work_total_minutes,120)).performScrollTo().assertIsDisplayed()
         capture("01-entered-positions")
         click(s(R.string.work_save_template)); enter(s(R.string.work_name),"Wartung ohne Kundendaten"); click(s(R.string.work_save))

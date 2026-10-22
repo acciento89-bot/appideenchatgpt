@@ -6,12 +6,18 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import de.kamilunavo.rapportai.model.*
 import java.text.DateFormat
@@ -100,12 +106,22 @@ private fun WorkItemDialog(existing: WorkItem?, onDismiss: () -> Unit, onSave: (
         Column(Modifier.verticalScroll(rememberScrollState()).imePadding(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             WorkKind.entries.forEach { option -> FilterChip(selected = kind == option, onClick = { kindName = option.name; amount = ""; unit = if (option == WorkKind.LABOR) "min" else "" }, label = { Text(kindLabel(option)) }) }
             OutlinedTextField(description, { description = it }, label = { Text(stringResource(R.string.work_description)) })
-            OutlinedTextField(amount, { amount = it }, label = { Text(stringResource(if (kind == WorkKind.LABOR) R.string.work_minutes else R.string.work_quantity)) }, singleLine = true, isError = parsed == null && amount.isNotEmpty())
-            if (kind != WorkKind.LABOR) OutlinedTextField(unit, { unit = it }, label = { Text(stringResource(R.string.work_unit)) }, singleLine = true)
+            WorkSingleLineField(amount, { amount = it }, stringResource(if (kind == WorkKind.LABOR) R.string.work_minutes else R.string.work_quantity), isError = parsed == null && amount.isNotEmpty(), keyboardType = if (kind == WorkKind.LABOR) KeyboardType.Number else KeyboardType.Decimal)
+            if (kind != WorkKind.LABOR) WorkSingleLineField(unit, { unit = it }, stringResource(R.string.work_unit))
             Text(stringResource(R.string.work_number_help), style = MaterialTheme.typography.bodySmall)
             if (parsed == null) Text(stringResource(R.string.work_invalid), color = MaterialTheme.colorScheme.error)
         }
     }, dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.work_cancel)) } }, confirmButton = { TextButton(enabled = parsed != null, onClick = { parsed?.let(onSave) }) { Text(stringResource(R.string.work_save)) } })
+}
+
+/** Resolve the dialog's own focus/keyboard locals so Done closes its actual IME. */
+@Composable
+private fun WorkSingleLineField(value: String, onValueChange: (String) -> Unit, label: String, isError: Boolean = false, keyboardType: KeyboardType = KeyboardType.Text) {
+    val focus = LocalFocusManager.current
+    val keyboard = LocalSoftwareKeyboardController.current
+    OutlinedTextField(value, onValueChange, label = { Text(label) }, singleLine = true, isError = isError,
+        keyboardOptions = KeyboardOptions(keyboardType = keyboardType, imeAction = ImeAction.Done),
+        keyboardActions = KeyboardActions(onDone = { focus.clearFocus(); keyboard?.hide() }))
 }
 
 @Composable
