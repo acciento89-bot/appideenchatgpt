@@ -23,5 +23,13 @@ cleanup() {
   exit "$rc"
 }
 trap cleanup EXIT
+# Only prepare the disposable workflow-owned emulator, never a physical/shared device.
+[[ "$(timeout 5s adb -s "$serial" shell getprop ro.build.version.sdk | tr -d '\r')" == 35 ]]
+[[ "$(timeout 5s adb -s "$serial" shell getprop ro.kernel.qemu | tr -d '\r')" == 1 ]]
+owned_devices="$(timeout 5s adb devices | awk 'NR>1 && NF {print $1}')"
+[[ "$owned_devices" == "$serial" ]]
+# Same targeted first-boot launcher preparation already validated in ArbeitsKlar.
+# This is before acceptance; any observed ANR is still rejected, never dismissed.
+timeout 10s adb -s "$serial" shell am force-stop com.google.android.apps.nexuslauncher
 sleep 20
 python3 .github/rapport-native/run_acceptance.py

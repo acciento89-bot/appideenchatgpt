@@ -6,12 +6,20 @@ NATIVE_FILES={f'{i:02d}-{name}.png' for i,name in enumerate(['entered-positions'
 OPTIONAL_FILES={'failure-screen.png','failure-semantics.txt'}
 NATIVE_FILES |= {'actual-report.pdf','pdf-page-count.txt'} | {f'pdf-page-{i}.png' for i in range(1,13)}
 GENERIC_FILES={'result.json','source-commit.txt','build.log','preflight-anr.txt','installed-identity.txt','scenario.txt','cold-reopen.txt','actual-archive.json','before-cold-archive.json','final-screen.png','window.txt','logcat.txt','final-ui.xml','emulator-stop.txt','avd-delete.txt','remaining-avds.txt','remaining-devices.txt','cleanup.json','cleanup-failed.txt'}
+def reject_anr(evidence):
+ if re.search(rb'ANR in|Application Not Responding|com.android.systemui|com.google.android.apps.nexuslauncher',evidence,re.I):
+  raise RuntimeError('System/launcher ANR; evidence rejected without dialog dismissal')
+
+def reject_anr_window(evidence):
+ if re.search(rb'ANR in|Application Not Responding|isn.t responding',evidence,re.I):
+  raise RuntimeError('ANR window; evidence rejected without dialog dismissal')
+
 def preflight(call,serial):
  if serial!='emulator-5554':raise RuntimeError('Only the single workflow-owned emulator is permitted')
  if call(['shell','getprop','ro.build.version.sdk']).strip()!=b'35':raise RuntimeError('Expected API35')
  if call(['shell','getprop','ro.kernel.qemu']).strip()!=b'1':raise RuntimeError('Physical devices prohibited')
  anr=call(['shell','dumpsys','activity','lastanr'])
- if b'com.android.systemui' in anr.lower():raise RuntimeError('SystemUI ANR; no dialog dismissal')
+ reject_anr(anr)
  call(['shell','settings','put','secure','show_ime_with_hard_keyboard','1'])
  if call(['shell','settings','get','secure','show_ime_with_hard_keyboard']).strip()!=b'1':raise RuntimeError('Keyboard preference not established')
  return anr
@@ -47,6 +55,8 @@ def run(execute=subprocess.run):
    assert all(set(line)=={'kind','description','unit'} for line in document['templates'][0]['lines'])
    if previous is None:(proof/'before-cold-archive.json').write_bytes(actual);previous=actual
    else:assert previous==actual,'Cold reopen changed immutable archive';(proof/'actual-archive.json').write_bytes(actual)
+  reject_anr(call(['shell','dumpsys','activity','lastanr']))
+  window=call(['shell','dumpsys','window','windows']);assert window.strip(),'Empty window evidence';reject_anr_window(window)
   result['archiveSha256']=hashlib.sha256(previous).hexdigest()
   result['status']='PASSED'
  except BaseException as e:result['status']='FAILED';result['error']=str(e)
