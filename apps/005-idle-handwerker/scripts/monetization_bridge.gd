@@ -37,6 +37,7 @@ var _rewarded_loaders: Dictionary = {}
 var _active_rewarded_placement := ""
 var _active_rewarded_ad: RewardedAd
 var _ads_started := false
+var _ads_initialized := false
 var _consent_update_requested := false
 var _ads_suspended := false
 var _ad_request_generation := 0
@@ -444,7 +445,15 @@ func _initialize_ads() -> void:
 func _start_ads_sdk() -> void:
 	# Contextual/non-personalized requests keep the game independent of ATT tracking permission.
 	MobileAds.set_publisher_first_party_id_enabled(false)
-	MobileAds.initialize()
+	var listener := OnInitializationCompleteListener.new()
+	listener.on_initialization_complete = _on_ads_initialization_complete
+	MobileAds.initialize(listener)
+
+
+func _on_ads_initialization_complete(_status: InitializationStatus) -> void:
+	_ads_initialized = true
+	if not _can_request_ads() or _ads_suspended:
+		return
 	_load_rewarded("boost")
 	_load_rewarded("offline")
 
@@ -499,6 +508,7 @@ func _rewarded_id_for_platform(placement: String, platform: String) -> String:
 func _load_rewarded(placement: String) -> void:
 	if (
 		not _ads_started
+		or not _ads_initialized
 		or not _can_request_ads()
 		or _ads_suspended
 		or _rewarded_loaders.has(placement)

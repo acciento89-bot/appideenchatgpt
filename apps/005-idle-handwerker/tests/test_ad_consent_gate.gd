@@ -5,6 +5,13 @@ class FakeBridge extends Bridge:
 	var sdk_starts := 0
 	func _current_ad_consent_status() -> int: return consent_status
 	func _start_ads_sdk() -> void: sdk_starts += 1
+class FakeSdk extends RefCounted:
+	signal on_initialization_complete(status: Dictionary)
+	var calls := 0
+	func initialize() -> void: calls += 1
+	func set_publisher_first_party_id_enabled(_enabled: bool) -> void: pass
+class InitializingBridge extends Bridge:
+	func _current_ad_consent_status() -> int: return 3
 class FakeAd extends RewardedAd:
 	var was_destroyed := false
 	func _init(): super(-101)
@@ -22,6 +29,22 @@ func run() -> void:
 	MobileAds._plugin = null
 	RewardedAdLoader._plugin = null
 	RewardedAd._plugin = null
+	var fake_sdk = FakeSdk.new()
+	MobileAds._plugin = fake_sdk
+	var initializing = InitializingBridge.new()
+	initializing.set("_consent_update_requested", true)
+	initializing._initialize_ads()
+	check(fake_sdk.calls == 1, "native SDK initialization requested once")
+	check(initializing._rewarded_loaders.is_empty(), "no rewarded load before asynchronous SDK initialization completes")
+	var has_initialization_callback := initializing.has_method("_on_ads_initialization_complete")
+	check(has_initialization_callback, "SDK completion controls first rewarded loads")
+	if has_initialization_callback:
+		fake_sdk.on_initialization_complete.emit({})
+		await process_frame
+		check(initializing._rewarded_loaders.size() == 2, "both placements load only after SDK completion")
+	initializing._shutdown_ads(true)
+	initializing.free()
+	MobileAds._plugin = null
 	var initial = FakeBridge.new()
 	initial._initialize_ads()
 	check(not initial._ads_started, "unknown first session must not start ads")

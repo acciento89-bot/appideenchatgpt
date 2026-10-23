@@ -3,6 +3,9 @@ from pathlib import Path
 import sys
 root = Path(sys.argv[1])
 replacements = {
+    "gdscript/src/api/listeners/OnInitializationCompleteListener.gd": {
+        "var on_initialization_complete: Callable = func(initialization_status: InitializationStatus): pass": "var on_initialization_complete: Callable = Callable()",
+    },
     "gdscript/src/api/RewardedAd.gd": {
         "var on_ad_paid: Callable = func(_ad_value: AdValue): pass": "var on_ad_paid: Callable = Callable()",
     },
