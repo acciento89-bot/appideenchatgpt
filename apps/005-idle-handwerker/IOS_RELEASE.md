@@ -7,7 +7,8 @@
 | App-Name | Idle Handwerker |
 | Bundle-ID | `de.kamilunavo.idlehandwerker` |
 | Apple Team | `TKG684N5GL` |
-| Marketing-Version | `1.3.0` |
+| Marketing-Version | `1.4.0` |
+| Build | `19` |
 | Mindestversion | iOS 16.0 |
 | Gerätefamilie | iPhone |
 | Ausrichtung | Portrait |
@@ -58,3 +59,11 @@ open builds/ios/xcode/*.xcodeproj
 ```
 
 Signierungsdaten werden absichtlich nicht in `export_presets.cfg` gespeichert. Godots lokale Export-Credentials liegen unter `.godot/export_credentials.cfg` und sind ignoriert.
+
+## iOS1.4 staff dispatch and native QA
+
+The update adds the persisted staff-dispatch board: choose an employee and pace, retain exact quotes for running assignments, collect each completed reward once and review recent receipts. Existing economy, eight-hour offline cap, products and saved entitlements remain unchanged. The UI uses window-relative safe-area intersection for short and wide Duo presentations.
+
+Native acceptance uses a development-only `--idlehandwerkerProviderDisabledQA` option (also after Godot `--`). It suppresses store/consent/ad initialization, polling, purchase/restore requests and transaction/reward processing without modifying entitlements. Shipping Release ignores this option. Existing screenshot mode alone does not isolate StoreKit and must not be used as a substitute. Fake-only tests cover zero calls/grants under explicit QA and retained normal Debug/Release policy behavior; no real transactions are repeated.
+
+Actual simulator/device exports, Duo runtime acceptance, own iOS production ad configuration, signing and Apple delivery remain pending until evidenced. Source tests are not device acceptance.
