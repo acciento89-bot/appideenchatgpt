@@ -27,8 +27,8 @@ jobs:
           "$RUNNER_TEMP/scons-venv/bin/scons" platform=ios target=template_debug arch=arm64 simulator=yes debug_symbols=no -j3
           LIB="bin/libgodot.ios.template_debug.arm64.simulator.a"
           test -s "$LIB"
-          xcrun lipo -verify_arch arm64 "$LIB"
           cp "$LIB" "$RUNNER_TEMP/runtime-artifact/"
+          xcrun lipo "$LIB" -verify_arch arm64
           python3 - <<'PYCODE'
           from pathlib import Path
           import os,json,hashlib,subprocess
@@ -38,6 +38,7 @@ jobs:
           (target/'runtime-receipt.json').write_text(json.dumps(receipt,indent=2))
           PYCODE
       - name: Retain simulator-only library and provenance
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: idle-ios-simulator-runtime-4.7.1-arm64
