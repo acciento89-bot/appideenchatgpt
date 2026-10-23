@@ -1,0 +1,46 @@
+name: Idle iOS simulator runtime (official source)
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  simulator-runtime:
+    runs-on: macos-latest
+    timeout-minutes: 60
+    steps:
+      - name: Download and verify exact official Godot source
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP"
+          curl --fail --location --retry 3 --output godot-source.tar.xz https://github.com/godotengine/godot-builds/releases/download/4.7.1-stable/godot-4.7.1-stable.tar.xz
+          echo "0230d490846467c4fd772cc70b08dc56cb3adfedd55d039de0af74ddfdba00eb  godot-source.tar.xz" | shasum -a 256 -c -
+          mkdir godot-source runtime-artifact
+          tar -xJf godot-source.tar.xz --strip-components=1 -C godot-source
+          python3 -m venv "$RUNNER_TEMP/scons-venv"
+          "$RUNNER_TEMP/scons-venv/bin/python" -m pip install --disable-pip-version-check scons==4.11.1
+      - name: Build only arm64 iOS simulator debug runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/godot-source"
+          "$RUNNER_TEMP/scons-venv/bin/scons" platform=ios target=template_debug arch=arm64 simulator=yes debug_symbols=no -j3
+          LIB="bin/libgodot.ios.template_debug.arm64.simulator.a"
+          test -s "$LIB"
+          xcrun lipo -verify_arch arm64 "$LIB"
+          cp "$LIB" "$RUNNER_TEMP/runtime-artifact/"
+          python3 - <<'PYCODE'
+          from pathlib import Path
+          import os,json,hashlib,subprocess
+          target=Path(os.environ['RUNNER_TEMP'])/'runtime-artifact'
+          library=target/'libgodot.ios.template_debug.arm64.simulator.a'
+          receipt={'sourceVersion':'4.7.1-stable','sourceSHA256':'0230d490846467c4fd772cc70b08dc56cb3adfedd55d039de0af74ddfdba00eb','target':'template_debug','platform':'ios','simulator':True,'arch':'arm64','debugSymbols':False,'librarySHA256':hashlib.sha256(library.read_bytes()).hexdigest(),'xcode':subprocess.check_output(['xcodebuild','-version'],text=True).strip(),'sdk':subprocess.check_output(['xcrun','--sdk','iphonesimulator','--show-sdk-version'],text=True).strip(),'signingOrAppUploadPerformed':False}
+          (target/'runtime-receipt.json').write_text(json.dumps(receipt,indent=2))
+          PYCODE
+      - name: Retain simulator-only library and provenance
+        uses: actions/upload-artifact@v4
+        with:
+          name: idle-ios-simulator-runtime-4.7.1-arm64
+          path: ${{ runner.temp }}/runtime-artifact/
+          if-no-files-found: error
+          retention-days: 7
