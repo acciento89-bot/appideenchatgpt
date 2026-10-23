@@ -230,4 +230,6 @@ if grep -Fq 'mFocusedApp' "$capture"; then
   exit 1
 fi
 
+python3 "$project/ci/test_android_font_scale.py"
+
 echo "Idle Handwerker Android release contract passed."
