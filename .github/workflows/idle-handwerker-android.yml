@@ -150,10 +150,12 @@ jobs:
           grep -F 'android:versionName="1.4.0"' "$RUNNER_TEMP/manifest.xml"
           python3 - "$RUNNER_TEMP/manifest.xml" <<'PY'
           import sys, xml.etree.ElementTree as ET
+          sys.path.insert(0, "apps/005-idle-handwerker/ci")
+          from patch_android_font_scale import has_font_scale
           ns = "{http://schemas.android.com/apk/res/android}"
           activities = ET.parse(sys.argv[1]).findall("application/activity")
           game = next(a for a in activities if a.get(ns + "name", "").endswith(".GodotApp"))
-          assert "fontScale" in game.get(ns + "configChanges", "").split("|"), "Game must handle font changes without engine destruction"
+          assert has_font_scale(game.get(ns + "configChanges", "")), "Game must handle font changes without engine destruction"
           PY
           unzip -Z1 "$AAB" > "$RUNNER_TEMP/aab-files.txt"
           grep -Fx 'base/res/mipmap/icon.webp' "$RUNNER_TEMP/aab-files.txt"

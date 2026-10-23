@@ -9,6 +9,15 @@ MODULE = Path(__file__).with_name("patch_android_font_scale.py")
 ANDROID = "{http://schemas.android.com/apk/res/android}"
 
 class FontConfigurationTest(unittest.TestCase):
+    def test_compiled_manifest_uses_numeric_android_flags(self):
+        spec = importlib.util.spec_from_file_location("font_patch", MODULE)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        self.assertTrue(module.has_font_scale("1073758196"))
+        self.assertTrue(module.has_font_scale("0x40003ff4"))
+        self.assertFalse(module.has_font_scale("0x00003ff4"))
+        self.assertTrue(module.has_font_scale("orientation|fontScale|screenSize"))
+
     def test_preserves_activity_flags_and_unrelated_components(self):
         self.assertTrue(MODULE.is_file(), "font-scale activity configuration is not patched")
         spec = importlib.util.spec_from_file_location("font_patch", MODULE)
