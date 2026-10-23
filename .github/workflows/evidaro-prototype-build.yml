@@ -19,6 +19,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Verify isolated native QA provider boundary
+        run: bash apps/002-evidaro/ci/provider-isolation-smoke.sh
+
       - name: Show Xcode version
         run: xcodebuild -version
 
@@ -75,7 +78,7 @@ jobs:
           SMOKE_DIR="${DATA_CONTAINER}/Library/Application Support/EvidaroSmoke"
 
           rm -f "${SMOKE_DIR}/failed.txt" "${SMOKE_DIR}/prepared.txt" "${SMOKE_DIR}/verified.txt"
-          xcrun simctl launch "${DEVICE_UDID}" "${BUNDLE_ID}" --evidaro-persistence-smoke prepare
+          xcrun simctl launch "${DEVICE_UDID}" "${BUNDLE_ID}" --traceProviderDisabledQA --evidaro-persistence-smoke prepare
           for _ in $(seq 1 20); do
             test -f "${SMOKE_DIR}/prepared.txt" && break
             test -f "${SMOKE_DIR}/failed.txt" && { cat "${SMOKE_DIR}/failed.txt"; exit 1; }
@@ -85,7 +88,7 @@ jobs:
           cat "${SMOKE_DIR}/prepared.txt"
 
           xcrun simctl terminate "${DEVICE_UDID}" "${BUNDLE_ID}"
-          xcrun simctl launch "${DEVICE_UDID}" "${BUNDLE_ID}" --evidaro-persistence-smoke verify
+          xcrun simctl launch "${DEVICE_UDID}" "${BUNDLE_ID}" --traceProviderDisabledQA --evidaro-persistence-smoke verify
           for _ in $(seq 1 20); do
             test -f "${SMOKE_DIR}/verified.txt" && break
             test -f "${SMOKE_DIR}/failed.txt" && { cat "${SMOKE_DIR}/failed.txt"; exit 1; }
@@ -97,7 +100,7 @@ jobs:
           xcrun simctl terminate "${DEVICE_UDID}" "${BUNDLE_ID}" || true
 
           rm -f "${SMOKE_DIR}/failed.txt" "${SMOKE_DIR}/ocr-prepared.txt" "${SMOKE_DIR}/ocr-verified.txt"
-          xcrun simctl launch "${DEVICE_UDID}" "${BUNDLE_ID}" --evidaro-persistence-smoke ocr-prepare
+          xcrun simctl launch "${DEVICE_UDID}" "${BUNDLE_ID}" --traceProviderDisabledQA --evidaro-persistence-smoke ocr-prepare
           for _ in $(seq 1 30); do
             test -f "${SMOKE_DIR}/ocr-prepared.txt" && break
             test -f "${SMOKE_DIR}/failed.txt" && { cat "${SMOKE_DIR}/failed.txt"; exit 1; }
@@ -110,7 +113,7 @@ jobs:
           cat "${SMOKE_DIR}/ocr-prepared.txt"
 
           xcrun simctl terminate "${DEVICE_UDID}" "${BUNDLE_ID}"
-          xcrun simctl launch "${DEVICE_UDID}" "${BUNDLE_ID}" --evidaro-persistence-smoke ocr-verify
+          xcrun simctl launch "${DEVICE_UDID}" "${BUNDLE_ID}" --traceProviderDisabledQA --evidaro-persistence-smoke ocr-verify
           for _ in $(seq 1 20); do
             test -f "${SMOKE_DIR}/ocr-verified.txt" && break
             test -f "${SMOKE_DIR}/failed.txt" && { cat "${SMOKE_DIR}/failed.txt"; exit 1; }
@@ -124,7 +127,7 @@ jobs:
           xcrun simctl terminate "${DEVICE_UDID}" "${BUNDLE_ID}" || true
 
           rm -f "${SMOKE_DIR}/failed.txt" "${SMOKE_DIR}/pack-prepared.txt" "${SMOKE_DIR}/pack-verified.txt"
-          xcrun simctl launch "${DEVICE_UDID}" "${BUNDLE_ID}" --evidaro-persistence-smoke pack-prepare
+          xcrun simctl launch "${DEVICE_UDID}" "${BUNDLE_ID}" --traceProviderDisabledQA --evidaro-persistence-smoke pack-prepare
           for _ in $(seq 1 30); do
             test -f "${SMOKE_DIR}/pack-prepared.txt" && break
             test -f "${SMOKE_DIR}/failed.txt" && { cat "${SMOKE_DIR}/failed.txt"; exit 1; }
@@ -138,7 +141,7 @@ jobs:
           cat "${SMOKE_DIR}/pack-prepared.txt"
 
           xcrun simctl terminate "${DEVICE_UDID}" "${BUNDLE_ID}"
-          xcrun simctl launch "${DEVICE_UDID}" "${BUNDLE_ID}" --evidaro-persistence-smoke pack-verify
+          xcrun simctl launch "${DEVICE_UDID}" "${BUNDLE_ID}" --traceProviderDisabledQA --evidaro-persistence-smoke pack-verify
           for _ in $(seq 1 20); do
             test -f "${SMOKE_DIR}/pack-verified.txt" && break
             test -f "${SMOKE_DIR}/failed.txt" && { cat "${SMOKE_DIR}/failed.txt"; exit 1; }
@@ -152,7 +155,7 @@ jobs:
           xcrun simctl terminate "${DEVICE_UDID}" "${BUNDLE_ID}" || true
 
           rm -f "${SMOKE_DIR}/failed.txt" "${SMOKE_DIR}/pack-prepared.txt" "${SMOKE_DIR}/pack-verified.txt"
-          xcrun simctl launch "${DEVICE_UDID}" "${BUNDLE_ID}" --evidaro-persistence-smoke pack-prepare -AppleLanguages "(de)" -AppleLocale "de_DE"
+          xcrun simctl launch "${DEVICE_UDID}" "${BUNDLE_ID}" --traceProviderDisabledQA --evidaro-persistence-smoke pack-prepare -AppleLanguages "(de)" -AppleLocale "de_DE"
           for _ in $(seq 1 30); do
             test -f "${SMOKE_DIR}/pack-prepared.txt" && break
             test -f "${SMOKE_DIR}/failed.txt" && { cat "${SMOKE_DIR}/failed.txt"; exit 1; }
@@ -165,7 +168,7 @@ jobs:
           cat "${SMOKE_DIR}/pack-prepared.txt"
 
           xcrun simctl terminate "${DEVICE_UDID}" "${BUNDLE_ID}"
-          xcrun simctl launch "${DEVICE_UDID}" "${BUNDLE_ID}" --evidaro-persistence-smoke pack-verify -AppleLanguages "(de)" -AppleLocale "de_DE"
+          xcrun simctl launch "${DEVICE_UDID}" "${BUNDLE_ID}" --traceProviderDisabledQA --evidaro-persistence-smoke pack-verify -AppleLanguages "(de)" -AppleLocale "de_DE"
           for _ in $(seq 1 20); do
             test -f "${SMOKE_DIR}/pack-verified.txt" && break
             test -f "${SMOKE_DIR}/failed.txt" && { cat "${SMOKE_DIR}/failed.txt"; exit 1; }
@@ -179,7 +182,7 @@ jobs:
           xcrun simctl terminate "${DEVICE_UDID}" "${BUNDLE_ID}" || true
 
           rm -f "${SMOKE_DIR}/bundle-failed.txt" "${SMOKE_DIR}/bundle-prepared.txt" "${SMOKE_DIR}/bundle-verified.txt"
-          xcrun simctl launch "${DEVICE_UDID}" "${BUNDLE_ID}" --evidaro-verification-bundle-smoke prepare
+          xcrun simctl launch "${DEVICE_UDID}" "${BUNDLE_ID}" --traceProviderDisabledQA --evidaro-verification-bundle-smoke prepare
           for _ in $(seq 1 30); do
             test -f "${SMOKE_DIR}/bundle-prepared.txt" && break
             test -f "${SMOKE_DIR}/bundle-failed.txt" && { cat "${SMOKE_DIR}/bundle-failed.txt"; exit 1; }
@@ -194,7 +197,7 @@ jobs:
           cat "${SMOKE_DIR}/bundle-prepared.txt"
 
           xcrun simctl terminate "${DEVICE_UDID}" "${BUNDLE_ID}"
-          xcrun simctl launch "${DEVICE_UDID}" "${BUNDLE_ID}" --evidaro-verification-bundle-smoke verify
+          xcrun simctl launch "${DEVICE_UDID}" "${BUNDLE_ID}" --traceProviderDisabledQA --evidaro-verification-bundle-smoke verify
           for _ in $(seq 1 20); do
             test -f "${SMOKE_DIR}/bundle-verified.txt" && break
             test -f "${SMOKE_DIR}/bundle-failed.txt" && { cat "${SMOKE_DIR}/bundle-failed.txt"; exit 1; }
@@ -208,7 +211,7 @@ jobs:
           xcrun simctl terminate "${DEVICE_UDID}" "${BUNDLE_ID}" || true
 
           rm -f "${SMOKE_DIR}/lock-failed.txt" "${SMOKE_DIR}/lock-prepared.txt" "${SMOKE_DIR}/lock-verified.txt"
-          xcrun simctl launch "${DEVICE_UDID}" "${BUNDLE_ID}" --evidaro-app-lock-smoke prepare
+          xcrun simctl launch "${DEVICE_UDID}" "${BUNDLE_ID}" --traceProviderDisabledQA --evidaro-app-lock-smoke prepare
           for _ in $(seq 1 20); do
             test -f "${SMOKE_DIR}/lock-prepared.txt" && break
             test -f "${SMOKE_DIR}/lock-failed.txt" && { cat "${SMOKE_DIR}/lock-failed.txt"; exit 1; }
@@ -219,7 +222,7 @@ jobs:
           cat "${SMOKE_DIR}/lock-prepared.txt"
 
           xcrun simctl terminate "${DEVICE_UDID}" "${BUNDLE_ID}"
-          xcrun simctl launch "${DEVICE_UDID}" "${BUNDLE_ID}" --evidaro-app-lock-smoke verify
+          xcrun simctl launch "${DEVICE_UDID}" "${BUNDLE_ID}" --traceProviderDisabledQA --evidaro-app-lock-smoke verify
           for _ in $(seq 1 20); do
             test -f "${SMOKE_DIR}/lock-verified.txt" && break
             test -f "${SMOKE_DIR}/lock-failed.txt" && { cat "${SMOKE_DIR}/lock-failed.txt"; exit 1; }
@@ -231,7 +234,7 @@ jobs:
           xcrun simctl terminate "${DEVICE_UDID}" "${BUNDLE_ID}" || true
 
           rm -f "${SMOKE_DIR}/localization-failed.txt" "${SMOKE_DIR}/localization-verified.txt"
-          xcrun simctl launch "${DEVICE_UDID}" "${BUNDLE_ID}" --evidaro-localization-smoke -AppleLanguages "(de)" -AppleLocale "de_DE"
+          xcrun simctl launch "${DEVICE_UDID}" "${BUNDLE_ID}" --traceProviderDisabledQA --evidaro-localization-smoke -AppleLanguages "(de)" -AppleLocale "de_DE"
           for _ in $(seq 1 20); do
             test -f "${SMOKE_DIR}/localization-verified.txt" && break
             test -f "${SMOKE_DIR}/localization-failed.txt" && { cat "${SMOKE_DIR}/localization-failed.txt"; exit 1; }

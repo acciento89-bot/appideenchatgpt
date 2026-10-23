@@ -15,7 +15,17 @@ final class EntitlementStore: ObservableObject {
 
     private var updatesTask: Task<Void, Never>?
 
+    // Explicit DEBUG-only native QA isolation; never grants Pro or changes Release.
+    private var providerDisabledQA: Bool {
+#if DEBUG
+        ProcessInfo.processInfo.arguments.contains("--traceProviderDisabledQA")
+#else
+        false
+#endif
+    }
+
     init() {
+        guard !providerDisabledQA else { return }
         updatesTask = Task { [weak self] in
             for await update in Transaction.updates {
                 guard let self else { return }
@@ -40,6 +50,7 @@ final class EntitlementStore: ObservableObject {
     }
 
     func load() async {
+        guard !providerDisabledQA else { return }
         lastErrorMessage = nil
         isLoading = true
         defer { isLoading = false }
@@ -60,6 +71,7 @@ final class EntitlementStore: ObservableObject {
     }
 
     func purchaseLifetime() async {
+        guard !providerDisabledQA else { return }
         lastErrorMessage = nil
 
         if lifetimeProduct == nil {
@@ -101,6 +113,7 @@ final class EntitlementStore: ObservableObject {
     }
 
     func restorePurchases() async {
+        guard !providerDisabledQA else { return }
         lastErrorMessage = nil
         isLoading = true
         defer { isLoading = false }
@@ -116,6 +129,7 @@ final class EntitlementStore: ObservableObject {
     }
 
     func refreshEntitlements() async {
+        guard !providerDisabledQA else { return }
         var hasLifetime = false
 
         for await result in Transaction.currentEntitlements {
