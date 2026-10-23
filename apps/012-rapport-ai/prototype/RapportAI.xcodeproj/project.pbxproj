@@ -24,6 +24,7 @@
 		AA0000000000000000000012 /* RapportArchive.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000012 /* RapportArchive.swift */; };
 		AA0000000000000000000013 /* StructuredWorkViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000013 /* StructuredWorkViews.swift */; };
 		AA0000000000000000000014 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000014 /* Localizable.strings */; };
+		AA0000000000000000000017 /* PDFPageBreak.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0000000000000000000017 /* PDFPageBreak.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -48,6 +49,7 @@
 		BB0000000000000000000013 /* StructuredWorkViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StructuredWorkViews.swift; sourceTree = "<group>"; };
 		BB0000000000000000000015 /* de */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = de; path = de.lproj/Localizable.strings; sourceTree = "<group>"; };
 		BB0000000000000000000016 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
+		BB0000000000000000000017 /* PDFPageBreak.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PDFPageBreak.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -74,6 +76,7 @@
 				BB0000000000000000000005 /* RapportService.swift */,
 				BB0000000000000000000006 /* SpeechTranscriber.swift */,
 				BB0000000000000000000007 /* PDFExporter.swift */,
+				BB0000000000000000000017 /* PDFPageBreak.swift */,
 				BB0000000000000000000008 /* RootView.swift */,
 				BB000000000000000000000A /* CompanyProfile.swift */,
 				BB000000000000000000000B /* EntitlementStore.swift */,
@@ -139,7 +142,7 @@
 				AA0000000000000000000004 /* RapportStore.swift in Sources */,
 				AA0000000000000000000005 /* RapportService.swift in Sources */,
 				AA0000000000000000000006 /* SpeechTranscriber.swift in Sources */,
-				AA0000000000000000000007 /* PDFExporter.swift in Sources */,
+				AA0000000000000000000007 /* PDFExporter.swift in Sources */, AA0000000000000000000017 /* PDFPageBreak.swift in Sources */,
 				AA0000000000000000000008 /* RootView.swift in Sources */,
 				AA000000000000000000000A /* CompanyProfile.swift in Sources */,
 				AA000000000000000000000B /* EntitlementStore.swift in Sources */,

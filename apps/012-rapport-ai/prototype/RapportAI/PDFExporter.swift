@@ -226,7 +226,8 @@ enum PDFExporter {
         }
         guard best < source.length else { return best }
         let breakRange = source.rangeOfCharacter(from: .whitespacesAndNewlines, options: .backwards, range: NSRange(location: 0, length: best))
-        return breakRange.location == NSNotFound || breakRange.location == 0 ? best : breakRange.location
+        let wordBoundary = breakRange.location == NSNotFound || breakRange.location == 0 ? best : breakRange.location
+        return PDFPageBreak.preferredLength(in: text, maximumUTF16Length: wordBoundary)
     }
 
     private static var bodyFont: UIFont { .systemFont(ofSize: 11.5) }

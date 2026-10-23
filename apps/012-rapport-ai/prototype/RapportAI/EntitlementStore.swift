@@ -14,7 +14,17 @@ final class EntitlementStore: ObservableObject {
 
     private var updatesTask: Task<Void, Never>?
 
+    // Explicit native QA entry only; shipping builds always use the existing provider.
+    private var providerDisabledForQA: Bool {
+        #if DEBUG
+        ProcessInfo.processInfo.arguments.contains("--rapportProviderDisabledQA")
+        #else
+        false
+        #endif
+    }
+
     init() {
+        guard !providerDisabledForQA else { return }
         updatesTask = listenForTransactions()
         Task {
             await loadProducts()
@@ -25,6 +35,7 @@ final class EntitlementStore: ObservableObject {
     deinit { updatesTask?.cancel() }
 
     func loadProducts() async {
+        guard !providerDisabledForQA else { return }
         isLoading = true
         defer { isLoading = false }
         do {
@@ -36,6 +47,7 @@ final class EntitlementStore: ObservableObject {
     }
 
     func purchase(_ product: Product) async {
+        guard !providerDisabledForQA else { return }
         isLoading = true
         defer { isLoading = false }
         do {
@@ -58,6 +70,7 @@ final class EntitlementStore: ObservableObject {
     }
 
     func restore() async {
+        guard !providerDisabledForQA else { return }
         isLoading = true
         defer { isLoading = false }
         do {
@@ -69,6 +82,7 @@ final class EntitlementStore: ObservableObject {
     }
 
     func refreshEntitlements() async {
+        guard !providerDisabledForQA else { return }
         var active = false
         for await result in Transaction.currentEntitlements {
             guard let transaction = try? verified(result) else { continue }
