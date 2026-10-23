@@ -1580,10 +1580,12 @@ func _show_tutorial() -> void:
 	var title := _label("", 22, TEXT, true)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	title.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
 	box.add_child(title)
 	var body := _label("", 13, MUTED)
 	body.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	body.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
 	body.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	box.add_child(body)
 	var progress := _label("", 10, GOLD, true)
