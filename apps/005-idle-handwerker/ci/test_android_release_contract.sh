@@ -30,7 +30,7 @@ grep -Fq "id-token: write" "$workflow"
 grep -Fq "BC:F2:33:7D:41:E6:17:C0:3B:CA:E6:98:C0:9D:15:23:65:4B:D7:90" "$workflow"
 grep -Fq "79:85:BD:6B:33:71:1B:AC:A7:E6:BA:72:2C:2B:38:70:EB:BC:80:2F:7D:B4:A7:BC:12:06:BD:AE:51:C4:D5:D6" "$workflow"
 grep -Fq "de.kamilunavo.idlehandwerker" "$workflow"
-grep -Fq "versionCode=2" "$workflow"
+grep -Fq "versionCode=3" "$workflow"
 grep -Fq "idle-handwerker-android-screenshots" "$workflow"
 grep -Fq "idle-handwerker-android-runtime-diagnostics" "$workflow"
 grep -Fq "idle-handwerker-screenshots.apk" "$workflow"
@@ -80,7 +80,7 @@ if grep -Fq 'drawable/icon_background\.xml' "$workflow"; then
   echo "AndroidX core-splashscreen's compatibility drawable is not a launcher icon." >&2
   exit 1
 fi
-test "$(grep -Fc 'version/code=2' "$preset")" -eq 2
+test "$(grep -Fc 'version/code=3' "$preset")" -eq 2
 test "$(grep -Fc 'splash_screen/background_color=Color(0.027, 0.063, 0.055, 1)' "$preset")" -eq 2
 grep -Fq 'sanitize_godot_launcher_aar.py' "$workflow"
 grep -Fq 'Godot splash theme still references removed icon_background' "$stripper"
@@ -147,6 +147,10 @@ diagnostics_fixture=$(mktemp -d)
 mkdir -p "$diagnostics_fixture/bin" "$diagnostics_fixture/output"
 cat > "$diagnostics_fixture/bin/adb" <<'SH'
 #!/usr/bin/env bash
+if [[ "$*" == "shell cmd package query-services --brief -a com.android.vending.billing.InAppBillingService.BIND" ]]; then
+  echo "${ADB_FIXTURE_BILLING:-No services found}"
+  exit 0
+fi
 if [[ "$*" == "logcat -c" ]]; then
   exit 0
 fi
@@ -164,6 +168,7 @@ if [[ "$*" == "shell am force-stop com.google.android.apps.nexuslauncher" ]]; th
   exit 0
 fi
 if [[ "$1" == "install" ]]; then
+  echo install >> "$ADB_FIXTURE_DIR/commands"
   exit 23
 fi
 printf 'fixture diagnostics: %s\n' "$*"
@@ -180,6 +185,15 @@ grep -Fq 'am force-stop com.google.android.apps.nexuslauncher' "$diagnostics_fix
 for diagnostic in logcat.txt activity-top.txt window.txt app-pid.txt package.txt; do
   test -s "$diagnostics_fixture/output/diagnostics/$diagnostic"
 done
+# A real Billing service must stop acceptance before APK installation/launch.
+rm -f "$diagnostics_fixture/commands"
+set +e
+ADB_FIXTURE_BILLING='com.android.vending/.billing.InAppBillingService' ADB_FIXTURE_DIR="$diagnostics_fixture" PATH="$diagnostics_fixture/bin:$PATH" bash "$capture" \
+  "$diagnostics_fixture/app.apk" "$diagnostics_fixture/billing-blocked"
+billing_status=$?
+set -e
+test "$billing_status" -eq 1
+test ! -f "$diagnostics_fixture/commands"
 if ! grep -Fq 'settings put secure immersive_mode_confirmations confirmed' "$capture"; then
   echo "The known first-launch immersive confirmation must be suppressed before launch." >&2
   exit 1

@@ -57,6 +57,7 @@ func _ready() -> void:
 	sfx = SfxBank.new()
 	add_child(sfx)
 	monetization = MonetizationBridge.new()
+	monetization.set_ads_disabled(game.no_ads)
 	monetization.set_android_purchase_grant_handler(_grant_android_purchase)
 	add_child(monetization)
 	monetization.purchase_completed.connect(_on_purchase_completed)
@@ -1252,6 +1253,12 @@ func _show_settings() -> void:
 		game.set_preference("reduced_motion", not game.reduced_motion)
 		refresh.call()
 	)
+	var privacy_notice := _settings_button("DATENSCHUTZERKLÄRUNG", "Informationen zu Spielstand, Werbung und Käufen lesen")
+	privacy_notice.pressed.connect(func() -> void:
+		var url := "https://acciento89-bot.github.io/oneclick-translator-legal/idle-handwerker/privacy/" if OS.get_name() == "Android" else "https://kamilunavo.com/idle-handwerker/privacy"
+		OS.shell_open(url)
+	)
+	box.add_child(privacy_notice)
 	var privacy_button := _settings_button("DATENSCHUTZOPTIONEN", "Einwilligung für optionale Belohnungswerbung verwalten")
 	privacy_button.visible = monetization.privacy_options_required()
 	privacy_button.pressed.connect(monetization.show_privacy_options)
@@ -1399,6 +1406,7 @@ func _grant_android_purchase(product_id: String, transaction_id: String) -> bool
 func _grant_purchase(product_id: String, transaction_id: String) -> bool:
 	if not game.apply_purchase(product_id, transaction_id):
 		return false
+	monetization.set_ads_disabled(game.no_ads)
 	sfx.play_cue("coin")
 	_haptic(80, 0.8)
 	_show_reward_burst("KAUF GUTGESCHRIEBEN", GOLD)

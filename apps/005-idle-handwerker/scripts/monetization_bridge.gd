@@ -25,6 +25,11 @@ const REWARDED_SETTING_PATHS := {
 	"offline": "monetization/admob/rewarded_offline_id",
 }
 
+const ANDROID_REWARDED_SETTING_PATHS := {
+	"boost": "monetization/admob/android/rewarded_boost_id",
+	"offline": "monetization/admob/android/rewarded_offline_id",
+}
+
 var _store: Object
 var _product_prices: Dictionary = {}
 var _rewarded_ads: Dictionary = {}
@@ -32,7 +37,11 @@ var _rewarded_loaders: Dictionary = {}
 var _active_rewarded_placement := ""
 var _active_rewarded_ad: RewardedAd
 var _ads_started := false
+var _ads_initialized := false
+var _ads_disabled := false
+var _consent_update_requested := false
 var _ads_suspended := false
+var _ad_request_generation := 0
 var _pending_product_id := ""
 var _iap: Node
 var _android_store_ready := false
@@ -44,7 +53,7 @@ func _ready() -> void:
 		_setup_android_store()
 	else:
 		_setup_storekit()
-	if OS.get_name() == "iOS":
+	if OS.get_name() in ["Android", "iOS"] and not _store_screenshot_capture() and not _ads_disabled:
 		_start_consent_flow()
 	set_process(_store != null)
 
@@ -56,7 +65,7 @@ func _exit_tree() -> void:
 func handle_application_paused(paused: bool) -> void:
 	if paused:
 		_ads_suspended = true
-		_shutdown_ads()
+		_shutdown_ads(true)
 		return
 	_ads_suspended = false
 	if _ads_started:
@@ -288,6 +297,9 @@ func show_rewarded_ad(placement: String = "boost") -> void:
 	if OS.has_feature("editor"):
 		rewarded_completed.emit()
 		return
+	if not _can_request_ads():
+		rewarded_unavailable.emit("Werbung ist mit deinen aktuellen Datenschutzoptionen nicht verfügbar.")
+		return
 	if placement not in REWARDED_SETTING_PATHS:
 		rewarded_unavailable.emit("Unbekannte Werbeplatzierung.")
 		return
@@ -302,25 +314,25 @@ func show_rewarded_ad(placement: String = "boost") -> void:
 	rewarded_ready_changed.emit(placement, false)
 	var full_screen_callback := FullScreenContentCallback.new()
 	full_screen_callback.on_ad_clicked = _on_rewarded_noop
-	full_screen_callback.on_ad_dismissed_full_screen_content = _on_rewarded_closed.bind(placement)
-	full_screen_callback.on_ad_failed_to_show_full_screen_content = _on_rewarded_show_failed.bind(placement)
+	full_screen_callback.on_ad_dismissed_full_screen_content = _on_rewarded_closed.bind(placement, _ad_request_generation)
+	full_screen_callback.on_ad_failed_to_show_full_screen_content = _on_rewarded_show_failed.bind(placement, _ad_request_generation)
 	full_screen_callback.on_ad_impression = _on_rewarded_noop
 	full_screen_callback.on_ad_showed_full_screen_content = _on_rewarded_noop
 	rewarded_ad.full_screen_content_callback = full_screen_callback
 	rewarded_ad.on_ad_paid = _on_rewarded_paid_noop
 	var reward_listener := OnUserEarnedRewardListener.new()
-	reward_listener.on_user_earned_reward = _on_native_reward.bind(placement)
+	reward_listener.on_user_earned_reward = _on_native_reward.bind(placement, _ad_request_generation)
 	rewarded_ad.show(reward_listener)
 
 
 func show_privacy_options() -> void:
-	if OS.get_name() != "iOS":
+	if OS.get_name() not in ["Android", "iOS"]:
 		return
 	UserMessagingPlatform.show_privacy_options_form(_on_privacy_options_closed)
 
 
 func privacy_options_required() -> bool:
-	if OS.get_name() != "iOS":
+	if OS.get_name() not in ["Android", "iOS"]:
 		return false
 	return (
 		UserMessagingPlatform.consent_information.get_privacy_options_requirement_status()
@@ -387,6 +399,7 @@ func _update_product_prices(event: Dictionary) -> void:
 
 
 func _start_consent_flow() -> void:
+	_consent_update_requested = true
 	var params := ConsentRequestParameters.new()
 	params.tag_for_under_age_of_consent = false
 	UserMessagingPlatform.consent_information.update(
@@ -410,13 +423,44 @@ func _on_consent_information_updated() -> void:
 	_initialize_ads()
 
 
+# Pinned UMP wrapper exposes status rather than canRequestAds(). Match the SDK's
+# permission rule only after requesting a status update in this app session.
+func _current_ad_consent_status() -> int:
+	return UserMessagingPlatform.consent_information.get_consent_status()
+
+
+func set_ads_disabled(disabled: bool) -> void:
+	_ads_disabled = disabled
+	if disabled:
+		_shutdown_ads(true)
+
+
+func _can_request_ads() -> bool:
+	return not _ads_disabled and _consent_update_requested and _current_ad_consent_status() in [
+		ConsentInformation.ConsentStatus.NOT_REQUIRED,
+		ConsentInformation.ConsentStatus.OBTAINED,
+	]
+
+
 func _initialize_ads() -> void:
-	if _ads_started:
+	if _ads_started or not _can_request_ads():
 		return
 	_ads_started = true
+	_start_ads_sdk()
+
+
+func _start_ads_sdk() -> void:
 	# Contextual/non-personalized requests keep the game independent of ATT tracking permission.
 	MobileAds.set_publisher_first_party_id_enabled(false)
-	MobileAds.initialize()
+	var listener := OnInitializationCompleteListener.new()
+	listener.on_initialization_complete = _on_ads_initialization_complete
+	MobileAds.initialize(listener)
+
+
+func _on_ads_initialization_complete(_status: InitializationStatus) -> void:
+	_ads_initialized = true
+	if not _can_request_ads() or _ads_suspended:
+		return
 	_load_rewarded("boost")
 	_load_rewarded("offline")
 
@@ -440,33 +484,64 @@ func _on_consent_form_closed(_form_error: FormError) -> void:
 func _on_privacy_options_closed(form_error: FormError) -> void:
 	if form_error != null:
 		purchase_failed.emit("Datenschutzoptionen konnten nicht geöffnet werden.")
+		return
+	# UMP may remain OBTAINED after individual choices change. Invalidate all
+	# cached requests before loading with the current choices, regardless of status.
+	_shutdown_ads(true)
+	if not _can_request_ads():
+		return
+	elif _ads_started:
+		_load_rewarded("boost")
+		_load_rewarded("offline")
+	else:
+		_initialize_ads()
+
+
+func _rewarded_id_for_platform(placement: String, platform: String) -> String:
+	if placement not in REWARDED_SETTING_PATHS:
+		return ""
+	if platform == "Android":
+		var path := str(ANDROID_REWARDED_SETTING_PATHS[placement])
+		var configured := str(ProjectSettings.get_setting(path, ""))
+		# A missing Android placement must not fall back to an iOS or example ID.
+		if not configured.begins_with("ca-app-pub-") or "/" not in configured or configured.begins_with("ca-app-pub-3940256099942544/"):
+			return ""
+		return configured
+	var path := str(REWARDED_SETTING_PATHS[placement])
+	var configured := str(ProjectSettings.get_setting(path, TEST_REWARDED_ID))
+	return TEST_REWARDED_ID if configured.is_empty() else configured
 
 
 func _load_rewarded(placement: String) -> void:
 	if (
 		not _ads_started
+		or not _ads_initialized
+		or not _can_request_ads()
 		or _ads_suspended
 		or _rewarded_loaders.has(placement)
 		or _rewarded_ads.has(placement)
 	):
 		return
-	var setting_path := str(REWARDED_SETTING_PATHS[placement])
-	var unit_id := str(ProjectSettings.get_setting(setting_path, TEST_REWARDED_ID))
+	var unit_id := _rewarded_id_for_platform(placement, OS.get_name())
 	if unit_id.is_empty():
-		unit_id = TEST_REWARDED_ID
+		rewarded_unavailable.emit("Für diese Plattform ist kein Werbeangebot eingerichtet.")
+		return
 	var request := AdRequest.new()
 	request.extras = {"npa": "1"}
 	var callback := RewardedAdLoadCallback.new()
-	callback.on_ad_loaded = _on_rewarded_loaded.bind(placement)
-	callback.on_ad_failed_to_load = _on_rewarded_load_failed.bind(placement)
+	callback.on_ad_loaded = _on_rewarded_loaded.bind(placement, _ad_request_generation)
+	callback.on_ad_failed_to_load = _on_rewarded_load_failed.bind(placement, _ad_request_generation)
 	var loader := RewardedAdLoader.new()
 	_rewarded_loaders[placement] = loader
 	loader.load(unit_id, request, callback)
 
 
-func _on_rewarded_loaded(rewarded_ad: RewardedAd, placement: String) -> void:
+func _on_rewarded_loaded(rewarded_ad: RewardedAd, placement: String, generation: int) -> void:
+	if generation != _ad_request_generation:
+		rewarded_ad.destroy()
+		return
 	_rewarded_loaders.erase(placement)
-	if _ads_suspended:
+	if _ads_suspended or not _can_request_ads():
 		rewarded_ad.destroy()
 		return
 	rewarded_ad.on_ad_paid = _on_rewarded_paid_noop
@@ -474,25 +549,33 @@ func _on_rewarded_loaded(rewarded_ad: RewardedAd, placement: String) -> void:
 	rewarded_ready_changed.emit(placement, true)
 
 
-func _on_rewarded_load_failed(error: LoadAdError, placement: String) -> void:
+func _on_rewarded_load_failed(error: LoadAdError, placement: String, generation: int) -> void:
+	if generation != _ad_request_generation:
+		return
 	_rewarded_loaders.erase(placement)
 	rewarded_ready_changed.emit(placement, false)
 	if error != null:
 		push_warning("Rewarded-Ad '%s' konnte nicht geladen werden (%d): %s" % [placement, error.code, error.message])
 
 
-func _on_native_reward(_reward: RewardedItem, placement: String) -> void:
+func _on_native_reward(_reward: RewardedItem, placement: String, generation: int) -> void:
+	if generation != _ad_request_generation:
+		return
 	if placement == _active_rewarded_placement:
 		_active_rewarded_placement = ""
 		rewarded_completed.emit()
 
 
-func _on_rewarded_closed(placement: String) -> void:
+func _on_rewarded_closed(placement: String, generation: int) -> void:
+	if generation != _ad_request_generation:
+		return
 	_destroy_active_rewarded()
 	_load_rewarded(placement)
 
 
-func _on_rewarded_show_failed(_error: AdError, placement: String) -> void:
+func _on_rewarded_show_failed(_error: AdError, placement: String, generation: int) -> void:
+	if generation != _ad_request_generation:
+		return
 	_active_rewarded_placement = ""
 	_destroy_active_rewarded()
 	rewarded_unavailable.emit("Das Belohnungsvideo konnte nicht gestartet werden.")
@@ -508,6 +591,9 @@ func _on_rewarded_paid_noop(_ad_value: AdValue) -> void:
 
 
 func _shutdown_ads(clear_loaders: bool = false) -> void:
+	if clear_loaders:
+		# Late callbacks must not erase a newer loader or complete a newer reward.
+		_ad_request_generation += 1
 	_active_rewarded_placement = ""
 	_destroy_active_rewarded()
 	for placement in _rewarded_ads.keys():

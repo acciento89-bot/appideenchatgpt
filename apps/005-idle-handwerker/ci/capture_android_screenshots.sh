@@ -23,6 +23,16 @@ collect_android_diagnostics() {
 }
 
 trap collect_android_diagnostics ERR
+# Native acceptance must never trigger a real purchase-history/restore request.
+# Google APIs emulator images can contain a vending stub without Billing; check
+# the actual service, not the package name, before launching the shipping app.
+billing_services=$(adb shell cmd package query-services --brief -a com.android.vending.billing.InAppBillingService.BIND | tr -d '\r')
+if [[ "$billing_services" != *"No services found"* ]]; then
+  echo "Refusing acceptance on a device with an available Billing service." >&2
+  exit 1
+fi
+adb shell svc wifi disable
+adb shell svc data disable
 adb logcat -c
 adb shell settings put global hide_error_dialogs 1
 
