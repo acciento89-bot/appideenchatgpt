@@ -51,7 +51,7 @@ func _ready() -> void:
 		_setup_android_store()
 	else:
 		_setup_storekit()
-	if OS.get_name() in ["Android", "iOS"]:
+	if OS.get_name() in ["Android", "iOS"] and not _store_screenshot_capture():
 		_start_consent_flow()
 	set_process(_store != null)
 
