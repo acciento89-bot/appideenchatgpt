@@ -11,6 +11,13 @@ ANDROID = "{http://schemas.android.com/apk/res/android}"
 ET.register_namespace("android", ANDROID[1:-1])
 ET.register_namespace("tools", "http://schemas.android.com/tools")
 
+def has_font_scale(value: str) -> bool:
+    # bundletool prints compiled enum flags as a numeric mask, not names.
+    try:
+        return bool(int(value, 0) & 0x40000000)
+    except ValueError:
+        return "fontScale" in value.split("|")
+
 def patch(manifest: Path) -> None:
     tree = ET.parse(manifest)
     matches = [a for a in tree.findall("application/activity") if a.get(ANDROID + "name") == ".GodotApp"]
