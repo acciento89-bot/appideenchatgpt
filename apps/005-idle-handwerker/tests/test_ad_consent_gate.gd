@@ -66,6 +66,16 @@ func run() -> void:
 			bridge._initialize_ads()
 			check(bridge.sdk_starts == (1 if allowed else 0), "repeated callbacks do not duplicate SDK initialization")
 			bridge.free()
+	var owner = FakeBridge.new()
+	owner.set("_consent_update_requested", true)
+	owner.consent_status = 3
+	var can_disable := owner.has_method("set_ads_disabled")
+	check(can_disable, "saved Remove Ads entitlement must disable SDK requests")
+	if can_disable:
+		owner.call("set_ads_disabled", true)
+		owner._initialize_ads()
+		check(owner.sdk_starts == 0 and not owner._can_request_ads(), "Remove Ads owner does not initialize or request ads")
+	owner.free()
 	var platform_bridge = FakeBridge.new()
 	var has_platform_ids := platform_bridge.has_method("_rewarded_id_for_platform")
 	check(has_platform_ids, "Android must not reuse the iOS rewarded placement")

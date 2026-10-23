@@ -165,7 +165,7 @@ jobs:
           set -euo pipefail
           "$GODOT" --headless --path "$PROJECT_DIR" --script res://tests/test_ad_consent_gate.gd 2>&1 | tee godot-ad-consent.log
           if grep -E "SCRIPT ERROR|Parse Error|Compile Error|Failed to load script|^FAIL:" godot-ad-consent.log; then exit 1; fi
-          grep -Fq 'ALL IDLE AD CONSENT TESTS PASSED: 52 checks' godot-ad-consent.log
+          grep -Fq 'ALL IDLE AD CONSENT TESTS PASSED: 54 checks' godot-ad-consent.log
 
       - name: Upload failure logs
         if: failure()

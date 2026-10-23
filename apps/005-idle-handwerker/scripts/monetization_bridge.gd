@@ -38,6 +38,7 @@ var _active_rewarded_placement := ""
 var _active_rewarded_ad: RewardedAd
 var _ads_started := false
 var _ads_initialized := false
+var _ads_disabled := false
 var _consent_update_requested := false
 var _ads_suspended := false
 var _ad_request_generation := 0
@@ -52,7 +53,7 @@ func _ready() -> void:
 		_setup_android_store()
 	else:
 		_setup_storekit()
-	if OS.get_name() in ["Android", "iOS"] and not _store_screenshot_capture():
+	if OS.get_name() in ["Android", "iOS"] and not _store_screenshot_capture() and not _ads_disabled:
 		_start_consent_flow()
 	set_process(_store != null)
 
@@ -428,8 +429,14 @@ func _current_ad_consent_status() -> int:
 	return UserMessagingPlatform.consent_information.get_consent_status()
 
 
+func set_ads_disabled(disabled: bool) -> void:
+	_ads_disabled = disabled
+	if disabled:
+		_shutdown_ads(true)
+
+
 func _can_request_ads() -> bool:
-	return _consent_update_requested and _current_ad_consent_status() in [
+	return not _ads_disabled and _consent_update_requested and _current_ad_consent_status() in [
 		ConsentInformation.ConsentStatus.NOT_REQUIRED,
 		ConsentInformation.ConsentStatus.OBTAINED,
 	]
