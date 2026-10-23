@@ -167,6 +167,18 @@ jobs:
           if grep -E "SCRIPT ERROR|Parse Error|Compile Error|Failed to load script|^FAIL:" godot-ad-consent.log; then exit 1; fi
           grep -Fq 'ALL IDLE AD CONSENT TESTS PASSED: 54 checks' godot-ad-consent.log
 
+      - name: Validate explicit provider isolation and shipping policy with fake SDKs
+        shell: bash
+        run: |
+          set -euo pipefail
+          for mode in ordinary qa; do
+            args=()
+            if [ "$mode" = qa ]; then args=(-- --idlehandwerkerProviderDisabledQA); fi
+            "$GODOT" --headless --path "$PROJECT_DIR" --script res://tests/test_provider_isolation.gd "${args[@]}" 2>&1 | tee "godot-provider-$mode.log"
+            if grep -E "SCRIPT ERROR|Parse Error|Compile Error|Failed to load script|^FAIL:" "godot-provider-$mode.log"; then exit 1; fi
+            grep -Fq 'ALL IDLE PROVIDER ISOLATION TESTS PASSED:' "godot-provider-$mode.log"
+          done
+
       - name: Upload failure logs
         if: failure()
         uses: actions/upload-artifact@v4
@@ -178,4 +190,5 @@ jobs:
             godot-ui-tests.log
             godot-dispatch-*.log
             godot-ad-consent.log
+            godot-provider-*.log
           if-no-files-found: ignore
