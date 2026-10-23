@@ -55,9 +55,10 @@ jobs:
           PROJECT_FILE="$PROJECT_DIR/$XCODE_PROJECT/project.pbxproj"
           PROJECT_BUILD=$(awk -F'= ' '/CURRENT_PROJECT_VERSION = [0-9]+;/{gsub(/;/,"",$2); print $2; exit}' "$PROJECT_FILE")
           BUILD="${REQUESTED_BUILD:-$PROJECT_BUILD}"
-          [[ "$BUILD" =~ ^[0-9]+$ ]]
+          [[ "$BUILD" == "8" && "$PROJECT_BUILD" == "8" ]]
+          grep -q "MARKETING_VERSION = 1.1.0;" "$PROJECT_FILE"
           echo "EFFECTIVE_BUILD=$BUILD" >> "$GITHUB_ENV"
-          echo "Kamilunavo Trace build: 0.1.0 ($BUILD)"
+          echo "Kamilunavo Trace build: 1.1.0 ($BUILD)"
 
       - name: Xcode version
         run: |
@@ -165,6 +166,11 @@ jobs:
             archive
           test -f "$RUNNER_TEMP/EvidaroPrototype.xcarchive/Info.plist"
           test -d "$RUNNER_TEMP/EvidaroPrototype.xcarchive/Products/Applications/EvidaroPrototype.app"
+          APP_INFO="$RUNNER_TEMP/EvidaroPrototype.xcarchive/Products/Applications/EvidaroPrototype.app/Info.plist"
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP_INFO" | grep -qx "$BUNDLE_ID"
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$APP_INFO" | grep -qx '1.1.0'
+          /usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$APP_INFO" | grep -qx '8'
+          echo 'Validated archive identity: Kamilunavo Trace 1.1.0 (8)'
 
       - name: Create TestFlight export options
         if: github.event_name == 'workflow_dispatch' && github.event_name != 'pull_request' && steps.asc.outputs.available == 'true'
