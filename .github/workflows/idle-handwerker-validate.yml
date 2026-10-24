@@ -158,6 +158,8 @@ jobs:
           run_dispatch_test test_dispatch_integration.gd godot-dispatch-integration.log 'ALL IDLE DISPATCH INTEGRATION TESTS PASSED:'
           run_dispatch_test test_dispatch_ui.gd godot-dispatch-ui.log 'ALL IDLE DISPATCH UI TESTS PASSED:'
           run_dispatch_test test_dispatch_archive_contract.gd godot-dispatch-archive.log 'ALL IDLE REQUIRED-BOARD ARCHIVE CHECKS PASSED'
+          run_dispatch_test test_dispatch_json_roundtrip.gd godot-dispatch-json.log 'DISPATCH JSON ROUNDTRIP 405 checks, failures=0'
+          run_dispatch_test test_fold_viewport.gd godot-fold-viewport.log 'PASS: full-window rendered viewport across three fold proportions'
 
       - name: Validate consent and stale-ad callbacks with fake SDKs
         shell: bash
