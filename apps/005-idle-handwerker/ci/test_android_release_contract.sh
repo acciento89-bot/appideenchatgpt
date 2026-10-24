@@ -31,6 +31,7 @@ grep -Fq "BC:F2:33:7D:41:E6:17:C0:3B:CA:E6:98:C0:9D:15:23:65:4B:D7:90" "$workflo
 grep -Fq "79:85:BD:6B:33:71:1B:AC:A7:E6:BA:72:2C:2B:38:70:EB:BC:80:2F:7D:B4:A7:BC:12:06:BD:AE:51:C4:D5:D6" "$workflow"
 grep -Fq "de.kamilunavo.idlehandwerker" "$workflow"
 grep -Fq "versionCode=4" "$workflow"
+grep -Fq 'grep -F '"'"'android:versionCode="4"'"'"' "$RUNNER_TEMP/manifest.xml"' "$workflow"
 grep -Fq "idle-handwerker-android-screenshots" "$workflow"
 grep -Fq "idle-handwerker-android-runtime-diagnostics" "$workflow"
 grep -Fq "idle-handwerker-screenshots.apk" "$workflow"
