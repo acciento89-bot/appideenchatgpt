@@ -30,7 +30,7 @@ grep -Fq "id-token: write" "$workflow"
 grep -Fq "BC:F2:33:7D:41:E6:17:C0:3B:CA:E6:98:C0:9D:15:23:65:4B:D7:90" "$workflow"
 grep -Fq "79:85:BD:6B:33:71:1B:AC:A7:E6:BA:72:2C:2B:38:70:EB:BC:80:2F:7D:B4:A7:BC:12:06:BD:AE:51:C4:D5:D6" "$workflow"
 grep -Fq "de.kamilunavo.idlehandwerker" "$workflow"
-grep -Fq "versionCode=3" "$workflow"
+grep -Fq "versionCode=4" "$workflow"
 grep -Fq "idle-handwerker-android-screenshots" "$workflow"
 grep -Fq "idle-handwerker-android-runtime-diagnostics" "$workflow"
 grep -Fq "idle-handwerker-screenshots.apk" "$workflow"
@@ -80,7 +80,7 @@ if grep -Fq 'drawable/icon_background\.xml' "$workflow"; then
   echo "AndroidX core-splashscreen's compatibility drawable is not a launcher icon." >&2
   exit 1
 fi
-test "$(grep -Fc 'version/code=3' "$preset")" -eq 2
+test "$(grep -Fc 'version/code=4' "$preset")" -eq 2
 test "$(grep -Fc 'splash_screen/background_color=Color(0.027, 0.063, 0.055, 1)' "$preset")" -eq 2
 grep -Fq 'sanitize_godot_launcher_aar.py' "$workflow"
 grep -Fq 'Godot splash theme still references removed icon_background' "$stripper"
