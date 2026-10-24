@@ -143,10 +143,10 @@ jobs:
           set -euo pipefail
           AAB="$PROJECT_DIR/builds/android/idle-handwerker-unsigned.aab"
           java -jar "$RUNNER_TEMP/bundletool.jar" dump manifest --bundle="$AAB" > "$RUNNER_TEMP/manifest.xml"
-          expected_manifest='package=de.kamilunavo.idlehandwerker versionCode=3 versionName=1.4.0'
+          expected_manifest='package=de.kamilunavo.idlehandwerker versionCode=4 versionName=1.4.0'
           echo "$expected_manifest"
           grep -F 'package="de.kamilunavo.idlehandwerker"' "$RUNNER_TEMP/manifest.xml"
-          grep -F 'android:versionCode="3"' "$RUNNER_TEMP/manifest.xml"
+          grep -F 'android:versionCode="4"' "$RUNNER_TEMP/manifest.xml"
           grep -F 'android:versionName="1.4.0"' "$RUNNER_TEMP/manifest.xml"
           python3 - "$RUNNER_TEMP/manifest.xml" <<'PY'
           import sys, xml.etree.ElementTree as ET
