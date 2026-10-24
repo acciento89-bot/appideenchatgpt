@@ -29,7 +29,8 @@ func quote(order_id: String, employee_id: String, pace: String, specialization: 
 		return {}
 	var experience: int = {"azubi": 0, "monteur": 4, "meisterin": 8}[employee_id]
 	var quality := clampi(72 + experience + (8 if order.specialization == specialization else 0) + int({"schnell": -12, "normal": 0, "sorgfalt": 8}[pace]), 50, 100)
-	var duration := maxf(1.0, float(order.duration) * float({"schnell": 0.75, "normal": 1.0, "sorgfalt": 1.4}[pace]))
+	# Quotes use whole seconds, stable across the JSON text save/load boundary.
+	var duration := maxf(1.0, roundf(float(order.duration) * float({"schnell": 0.75, "normal": 1.0, "sorgfalt": 1.4}[pace])))
 	return {"quality": quality, "duration": duration, "reward_cents": int(round(float(order.base_reward) * quality))}
 
 func set_specialization(employee_id: String, specialization: String) -> bool:
