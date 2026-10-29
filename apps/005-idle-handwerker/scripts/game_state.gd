@@ -50,6 +50,7 @@ var last_job_quality := 0
 var completed_major_projects := 0
 var recent_reviews: Array = []
 var sound_enabled := true
+var music_enabled := true
 var haptics_enabled := true
 var reduced_motion := false
 var mastery_points := 0
@@ -494,6 +495,14 @@ func finish_tutorial() -> void:
 
 func set_preference(preference: String, enabled: bool) -> void:
 	match preference:
+		"music":
+			var previous := music_enabled
+			music_enabled = enabled
+			if not save_game():
+				music_enabled = previous
+				return
+			changed.emit()
+			return
 		"sound": sound_enabled = enabled
 		"haptics": haptics_enabled = enabled
 		"reduced_motion": reduced_motion = enabled
@@ -708,6 +717,7 @@ func save_game() -> bool:
 		"completed_major_projects": completed_major_projects,
 		"recent_reviews": recent_reviews,
 		"sound_enabled": sound_enabled,
+		"music_enabled": music_enabled,
 		"haptics_enabled": haptics_enabled,
 		"reduced_motion": reduced_motion,
 		"mastery_points": mastery_points,
@@ -792,6 +802,8 @@ func load_game() -> void:
 	completed_major_projects = maxi(0, int(parsed.get("completed_major_projects", 0)))
 	recent_reviews = parsed.get("recent_reviews", [])
 	sound_enabled = bool(parsed.get("sound_enabled", true))
+	var loaded_music: Variant = parsed.get("music_enabled", true)
+	music_enabled = loaded_music if loaded_music is bool else true
 	haptics_enabled = bool(parsed.get("haptics_enabled", true))
 	reduced_motion = bool(parsed.get("reduced_motion", false))
 	mastery_points = maxi(0, int(parsed.get("mastery_points", 0)))

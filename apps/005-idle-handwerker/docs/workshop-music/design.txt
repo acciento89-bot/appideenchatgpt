@@ -1,0 +1,9 @@
+IdleHandwerker original workshop music — accepted scoped brief
+
+Root explicitly authorizes implementation without further questions. Native inline source work in an isolated worktree; only apps/005-idle-handwerker product paths. Current code5 native QA stays historical and unchanged.
+
+A separate WorkshopMusic node generates an original quiet20second mono PCM loop:72BPM,3/4,8bars, warm D-major mallet/plucked line with low chord roots. No recording, imported/demo track or Nine composition/code. Sine partials and bounded per-note smooth attack/decay, endpoint silence, no stochastic/unbounded synthesis. Cached once per process, under1MiB16bit PCM at22050Hz. Separate AudioStreamPlayer at low gain; repeated toggles/resume never layer players or restart a loop unnecessarily. Mute uses a short fade then pause; background/focus loss pauses immediately; foreground resumes only if music enabled; tree exit stops. Existing SFX/Haptik controls and business/provider/economy paths unchanged.
+
+Music defaults on for legacy saves missing the key, independent from Sound. Persist bool music_enabled in unchanged version9 JSON; actual settings add MUSIK AN/AUS and a warm-workshop description. Existing invalid/future save protections unchanged. The app default1.4project/iOS and old5source-workflow release pins are outside this audio activation; propose Android1.5.0/code6 atomically in Root integration before a cloud build. Do not dispatch old5.
+
+Validation uses Godot4.7.1 headless/Dummy, a distinct test userdata directory, cached existing read-only imports, no editor/import/export/device/provider call. Generation PCM bounds/seam/loop correctness, real playback state lifecycle, persisted legacy/v9prefs, existing dispatch/IAP/economy suites and real settings control signals. Native audibility/mix checks belong to later Root exactbuild QA; no audible quality claim from Dummy.

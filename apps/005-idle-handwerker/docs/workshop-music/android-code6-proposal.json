@@ -1,0 +1,19 @@
+{
+  "schema": 1,
+  "package": "de.kamilunavo.idlehandwerker",
+  "androidVersionName": "1.5.0",
+  "proposedAndroidVersionCode": 6,
+  "supersededUnusedQaCandidateVersionCode": 5,
+  "lastRecordedProviderMax": 4,
+  "lastRecordedProviderMaxIsHistoricalNotFreshProviderRead": true,
+  "newIdentity": false,
+  "status": "ROOT_REVIEW_AND_ATOMIC_RELEASE_PIN_ACTIVATION_PENDING_NO_CLOUD_BUILD",
+  "existingSourceWorkflow": "../../.github/workflows/idle-handwerker-android.yml",
+  "currentWorkflowVersionCode": 5,
+  "currentNormalAndScreenshotAndroidPresetVersionCode": 5,
+  "currentAppMetadataVersionCode": 5,
+  "currentSharedProjectAndIOSVersion": "1.4.0",
+  "reasonPinsNotActivatedHere": "Requested app-only source scope excludes shared source workflow. Root should change exact workflow guards/app presets/release metadata and related contract coherently to6 before cloud build. Do not fake providerMax5 to satisfy old max+1 test; preserve genuine historical max4 and explicitly account for skipped unused5.",
+  "priorCode5NativeQa": "Historical exact code5 only; cannot certify this new audio source or code6",
+  "noProviderReadBuildSigningOrDeviceAction": true
+}

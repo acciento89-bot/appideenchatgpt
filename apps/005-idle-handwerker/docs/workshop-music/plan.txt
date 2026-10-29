@@ -1,0 +1,21 @@
+# Idle Workshop Music Implementation Plan
+
+> For agentic workers: execute inline with superpowers:executing-plans. Steps use checkbox syntax.
+Goal: Original warm workshop BGM with separate persistent Musik control.
+Architecture: self-contained procedural WorkshopMusic node; existing GameState gains one optional bool, main settings own one independent control.
+Tech Stack: Godot4.7 GDScript, AudioStreamWAV/Player, existing JSON v9.
+Spec: docs/workshop-music/design.txt
+
+Global constraints: only apps/005 paths; no Nine/publisher/provider/device/GUI/export/build/sign; original code5 checkout untouched; no economy/dispatch/IAP changes; Android1.5.0/code6 proposal only before Root activation.
+Review focus: zero PCM loop seam; bounded generation and gain; rapid mute/pause/resume without layered playback; legacy/v9 preference persistence and future/corrupt saves; actual independent settings button and existing dispatch/economy outcomes.
+
+Task1 — Pure original composition and lifecycle node
+[x] Write failing tests for missing score implementation before adding product code. Test exact bounded PCM/stream loop range/finite nonclipping music, endpoint and largest sample step, repeated music enable and application/focus transitions, exit cleanup.
+[x] Implement scripts/workshop_music.gd with pure generate_pcm()/create_loop() and separate one-player lifecycle. No imported media and no Nine source.
+[x] Run headless new tests and inspect output.
+Task2 — v9 preference and actual settings integration
+[x] Write failing tests for default-on old saves, off/on persistence, independent sound/haptics, same v9 dispatch/jobs/entitlements, failed/future save protection and actual MUSIK button behavior.
+[x] Add music_enabled bool persistence in game_state.gd and MusicScript preload/node/settings button in main.gd. Existing lifecycle save/provider methods stay byte exact.
+[x] Run new and existing dispatch/economy/provider tests with isolated userdata and Dummy audio. Run CPU Android source contracts, existing font tests.
+Task3 — Reviewable source handoff
+[x] Inspect diff/changed paths and preserved original branch. Record targeted test checks, no native audibility claim, original code provenance and Root code6 release-pin prerequisite. Commit source with skip-ci and retain compact patch/receipt outside repo. Stop for Root review before cloud build.

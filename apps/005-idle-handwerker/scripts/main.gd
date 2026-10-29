@@ -1,5 +1,6 @@
 extends Control
 
+const MusicScript = preload("res://scripts/workshop_music.gd")
 const BG := Color("18292b")
 const SURFACE := Color("213a3d")
 const SURFACE_2 := Color("2b4546")
@@ -12,6 +13,7 @@ const RED := Color("e85d5d")
 
 var game: GameState
 var sfx: SfxBank
+var music: MusicScript
 var monetization: MonetizationBridge
 var current_tab := "betrieb"
 var content: VBoxContainer
@@ -61,6 +63,9 @@ func _ready() -> void:
 	add_child(game)
 	sfx = SfxBank.new()
 	add_child(sfx)
+	music = MusicScript.new()
+	music.set_enabled(game.music_enabled)
+	add_child(music)
 	monetization = MonetizationBridge.new()
 	monetization.set_ads_disabled(game.no_ads)
 	monetization.set_android_purchase_grant_handler(_grant_android_purchase)
@@ -1232,13 +1237,17 @@ func _show_settings() -> void:
 	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	box.add_child(description)
 	var sound_button := _settings_button("Sound", "Auftrags- und Belohnungseffekte")
+	var music_button := _settings_button("Musik", "Ruhiger Werkstatt-Walzer mit gezupften und hölzernen Klängen")
+	music_button.name = "MusicPreference"
 	var haptic_button := _settings_button("Haptik", "Vibration bei wichtigen Aktionen")
 	var motion_button := _settings_button("Bewegung reduzieren", "Weniger Übergänge und Skalierung")
 	box.add_child(sound_button)
+	box.add_child(music_button)
 	box.add_child(haptic_button)
 	box.add_child(motion_button)
 	var refresh := func() -> void:
 		sound_button.text = "SOUND\n%s" % ("AN" if game.sound_enabled else "AUS")
+		music_button.text = "MUSIK\n%s" % ("AN" if game.music_enabled else "AUS")
 		haptic_button.text = "HAPTIK\n%s" % ("AN" if game.haptics_enabled else "AUS")
 		motion_button.text = "BEWEGUNG REDUZIEREN\n%s" % ("AN" if game.reduced_motion else "AUS")
 	refresh.call()
@@ -1247,6 +1256,11 @@ func _show_settings() -> void:
 		sfx.set_enabled(game.sound_enabled)
 		if game.sound_enabled:
 			sfx.play_cue("click")
+		refresh.call()
+	)
+	music_button.pressed.connect(func() -> void:
+		game.set_preference("music", not game.music_enabled)
+		music.set_enabled(game.music_enabled)
 		refresh.call()
 	)
 	haptic_button.pressed.connect(func() -> void:
