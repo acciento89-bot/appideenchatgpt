@@ -51,6 +51,24 @@ class AndroidReleaseSourceTests(unittest.TestCase):
         for active in ['assets/fonts/mitr/Mitr-Regular.ttf', 'assets/fonts/mitr/Mitr-Bold.ttf', 'assets/fonts/mitr/OFL.txt', 'assets/fonts/LICENSE.txt', 'assets/fonts/DejaVu-2.37-LICENSE.txt']:
             self.assertFalse(any(fnmatch.fnmatchcase(active, pattern.strip()) for pattern in excluded), active)
 
+    def test_qualified_same_project_mit_notice_is_in_normal_android(self):
+        filename = 'licenses/godot-iap-1.2.9/CURRENT-UPSTREAM-MIT-LICENSE.txt'
+        self.assertTrue((ROOT / filename).is_file(), 'Complete unchanged maintained-project MIT notice is required')
+        raw = (ROOT / filename).read_bytes()
+        self.assertEqual(hashlib.sha256(raw).hexdigest(), '243adbe048bbec60be2faf9ae1e62c5221327d20ffbc13b1c80e82fa98127af1')
+        provenance = json.loads((ROOT / 'licenses/godot-iap-1.2.9/PROVENANCE.json').read_text())
+        self.assertEqual(provenance['pinnedCommit'], META['iapPinnedSourceCommit'])
+        self.assertEqual(provenance['upstreamDeclaration'], 'MIT License - see [LICENSE](LICENSE) file for details.')
+        self.assertEqual(provenance['fullNotice']['sourceCommit'], '6a2abd7b6512e26c47a3517f6564769f03505cef')
+        self.assertFalse(provenance['fullNotice']['claimedHistoricalPinnedFile'])
+        self.assertEqual(provenance['fullNotice']['sha256'], hashlib.sha256(raw).hexdigest())
+        self.assertEqual(META['normalAndroidRawAttributionFiles'][filename], hashlib.sha256(raw).hexdigest())
+        cfg = sections()
+        normal = next(cfg[s] for s in cfg.sections() if cfg[s].get('name') == '"Android Play"')
+        self.assertIn(filename, normal['include_filter'].strip('"').split(','))
+        self.assertFalse(any(fnmatch.fnmatchcase(filename, p.strip()) for p in normal['exclude_filter'].strip('"').split(',')))
+        self.assertFalse(provenance['sdkBehaviorOrVersionChanged'])
+
     def test_actual_manifest_checks_require_exact_android_identity(self):
         workflow = (ROOT / META['sourceWorkflow']).read_text()
         checks = [line.strip() for line in workflow.splitlines() if line.strip().startswith(('grep -F \'package="', 'grep -F \'android:versionCode="', 'grep -F \'android:versionName="'))]

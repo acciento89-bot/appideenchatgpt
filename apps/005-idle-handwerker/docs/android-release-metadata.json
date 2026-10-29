@@ -32,6 +32,10 @@
   ],
   "iapSDKVersionUnchanged": "1.2.9",
   "iapPinnedSourceCommit": "4c3a15ddabeeb4d9d43f3879c6d5bbf7cd85624b",
-  "iapExactLicenseTextStatus": "UNRESOLVED at pinned commit; original MIT declaration preserved as evidence, not invented full notice",
-  "admobSDKVersionUnchanged": "v5.0.0"
+  "iapExactLicenseTextStatus": "Historical pinned standalone licence file absent; complete original maintained same-project MIT notice packaged with explicitly qualified current-upstream provenance.",
+  "admobSDKVersionUnchanged": "v5.0.0",
+  "normalAndroidRawAttributionFiles": {
+    "licenses/godot-iap-1.2.9/CURRENT-UPSTREAM-MIT-LICENSE.txt": "243adbe048bbec60be2faf9ae1e62c5221327d20ffbc13b1c80e82fa98127af1"
+  },
+  "iapNoticePackagingStatus": "SOURCE_NOTICE_COMPLETE_FOR_ANDROID_PLAY; actual future packaged-byte verification required"
 }
