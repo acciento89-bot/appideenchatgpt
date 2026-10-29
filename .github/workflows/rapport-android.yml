@@ -38,7 +38,7 @@ jobs:
           gradle -p apps/012-rapport-ai/android --no-daemon --max-workers=1 verifyFragmentRuntime testDebugUnitTest lintDebug bundleRelease
       - uses: actions/upload-artifact@v4
         with:
-          name: RapportAI-1.2.0-4-unsigned-release-aab
+          name: RapportAI-1.3.0-5-unsigned-release-aab
           path: apps/012-rapport-ai/android/app/build/outputs/bundle/release/app-release.aab
           if-no-files-found: error
           retention-days: 30
