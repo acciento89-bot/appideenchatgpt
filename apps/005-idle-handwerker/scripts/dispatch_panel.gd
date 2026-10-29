@@ -24,7 +24,7 @@ func _ready() -> void:
 	heading.add_child(title)
 	var close := _button("X")
 	close.tooltip_text = "Einsatztafel schließen"
-	close.custom_minimum_size = Vector2(44, 44)
+	close.custom_minimum_size = Vector2(48, 48)
 	close.pressed.connect(func() -> void: close_requested.emit())
 	heading.add_child(close)
 	var scroll := ScrollContainer.new()

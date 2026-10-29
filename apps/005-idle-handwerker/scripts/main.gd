@@ -1,10 +1,10 @@
 extends Control
 
-const BG := Color("071522")
-const SURFACE := Color("0d2236")
-const SURFACE_2 := Color("14344f")
+const BG := Color("18292b")
+const SURFACE := Color("213a3d")
+const SURFACE_2 := Color("2b4546")
 const TEXT := Color("f4f8fb")
-const MUTED := Color("a7bac8")
+const MUTED := Color("c5cdba")
 const GREEN := Color("35b9e6") # Wasser / Kälte – primäre SHK-Akzentfarbe.
 const GREEN_DARK := Color("102f49")
 const GOLD := Color("f28c28") # Wärme / Heizung – sekundäre SHK-Akzentfarbe.
@@ -38,6 +38,7 @@ var settings_button: Button
 var store_button: Button
 var main_scroll: ScrollContainer
 var app_font: FontFile
+var app_font_bold: FontFile
 var rewarded_context := "boost"
 var offline_reward_doubled := false
 var offline_reward_label: Label
@@ -47,8 +48,12 @@ var window_safe_insets := Vector4.ZERO
 
 func _ready() -> void:
 	set_process(false)
-	app_font = FontFile.new()
-	app_font.data = Marshalls.base64_to_raw(EmbeddedFont.DATA)
+	var fallback_font := FontFile.new()
+	fallback_font.data = Marshalls.base64_to_raw(EmbeddedFont.DATA)
+	app_font = preload("res://assets/fonts/mitr/Mitr-Regular.ttf")
+	app_font_bold = preload("res://assets/fonts/mitr/Mitr-Bold.ttf")
+	app_font.fallbacks = [fallback_font]
+	app_font_bold.fallbacks = [fallback_font]
 	var app_theme := Theme.new()
 	app_theme.default_font = app_font
 	theme = app_theme
@@ -178,7 +183,7 @@ func _build_header() -> Control:
 	settings_button.icon = load("res://assets/ui/icon_settings.svg")
 	settings_button.expand_icon = true
 	settings_button.tooltip_text = "Einstellungen"
-	settings_button.custom_minimum_size = Vector2(48, 34)
+	settings_button.custom_minimum_size = Vector2(48, 48)
 	settings_button.add_theme_color_override("font_color", GREEN)
 	settings_button.add_theme_stylebox_override("normal", UiSkin.dark_button())
 	settings_button.add_theme_stylebox_override("hover", UiSkin.active_nav())
@@ -188,7 +193,7 @@ func _build_header() -> Control:
 	store_button = Button.new()
 	store_button.text = "SHOP"
 	store_button.tooltip_text = "Shop & Bonusse"
-	store_button.custom_minimum_size = Vector2(48, 34)
+	store_button.custom_minimum_size = Vector2(48, 48)
 	store_button.add_theme_font_size_override("font_size", 9)
 	store_button.add_theme_color_override("font_color", GOLD)
 	store_button.add_theme_stylebox_override("normal", UiSkin.dark_button())
@@ -222,10 +227,10 @@ func _build_nav() -> Control:
 	for item in items:
 		var button := Button.new()
 		button.name = "nav_%s" % item[0]
-		button.text = "%s\n%s" % [item[2], item[1]]
+		button.text = str(item[1])
 		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		button.custom_minimum_size.y = 58
-		button.add_theme_font_size_override("font_size", 11)
+		button.add_theme_font_size_override("font_size", 12)
 		button.pressed.connect(_nav_selected.bind(item[0], button))
 		row.add_child(button)
 		nav_buttons[item[0]] = button
@@ -296,8 +301,8 @@ func _apply_responsive_layout() -> void:
 	money_label.add_theme_font_size_override("font_size", 16 if compact else 20)
 	income_label.add_theme_font_size_override("font_size", 9 if compact else 11)
 	reputation_label.add_theme_font_size_override("font_size", 9 if compact else 11)
-	settings_button.custom_minimum_size = Vector2(42, 30) if compact else Vector2(48, 34)
-	store_button.custom_minimum_size = Vector2(42, 30) if compact else Vector2(48, 34)
+	settings_button.custom_minimum_size = Vector2(48, 48)
+	store_button.custom_minimum_size = Vector2(48, 48)
 	store_button.add_theme_font_size_override("font_size", 8 if compact else 9)
 	_apply_modal_safe_areas()
 
@@ -1790,12 +1795,9 @@ func _label(value: String, font_size: int, color: Color, bold := false) -> Label
 	label.custom_minimum_size.y = ceilf(float(font_size) * 1.45)
 	label.autowrap_mode = TextServer.AUTOWRAP_OFF
 	label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	label.add_theme_font_override("font", app_font)
+	label.add_theme_font_override("font", app_font_bold if bold else app_font)
 	label.add_theme_font_size_override("font_size", font_size)
 	label.add_theme_color_override("font_color", color)
-	if bold:
-		label.add_theme_constant_override("outline_size", 1)
-		label.add_theme_color_override("font_outline_color", Color(color, 0.2))
 	return label
 
 
