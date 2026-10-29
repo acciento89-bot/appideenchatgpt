@@ -20,6 +20,7 @@ const PRODUCTS: Array[String] = [
 ]
 const TEST_REWARDED_ID := "ca-app-pub-3940256099942544/1712485313"
 const STORE_SCREENSHOT_ARG := "--store-screenshots"
+const PROVIDER_DISABLED_QA_ARG := "--idlehandwerkerProviderDisabledQA"
 const REWARDED_SETTING_PATHS := {
 	"boost": "monetization/admob/rewarded_boost_id",
 	"offline": "monetization/admob/rewarded_offline_id",
@@ -48,7 +49,19 @@ var _android_store_ready := false
 var _android_purchase_grant_handler: Callable
 
 
+# QA is explicit and development-only; shipping Release always keeps providers.
+func provider_qa_policy(debug_build: bool, args: PackedStringArray) -> bool:
+	return debug_build and args.has(PROVIDER_DISABLED_QA_ARG)
+
+
+func _providers_disabled_for_qa() -> bool:
+	return provider_qa_policy(OS.is_debug_build(), OS.get_cmdline_args() + OS.get_cmdline_user_args())
+
+
 func _ready() -> void:
+	if _providers_disabled_for_qa():
+		set_process(false)
+		return
 	if OS.get_name() == "Android":
 		_setup_android_store()
 	else:
@@ -74,6 +87,8 @@ func handle_application_paused(paused: bool) -> void:
 
 
 func _setup_storekit() -> void:
+	if _providers_disabled_for_qa():
+		return
 	if not Engine.has_singleton("InAppStore"):
 		return
 	_store = Engine.get_singleton("InAppStore")
@@ -86,6 +101,8 @@ func _setup_storekit() -> void:
 
 
 func _process(_delta: float) -> void:
+	if _providers_disabled_for_qa():
+		return
 	if _store == null or not _store.has_method("pop_pending_event"):
 		return
 	if _store.has_method("get_pending_event_count"):
@@ -100,6 +117,9 @@ func _process(_delta: float) -> void:
 
 
 func purchase(product_id: String) -> void:
+	if _providers_disabled_for_qa():
+		purchase_failed.emit("Store und Werbung sind für diesen Gerätetest deaktiviert.")
+		return
 	if product_id not in PRODUCTS:
 		purchase_failed.emit("Unbekanntes Produkt.")
 		return
@@ -123,6 +143,9 @@ func purchase(product_id: String) -> void:
 
 
 func restore_purchases() -> void:
+	if _providers_disabled_for_qa():
+		purchase_failed.emit("Store und Werbung sind für diesen Gerätetest deaktiviert.")
+		return
 	if OS.get_name() == "Android":
 		_restore_android_purchases()
 		return
@@ -145,6 +168,8 @@ func set_android_purchase_grant_handler(handler: Callable) -> void:
 
 
 func _setup_android_store() -> void:
+	if _providers_disabled_for_qa():
+		return
 	_iap = get_node_or_null("/root/GodotIapPlugin")
 	if _iap == null:
 		_iap = GodotIapWrapperScript.new()
@@ -157,6 +182,8 @@ func _setup_android_store() -> void:
 
 
 func _initialize_android_store() -> void:
+	if _providers_disabled_for_qa():
+		return
 	if not _iap.is_node_ready():
 		await _iap.ready
 	_android_store_ready = bool(await _iap.init_connection())
@@ -294,6 +321,9 @@ func _result_success(result: Variant) -> bool:
 
 
 func show_rewarded_ad(placement: String = "boost") -> void:
+	if _providers_disabled_for_qa():
+		rewarded_unavailable.emit("Store und Werbung sind für diesen Gerätetest deaktiviert.")
+		return
 	if OS.has_feature("editor"):
 		rewarded_completed.emit()
 		return
@@ -326,12 +356,16 @@ func show_rewarded_ad(placement: String = "boost") -> void:
 
 
 func show_privacy_options() -> void:
+	if _providers_disabled_for_qa():
+		return
 	if OS.get_name() not in ["Android", "iOS"]:
 		return
 	UserMessagingPlatform.show_privacy_options_form(_on_privacy_options_closed)
 
 
 func privacy_options_required() -> bool:
+	if _providers_disabled_for_qa():
+		return false
 	if OS.get_name() not in ["Android", "iOS"]:
 		return false
 	return (
@@ -341,6 +375,8 @@ func privacy_options_required() -> bool:
 
 
 func _handle_store_event(event: Variant) -> void:
+	if _providers_disabled_for_qa():
+		return
 	if not event is Dictionary:
 		return
 	var result := str(event.get("result", ""))
@@ -399,6 +435,8 @@ func _update_product_prices(event: Dictionary) -> void:
 
 
 func _start_consent_flow() -> void:
+	if _providers_disabled_for_qa():
+		return
 	_consent_update_requested = true
 	var params := ConsentRequestParameters.new()
 	params.tag_for_under_age_of_consent = false
@@ -436,7 +474,7 @@ func set_ads_disabled(disabled: bool) -> void:
 
 
 func _can_request_ads() -> bool:
-	return not _ads_disabled and _consent_update_requested and _current_ad_consent_status() in [
+	return not _providers_disabled_for_qa() and not _ads_disabled and _consent_update_requested and _current_ad_consent_status() in [
 		ConsentInformation.ConsentStatus.NOT_REQUIRED,
 		ConsentInformation.ConsentStatus.OBTAINED,
 	]
@@ -450,6 +488,8 @@ func _initialize_ads() -> void:
 
 
 func _start_ads_sdk() -> void:
+	if _providers_disabled_for_qa():
+		return
 	# Contextual/non-personalized requests keep the game independent of ATT tracking permission.
 	MobileAds.set_publisher_first_party_id_enabled(false)
 	var listener := OnInitializationCompleteListener.new()
@@ -559,6 +599,8 @@ func _on_rewarded_load_failed(error: LoadAdError, placement: String, generation:
 
 
 func _on_native_reward(_reward: RewardedItem, placement: String, generation: int) -> void:
+	if _providers_disabled_for_qa():
+		return
 	if generation != _ad_request_generation:
 		return
 	if placement == _active_rewarded_placement:
