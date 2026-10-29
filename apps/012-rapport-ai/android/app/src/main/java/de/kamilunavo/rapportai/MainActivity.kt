@@ -188,7 +188,7 @@ private fun RapportApp(
     BackHandler(enabled = workOpen) { workOpen = false }
     var showPaywall by remember { mutableStateOf(false) }
     Scaffold(
-        containerColor = Navy,
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
                 title = { Text(if (tab == AppTab.CREATE) "Neuer Rapport" else tab.title, fontWeight = FontWeight.Bold) },
@@ -252,12 +252,12 @@ private fun CreateScreen(
             CraftCard {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(Modifier.size(54.dp).background(Navy, RoundedCornerShape(16.dp)), contentAlignment = Alignment.Center) {
-                        Icon(Icons.Default.Work, null, tint = Orange, modifier = Modifier.size(30.dp))
+                        Icon(Icons.Default.Work, null, tint = Color.White, modifier = Modifier.size(30.dp))
                     }
                     Spacer(Modifier.width(14.dp))
                     Column(Modifier.weight(1f)) {
                         Text("HANDWERK → RAPPORT", color = Cyan, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
-                        Text("Sprich frei. Wir machen es professionell.", fontWeight = FontWeight.Bold)
+                        Text("Vom Einsatz zur prüfbaren Dokumentation.", fontWeight = FontWeight.Bold)
                         Text(if (state.isPro) "PRO · Unbegrenzte KI-Rapporte" else "Noch ${state.remaining} kostenlose KI-Rapporte diesen Monat", color = Muted, style = MaterialTheme.typography.bodySmall)
                         if (!state.isPro) TextButton(onClick = onPaywall, contentPadding = PaddingValues(0.dp)) { Text("Pro freischalten", color = Orange) }
                     }
@@ -272,7 +272,7 @@ private fun CreateScreen(
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.Description, null, tint = Cyan)
                     Spacer(Modifier.width(8.dp))
-                    Text("Was wurde gemacht?", fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                    Text("01 · Einsatznotiz", fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
                     if (state.isRecording) Text("AUFNAHME", color = Color(0xFFFF6B6B), fontWeight = FontWeight.Bold)
                 }
                 Spacer(Modifier.height(12.dp))
@@ -300,9 +300,9 @@ private fun CreateScreen(
                     onClick = { if (state.mayGenerate) viewModel.generate() else onPaywall() },
                     enabled = !state.isGenerating && state.draft.rawText.isNotBlank(),
                     modifier = Modifier.fillMaxWidth().height(54.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Orange, contentColor = Navy)
+                    colors = ButtonDefaults.buttonColors(containerColor = Orange, contentColor = Color.White)
                 ) {
-                    if (state.isGenerating) CircularProgressIndicator(Modifier.size(22.dp), strokeWidth = 2.dp, color = Navy)
+                    if (state.isGenerating) CircularProgressIndicator(Modifier.size(22.dp), strokeWidth = 2.dp, color = Color.White)
                     else { Icon(Icons.Default.AutoAwesome, null); Spacer(Modifier.width(8.dp)); Text("Professionellen Rapport erstellen", fontWeight = FontWeight.Bold) }
                 }
             }
@@ -312,7 +312,7 @@ private fun CreateScreen(
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.CheckCircle, null, tint = Cyan)
                     Spacer(Modifier.width(8.dp))
-                    Text("Fertiger Rapport", fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                    Text("02 · Rapportentwurf", fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
                     Text("BEARBEITBAR", color = Orange, style = MaterialTheme.typography.labelSmall)
                 }
                 Spacer(Modifier.height(12.dp))
@@ -464,7 +464,7 @@ private fun PaywallDialog(state: BillingManager.BillingState, onDismiss: () -> U
 
 @Composable
 private fun CraftCard(content: @Composable ColumnScope.() -> Unit) {
-    Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+    Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(4.dp), border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
         Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp), content = content)
     }
 }
