@@ -19,10 +19,13 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -136,6 +139,9 @@ class MainActivity : ComponentActivity() {
                 val message = state.message ?: billingState.message
                 if (message != null) {
                     AlertDialog(
+                        containerColor = MaterialTheme.colorScheme.surface,
+                        titleContentColor = Navy,
+                        textContentColor = Navy,
                         onDismissRequest = { viewModel.clearMessage(); billing.clearMessage() },
                         confirmButton = { TextButton(onClick = { viewModel.clearMessage(); billing.clearMessage() }) { Text("OK") } },
                         title = { Text("Hinweis") },
@@ -188,11 +194,11 @@ private fun RapportApp(
     BackHandler(enabled = workOpen) { workOpen = false }
     var showPaywall by remember { mutableStateOf(false) }
     Scaffold(
-        containerColor = Navy,
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
                 title = { Text(if (tab == AppTab.CREATE) "Neuer Rapport" else tab.title, fontWeight = FontWeight.Bold) },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Navy, titleContentColor = Color.White),
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Navy, titleContentColor = Color.White, actionIconContentColor = Color.White, navigationIconContentColor = Color.White),
                 actions = {
                     if (tab == AppTab.CREATE && (state.draft.rawText.isNotBlank() || state.draft.reportText.isNotBlank() || state.draft.workItems.isNotEmpty())) {
                         IconButton(onClick = { viewModel.newDraft(); workOpen = false }) { Icon(Icons.Default.Add, "Neuen Rapport beginnen") }
@@ -252,12 +258,12 @@ private fun CreateScreen(
             CraftCard {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(Modifier.size(54.dp).background(Navy, RoundedCornerShape(16.dp)), contentAlignment = Alignment.Center) {
-                        Icon(Icons.Default.Work, null, tint = Orange, modifier = Modifier.size(30.dp))
+                        Icon(Icons.Default.Work, null, tint = Color.White, modifier = Modifier.size(30.dp))
                     }
                     Spacer(Modifier.width(14.dp))
                     Column(Modifier.weight(1f)) {
                         Text("HANDWERK → RAPPORT", color = Cyan, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
-                        Text("Sprich frei. Wir machen es professionell.", fontWeight = FontWeight.Bold)
+                        Text("Vom Einsatz zur prüfbaren Dokumentation.", fontWeight = FontWeight.Bold)
                         Text(if (state.isPro) "PRO · Unbegrenzte KI-Rapporte" else "Noch ${state.remaining} kostenlose KI-Rapporte diesen Monat", color = Muted, style = MaterialTheme.typography.bodySmall)
                         if (!state.isPro) TextButton(onClick = onPaywall, contentPadding = PaddingValues(0.dp)) { Text("Pro freischalten", color = Orange) }
                     }
@@ -272,8 +278,8 @@ private fun CreateScreen(
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.Description, null, tint = Cyan)
                     Spacer(Modifier.width(8.dp))
-                    Text("Was wurde gemacht?", fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-                    if (state.isRecording) Text("AUFNAHME", color = Color(0xFFFF6B6B), fontWeight = FontWeight.Bold)
+                    Text("01 · Einsatznotiz", fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                    if (state.isRecording) Text("AUFNAHME", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
                 }
                 Spacer(Modifier.height(12.dp))
                 OutlinedTextField(
@@ -300,9 +306,9 @@ private fun CreateScreen(
                     onClick = { if (state.mayGenerate) viewModel.generate() else onPaywall() },
                     enabled = !state.isGenerating && state.draft.rawText.isNotBlank(),
                     modifier = Modifier.fillMaxWidth().height(54.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Orange, contentColor = Navy)
+                    colors = ButtonDefaults.buttonColors(containerColor = Orange, contentColor = Color.White)
                 ) {
-                    if (state.isGenerating) CircularProgressIndicator(Modifier.size(22.dp), strokeWidth = 2.dp, color = Navy)
+                    if (state.isGenerating) CircularProgressIndicator(Modifier.size(22.dp), strokeWidth = 2.dp, color = Color.White)
                     else { Icon(Icons.Default.AutoAwesome, null); Spacer(Modifier.width(8.dp)); Text("Professionellen Rapport erstellen", fontWeight = FontWeight.Bold) }
                 }
             }
@@ -312,7 +318,7 @@ private fun CreateScreen(
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.CheckCircle, null, tint = Cyan)
                     Spacer(Modifier.width(8.dp))
-                    Text("Fertiger Rapport", fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                    Text("02 · Rapportentwurf", fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
                     Text("BEARBEITBAR", color = Orange, style = MaterialTheme.typography.labelSmall)
                 }
                 Spacer(Modifier.height(12.dp))
@@ -332,6 +338,7 @@ private fun CreateScreen(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ContextCard(draft: Rapport, update: ((Rapport) -> Rapport) -> Unit) {
     CraftCard {
@@ -344,8 +351,8 @@ private fun ContextCard(draft: Rapport, update: ((Rapport) -> Rapport) -> Unit) 
         OutlinedTextField(draft.location, { text -> update { it.copy(location = text) } }, Modifier.fillMaxWidth(), label = { Text("Einsatzort") }, singleLine = true)
         OutlinedTextField(draft.system, { text -> update { it.copy(system = text) } }, Modifier.fillMaxWidth(), label = { Text("Objekt / Anlage / Bauteil") }, singleLine = true)
         Text("Stil", color = Muted, style = MaterialTheme.typography.labelMedium, modifier = Modifier.padding(top = 10.dp))
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            Tone.entries.forEach { tone -> FilterChip(selected = draft.tone == tone, onClick = { update { it.copy(tone = tone) } }, label = { Text(tone.title, maxLines = 1) }) }
+        FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Tone.entries.forEach { tone -> FilterChip(selected = draft.tone == tone, onClick = { update { it.copy(tone = tone) } }, label = { Text(tone.title) }, modifier = Modifier.heightIn(min = 48.dp)) }
         }
     }
 }
@@ -464,7 +471,7 @@ private fun PaywallDialog(state: BillingManager.BillingState, onDismiss: () -> U
 
 @Composable
 private fun CraftCard(content: @Composable ColumnScope.() -> Unit) {
-    Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+    Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(4.dp), border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
         Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp), content = content)
     }
 }

@@ -29,7 +29,7 @@ def preflight(call,serial):
 def run(execute=subprocess.run):
  runtime=pathlib.Path(os.environ['RUNNER_TEMP']).resolve();proof=runtime/'rapport-native-acceptance'/'rapport'
  assert not proof.is_symlink() and not proof.parent.is_symlink();proof.mkdir(parents=True,exist_ok=True,mode=0o700)
- result={'status':'STARTED','package':PACKAGE,'version':'1.2.0(4)','transactions':False,'fixtureRecordsInjected':False,'testMethods':METHODS};validated=False
+ result={'status':'STARTED','package':PACKAGE,'version':'1.3.0(4)','transactions':False,'fixtureRecordsInjected':False,'testMethods':METHODS};validated=False
  def call(args,timeout=15):
   p=execute(['adb','-s','emulator-5554',*args],stdout=subprocess.PIPE,stderr=subprocess.PIPE,timeout=timeout)
   if p.returncode:raise RuntimeError('Owned adb command failed: '+args[0])
@@ -43,7 +43,7 @@ def run(execute=subprocess.run):
   result['apkSha256']={p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in apks}
   for p in apks:call(['install','-r',str(p)],90)
   identity=call(['shell','dumpsys','package',PACKAGE]);(proof/'installed-identity.txt').write_bytes(identity)
-  assert re.search(rb'\bversionCode=4(?=\s|$)',identity) and re.search(rb'\bversionName=1\.2\.0(?=\s|$)',identity),'Installed identity mismatch'
+  assert re.search(rb'\bversionCode=5(?=\s|$)',identity) and re.search(rb'\bversionName=1\.3\.0(?=\s|$)',identity),'Installed identity mismatch'
   previous=None
   for method,filename in zip(METHODS,['scenario.txt','cold-reopen.txt']):
    if previous is not None:call(['shell','am','force-stop',PACKAGE])
