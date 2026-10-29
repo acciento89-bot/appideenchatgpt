@@ -20,7 +20,7 @@ for file in "$workflow" "$validate" "$preset" "$monetization" "$capture" "$strip
   test -s "$file"
 done
 
-grep -Fq "uses: acciento89-bot/maengelfix/.github/actions/restore-central-android-signing@main" "$workflow"
+grep -Fq "uses: acciento89-bot/maengelfix/.github/actions/restore-central-android-signing@14bbf9332ccf58a2304027628da748ff4c6b3e61" "$workflow"
 if grep -Fq "restore-android-signing@main" "$workflow" || grep -Fq "app-id:" "$workflow"; then
   echo "Dispatch signing must use the single central identity without a per-app vault id." >&2
   exit 1

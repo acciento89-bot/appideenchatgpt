@@ -2,6 +2,11 @@ name: Idle Handwerker Android Play
 
 on:
   workflow_dispatch:
+    inputs:
+      capture_screenshots:
+        description: Run hosted Android screenshot capture separately from the artifact-only release route
+        type: boolean
+        default: false
   push:
     branches: [main]
     paths:
@@ -21,17 +26,32 @@ env:
   GODOT_VERSION: "4.7.1"
   GODOT_TAG: "4.7.1-stable"
   PROJECT_DIR: apps/005-idle-handwerker
-  BUNDLETOOL_VERSION: "1.18.3"
-  BUNDLETOOL_SHA256: a099cfa1543f55593bc2ed16a70a7c67fe54b1747bb7301f37fdfd6d91028e29
+  BUNDLETOOL_VERSION: "1.18.2"
+  BUNDLETOOL_SHA256: 378b5434cd1378bef6b2bc527b8c7f0ff2584b273830335bce54d6d0813c8584
 
+  RELEASE_WORKFLOW: .github/workflows/idle-handwerker-android.yml
+  PACKAGE_NAME: de.kamilunavo.idlehandwerker
+  EXPECTED_VERSION_CODE: '5'
+  EXPECTED_VERSION_NAME: 1.5.0
+  CENTRAL_SHA1: BCF2337D41E617C03BCAE698C09D1523654BD790
+  CENTRAL_SHA256: 7985BD6B33711BACA7E6BA722C2B3870EBBC802F7DB4A7BC1206BDAE51C4D5D6
+  GODOT_LINUX_SHA256: c7ff14fd28472c8d4f193043de30278dcf7e5241a1dcf7566b02e27addaa33ba
+  GODOT_TEMPLATES_SHA256: 86409db6200b6f8fd3230989c2d2002851f3dd18acf11d7bdbafddf5a0dd0f72
+  CAPTURE_SCREENSHOTS: ${{ github.event_name != 'workflow_dispatch' || inputs.capture_screenshots }}
 jobs:
   contract:
     runs-on: ubuntu-24.04
     timeout-minutes: 3
     steps:
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
       - name: Validate release and screenshot contract
-        run: bash "$PROJECT_DIR/ci/test_android_release_contract.sh"
+        run: |
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          bash "$PROJECT_DIR/ci/test_android_release_contract.sh"
+          python3 .github/scripts/test_godot_release_payload.py -v
 
   build-and-screenshot:
     needs: contract
@@ -39,8 +59,13 @@ jobs:
     timeout-minutes: 50
     outputs:
       screenshot_outcome: ${{ steps.screenshots.outcome }}
+      artifact_id: ${{ steps.unsigned.outputs.artifact-id }}
+      artifact_digest: ${{ steps.unsigned.outputs.artifact-digest }}
     steps:
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
@@ -50,6 +75,7 @@ jobs:
           packages: platform-tools
 
       - name: Enable KVM
+        if: github.event_name != 'workflow_dispatch' || inputs.capture_screenshots
         run: |
           if [ -e /dev/kvm ]; then
             sudo chmod 666 /dev/kvm
@@ -61,6 +87,7 @@ jobs:
           IAP_COMMIT='4c3a15ddabeeb4d9d43f3879c6d5bbf7cd85624b'
           curl -L --fail --retry 3 -o "$RUNNER_TEMP/godot-iap.zip" \
             "https://github.com/hyochan/godot-iap/archive/$IAP_COMMIT.zip"
+          printf '%s  %s\n' ef78980b0b9be00c156dd2e9d093d4e9cb59f4570813f4ac5f38ac8d762490dd "$RUNNER_TEMP/godot-iap.zip" | sha256sum --check --strict
           unzip -q "$RUNNER_TEMP/godot-iap.zip" -d "$RUNNER_TEMP/godot-iap"
           IAP_SOURCE="$RUNNER_TEMP/godot-iap/godot-iap-$IAP_COMMIT/addons/godot-iap"
           test -s "$IAP_SOURCE/android/GodotIap.release.aar"
@@ -81,6 +108,7 @@ jobs:
           ADMOB_ARCHIVE="poing-godot-admob-$ADMOB_VERSION.zip"
           curl -L --fail --retry 3 -o "$RUNNER_TEMP/$ADMOB_ARCHIVE" \
             "https://github.com/poingstudios/godot-admob-plugin/releases/download/$ADMOB_VERSION/$ADMOB_ARCHIVE"
+          printf '%s  %s\n' 93e9aaa8422b00f783c6b8c06a9e2ae3a81db071515517bb061bbb2d202d5fdf "$RUNNER_TEMP/$ADMOB_ARCHIVE" | sha256sum --check --strict
           unzip -q "$RUNNER_TEMP/$ADMOB_ARCHIVE" -d "$RUNNER_TEMP/godot-admob"
           ADMOB_SOURCE="$RUNNER_TEMP/godot-admob/poing-godot-admob/addons/admob"
           test -f "$ADMOB_SOURCE/plugin.cfg"
@@ -88,12 +116,19 @@ jobs:
           mkdir -p "$PROJECT_DIR/addons"
           cp -R "$ADMOB_SOURCE" "$PROJECT_DIR/addons/admob"
           python3 "$PROJECT_DIR/ci/patch_admob_callbacks.py" "$PROJECT_DIR/addons/admob"
+          curl -L --fail --retry 3 -o "$RUNNER_TEMP/admob-android-template.zip" \
+            "https://github.com/poingstudios/godot-admob-plugin/releases/download/v5.0.0/android-template-v${GODOT_VERSION}.zip"
+          printf '%s  %s\n' 0d504a40b92db1abfdf839724c3a962a56569def93dbc608c9537fa38710e65a "$RUNNER_TEMP/admob-android-template.zip" | sha256sum --check --strict
+          mkdir -p "$PROJECT_DIR/addons/admob/android/bin"
+          unzip -q "$RUNNER_TEMP/admob-android-template.zip" -d "$PROJECT_DIR/addons/admob/android/bin"
+          test -s "$PROJECT_DIR/addons/admob/android/bin/ads/libs/poing-godot-admob-ads-release.aar"
 
       - name: Install Godot Android toolchain
         run: |
           set -euo pipefail
           curl -L --fail --retry 3 -o "$RUNNER_TEMP/godot.zip" \
             "https://github.com/godotengine/godot/releases/download/${GODOT_TAG}/Godot_v${GODOT_TAG}_linux.x86_64.zip"
+          printf '%s  %s\n' "$GODOT_LINUX_SHA256" "$RUNNER_TEMP/godot.zip" | sha256sum --check --strict
           unzip -q "$RUNNER_TEMP/godot.zip" -d "$RUNNER_TEMP/godot"
           GODOT="$RUNNER_TEMP/godot/Godot_v${GODOT_TAG}_linux.x86_64"
           chmod +x "$GODOT"
@@ -102,6 +137,7 @@ jobs:
           mkdir -p "$T" "$PROJECT_DIR/android/build" "$PROJECT_DIR/builds/android"
           curl -L --fail --retry 3 -o "$RUNNER_TEMP/templates.tpz" \
             "https://github.com/godotengine/godot/releases/download/${GODOT_TAG}/Godot_v${GODOT_TAG}_export_templates.tpz"
+          printf '%s  %s\n' "$GODOT_TEMPLATES_SHA256" "$RUNNER_TEMP/templates.tpz" | sha256sum --check --strict
           unzip -q "$RUNNER_TEMP/templates.tpz" -d "$RUNNER_TEMP/templates"
           cp -R "$RUNNER_TEMP/templates/templates/." "$T/"
           unzip -q "$T/android_source.zip" -d "$PROJECT_DIR/android/build"
@@ -134,9 +170,11 @@ jobs:
           "$GODOT" --headless --editor --path "$PROJECT_DIR" --quit
           "$GODOT" --headless --path "$PROJECT_DIR" --export-release "Android Play" "$AAB"
           test -s "$AAB"
-          sed -i '0,/package\/signed=false/s//package\/signed=true/' "$PROJECT_DIR/export_presets.cfg"
-          "$GODOT" --headless --path "$PROJECT_DIR" --export-debug "Android Screenshots" "$APK"
-          test -s "$APK"
+          if [ "$CAPTURE_SCREENSHOTS" = true ]; then
+            sed -i '0,/package\/signed=false/s//package\/signed=true/' "$PROJECT_DIR/export_presets.cfg"
+            "$GODOT" --headless --path "$PROJECT_DIR" --export-debug "Android Screenshots" "$APK"
+            test -s "$APK"
+          fi
 
       - name: Validate AAB identity and metadata
         run: |
@@ -174,14 +212,18 @@ jobs:
             exit 1
           fi
 
-      - uses: actions/upload-artifact@v4
+      - name: Preserve the complete unsigned source and install-time asset pack
+        run: python3 .github/scripts/godot_release_payload.py prepare --input "$PROJECT_DIR/builds/android/idle-handwerker-unsigned.aab" --out unsigned
+      - id: unsigned
+        uses: actions/upload-artifact@v4
         with:
           name: idle-handwerker-unsigned-aab
-          path: apps/005-idle-handwerker/builds/android/idle-handwerker-unsigned.aab
+          path: unsigned/
           if-no-files-found: error
-          retention-days: 14
+          retention-days: 30
 
       - name: Capture real Android screenshots
+        if: github.event_name != 'workflow_dispatch' || inputs.capture_screenshots
         id: screenshots
         # Godot #109550 can exceed Google SwiftShader's fragment-uniform limit.
         # Keep authentic emulator capture as retained QA without blocking the release AAB.
@@ -197,7 +239,7 @@ jobs:
           script: bash apps/005-idle-handwerker/ci/capture_android_screenshots.sh apps/005-idle-handwerker/builds/android/idle-handwerker-screenshots.apk apps/005-idle-handwerker/builds/android/screenshots
 
       - uses: actions/upload-artifact@v4
-        if: always()
+        if: always() && (github.event_name != 'workflow_dispatch' || inputs.capture_screenshots)
         with:
           name: idle-handwerker-android-screenshots
           path: apps/005-idle-handwerker/builds/android/screenshots/*.png
@@ -222,6 +264,9 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
         with:
           ref: main
       - uses: actions/download-artifact@v5
@@ -255,23 +300,35 @@ jobs:
     timeout-minutes: 15
     permissions:
       contents: read
+      actions: read
       id-token: write
     steps:
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "17"
-      - uses: actions/download-artifact@v5
-        with:
-          name: idle-handwerker-unsigned-aab
-          path: ${{ runner.temp }}/unsigned
-
+      - name: Fetch the exact immutable unsigned source artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_ARTIFACT_ID: ${{ needs.build-and-screenshot.outputs.artifact_id }}
+          SOURCE_ARTIFACT_DIGEST: ${{ needs.build-and-screenshot.outputs.artifact_digest }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          [[ "$SOURCE_ARTIFACT_ID" =~ ^[1-9][0-9]*$ ]]
+          gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/$SOURCE_ARTIFACT_ID" > "$RUNNER_TEMP/source-artifact.json"
+          gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/$SOURCE_ARTIFACT_ID/zip" > "$RUNNER_TEMP/source-artifact.zip"
+          python3 .github/scripts/godot_release_payload.py unpack --archive "$RUNNER_TEMP/source-artifact.zip" --metadata "$RUNNER_TEMP/source-artifact.json" --digest "$SOURCE_ARTIFACT_DIGEST" --artifact-id "$SOURCE_ARTIFACT_ID" --artifact-name idle-handwerker-unsigned-aab --out input
       - name: Validate exact release identity before restoring signing material
         run: |
           set -euo pipefail
-          unsigned="$RUNNER_TEMP/unsigned/idle-handwerker-unsigned.aab"
+          unsigned="$GITHUB_WORKSPACE/input/app.aab"
           test -s "$unsigned"
+          python3 .github/scripts/godot_release_payload.py recheck --input input
           curl -L --fail --retry 3 -o "$RUNNER_TEMP/bundletool.jar" \
             "https://github.com/google/bundletool/releases/download/${BUNDLETOOL_VERSION}/bundletool-all-${BUNDLETOOL_VERSION}.jar"
           echo "${BUNDLETOOL_SHA256}  $RUNNER_TEMP/bundletool.jar" | sha256sum --check -
@@ -280,14 +337,20 @@ jobs:
           test "$(java -jar "$RUNNER_TEMP/bundletool.jar" dump manifest --bundle="$unsigned" --xpath=/manifest/@android:versionCode)" = 5
           test "$(java -jar "$RUNNER_TEMP/bundletool.jar" dump manifest --bundle="$unsigned" --xpath=/manifest/@android:versionName)" = 1.5.0
 
+          java -jar "$RUNNER_TEMP/bundletool.jar" dump manifest --bundle="$unsigned" --module=assetPackInstallTime > "$RUNNER_TEMP/install-time.xml"
+          python3 .github/scripts/godot_release_payload.py pack --input "$RUNNER_TEMP/install-time.xml"
+
       - name: Restore central upload identity
-        uses: acciento89-bot/maengelfix/.github/actions/restore-central-android-signing@main
+        uses: acciento89-bot/maengelfix/.github/actions/restore-central-android-signing@14bbf9332ccf58a2304027628da748ff4c6b3e61
 
       - name: Sign and verify release AAB
         run: |
           set -euo pipefail
-          unsigned="$RUNNER_TEMP/unsigned/idle-handwerker-unsigned.aab"
-          signed="$RUNNER_TEMP/idle-handwerker.aab"
+          unsigned="$GITHUB_WORKSPACE/input/app.aab"
+          signed="$GITHUB_WORKSPACE/signed/idle-handwerker.aab"
+          test "$KAMILUNAVO_CENTRAL_UPLOAD_SHA1" = "$CENTRAL_SHA1"
+          test "$KAMILUNAVO_CENTRAL_UPLOAD_SHA256" = "$CENTRAL_SHA256"
+          mkdir signed
           cp "$unsigned" "$signed"
           jarsigner -keystore "$ANDROID_UPLOAD_KEYSTORE_PATH" \
             -storepass "$ANDROID_UPLOAD_STORE_PASSWORD" \
@@ -298,19 +361,19 @@ jobs:
           test "$(java -jar "$RUNNER_TEMP/bundletool.jar" dump manifest --bundle="$signed" --xpath=/manifest/@package)" = de.kamilunavo.idlehandwerker
           test "$(java -jar "$RUNNER_TEMP/bundletool.jar" dump manifest --bundle="$signed" --xpath=/manifest/@android:versionCode)" = 5
           test "$(java -jar "$RUNNER_TEMP/bundletool.jar" dump manifest --bundle="$signed" --xpath=/manifest/@android:versionName)" = 1.5.0
-          keytool -printcert -jarfile "$signed" > "$RUNNER_TEMP/signing-cert.txt"
+          keytool -J-Duser.language=en -printcert -jarfile "$signed" > "$RUNNER_TEMP/signing-cert.txt"
           grep -F 'SHA1: BC:F2:33:7D:41:E6:17:C0:3B:CA:E6:98:C0:9D:15:23:65:4B:D7:90' "$RUNNER_TEMP/signing-cert.txt"
           grep -F 'SHA256: 79:85:BD:6B:33:71:1B:AC:A7:E6:BA:72:2C:2B:38:70:EB:BC:80:2F:7D:B4:A7:BC:12:06:BD:AE:51:C4:D5:D6' "$RUNNER_TEMP/signing-cert.txt"
-          sha256sum "$signed" > "$RUNNER_TEMP/idle-handwerker.aab.sha256"
+          cp "$RUNNER_TEMP/signing-cert.txt" signed/upload-certificate.txt
+          python3 .github/scripts/godot_release_payload.py finish --input input --signed "$signed"
+          sha256sum "$signed" > signed/idle-handwerker.aab.sha256
 
       - uses: actions/upload-artifact@v4
         with:
           name: idle-handwerker-central-signed-aab
-          path: |
-            ${{ runner.temp }}/idle-handwerker.aab
-            ${{ runner.temp }}/idle-handwerker.aab.sha256
+          path: signed/
           if-no-files-found: error
-          retention-days: 14
+          retention-days: 30
 
       - name: Remove signing material
         if: always()
