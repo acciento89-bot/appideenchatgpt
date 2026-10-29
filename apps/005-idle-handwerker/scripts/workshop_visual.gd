@@ -1,6 +1,9 @@
 class_name WorkshopVisual
 extends Control
 
+# Original bundled Mitr; only miniature sign lettering uses this resource.
+const SIGN_FONT = preload("res://assets/fonts/mitr/Mitr-Regular.ttf")
+
 const INK := Color("071522")
 const WALL := Color("12324b")
 const WALL_LIGHT := Color("245674")
@@ -138,7 +141,7 @@ func _draw_major_project(width: float, height: float) -> void:
 	draw_line(Vector2(width * 0.35, height * 0.33), Vector2(width * 0.52, height * 0.33), BLUE, 2.0)
 	draw_line(Vector2(width * 0.35, height * 0.38), Vector2(width * 0.48, height * 0.38), BLUE, 2.0)
 	draw_circle(Vector2(width * 0.54, height * 0.3), 4.0 + pulse * 2.0, GOLD)
-	draw_string(ThemeDB.fallback_font, Vector2(width * 0.34, height * 0.44), "GROSSPROJEKT", HORIZONTAL_ALIGNMENT_LEFT, -1, 7, GOLD)
+	draw_string(SIGN_FONT, Vector2(width * 0.34, height * 0.44), "GROSSPROJEKT", HORIZONTAL_ALIGNMENT_LEFT, -1, 7, GOLD)
 
 
 func _draw_progression_details(width: float, height: float, bench_y: float) -> void:
@@ -166,11 +169,11 @@ func _draw_progression_details(width: float, height: float, bench_y: float) -> v
 	# Higher locations add a contract board and premium signage.
 	if location_id != "neighborhood":
 		draw_style_box(_flat_box(Color("dbeaf1"), 2, INK, 1), Rect2(width * 0.77, height * 0.1, width * 0.17, height * 0.19))
-		draw_string(ThemeDB.fallback_font, Vector2(width * 0.79, height * 0.17), "AUFTRÄGE", HORIZONTAL_ALIGNMENT_LEFT, -1, 7, WALL)
+		draw_string(SIGN_FONT, Vector2(width * 0.79, height * 0.17), "AUFTRÄGE", HORIZONTAL_ALIGNMENT_LEFT, -1, 7, WALL)
 		for index in range(mini(contract_count, 4)):
 			draw_circle(Vector2(width * 0.79 + index * 6.0, height * 0.24), 2.0, GOLD)
 	if business_level >= 9:
-		draw_string(ThemeDB.fallback_font, Vector2(width * 0.36, height * 0.1), "MEISTERBETRIEB", HORIZONTAL_ALIGNMENT_LEFT, -1, 8, GOLD)
+		draw_string(SIGN_FONT, Vector2(width * 0.36, height * 0.1), "MEISTERBETRIEB", HORIZONTAL_ALIGNMENT_LEFT, -1, 8, GOLD)
 
 
 func _draw_worker(origin: Vector2) -> void:
@@ -214,11 +217,11 @@ func _draw_van(center: Vector2, van_size: Vector2) -> void:
 	draw_rect(Rect2(rect.position + Vector2(rect.size.x * 0.56, 5), Vector2(rect.size.x * 0.34, rect.size.y * 0.35)), Color("a9d7e8"), true)
 	var stripe_color := GOLD if van_level >= 3 else GREEN
 	draw_rect(Rect2(rect.position + Vector2(8, rect.size.y * 0.42), Vector2(rect.size.x * 0.44, 5)), stripe_color, true)
-	draw_string(ThemeDB.fallback_font, rect.position + Vector2(8, rect.size.y * 0.36), "SHK", HORIZONTAL_ALIGNMENT_LEFT, -1, 9, WALL)
+	draw_string(SIGN_FONT, rect.position + Vector2(8, rect.size.y * 0.36), "SHK", HORIZONTAL_ALIGNMENT_LEFT, -1, 9, WALL)
 	if van_level >= 1:
 		draw_rect(Rect2(rect.position + Vector2(rect.size.x * 0.1, -4), Vector2(rect.size.x * 0.58, 4)), Color("9bb8ac"), true)
 	if van_level >= 4:
-		draw_string(ThemeDB.fallback_font, rect.position + Vector2(8, rect.size.y * 0.72), "24H", HORIZONTAL_ALIGNMENT_LEFT, -1, 7, stripe_color)
+		draw_string(SIGN_FONT, rect.position + Vector2(8, rect.size.y * 0.72), "24H", HORIZONTAL_ALIGNMENT_LEFT, -1, 7, stripe_color)
 	draw_circle(rect.position + Vector2(rect.size.x * 0.22, rect.size.y), 7.0, INK)
 	draw_circle(rect.position + Vector2(rect.size.x * 0.78, rect.size.y), 7.0, INK)
 	draw_circle(rect.position + Vector2(rect.size.x * 0.22, rect.size.y), 3.0, Color("7f938b"))
