@@ -143,11 +143,11 @@ jobs:
           set -euo pipefail
           AAB="$PROJECT_DIR/builds/android/idle-handwerker-unsigned.aab"
           java -jar "$RUNNER_TEMP/bundletool.jar" dump manifest --bundle="$AAB" > "$RUNNER_TEMP/manifest.xml"
-          expected_manifest='package=de.kamilunavo.idlehandwerker versionCode=4 versionName=1.4.0'
+          expected_manifest='package=de.kamilunavo.idlehandwerker versionCode=5 versionName=1.5.0'
           echo "$expected_manifest"
           grep -F 'package="de.kamilunavo.idlehandwerker"' "$RUNNER_TEMP/manifest.xml"
-          grep -F 'android:versionCode="4"' "$RUNNER_TEMP/manifest.xml"
-          grep -F 'android:versionName="1.4.0"' "$RUNNER_TEMP/manifest.xml"
+          grep -F 'android:versionCode="5"' "$RUNNER_TEMP/manifest.xml"
+          grep -F 'android:versionName="1.5.0"' "$RUNNER_TEMP/manifest.xml"
           python3 - "$RUNNER_TEMP/manifest.xml" <<'PY'
           import sys, xml.etree.ElementTree as ET
           sys.path.insert(0, "apps/005-idle-handwerker/ci")
@@ -267,6 +267,19 @@ jobs:
           name: idle-handwerker-unsigned-aab
           path: ${{ runner.temp }}/unsigned
 
+      - name: Validate exact release identity before restoring signing material
+        run: |
+          set -euo pipefail
+          unsigned="$RUNNER_TEMP/unsigned/idle-handwerker-unsigned.aab"
+          test -s "$unsigned"
+          curl -L --fail --retry 3 -o "$RUNNER_TEMP/bundletool.jar" \
+            "https://github.com/google/bundletool/releases/download/${BUNDLETOOL_VERSION}/bundletool-all-${BUNDLETOOL_VERSION}.jar"
+          echo "${BUNDLETOOL_SHA256}  $RUNNER_TEMP/bundletool.jar" | sha256sum --check -
+          java -jar "$RUNNER_TEMP/bundletool.jar" validate --bundle="$unsigned"
+          test "$(java -jar "$RUNNER_TEMP/bundletool.jar" dump manifest --bundle="$unsigned" --xpath=/manifest/@package)" = de.kamilunavo.idlehandwerker
+          test "$(java -jar "$RUNNER_TEMP/bundletool.jar" dump manifest --bundle="$unsigned" --xpath=/manifest/@android:versionCode)" = 5
+          test "$(java -jar "$RUNNER_TEMP/bundletool.jar" dump manifest --bundle="$unsigned" --xpath=/manifest/@android:versionName)" = 1.5.0
+
       - name: Restore central upload identity
         uses: acciento89-bot/maengelfix/.github/actions/restore-central-android-signing@main
 
@@ -281,6 +294,10 @@ jobs:
             -keypass "$ANDROID_UPLOAD_KEY_PASSWORD" \
             "$signed" "$ANDROID_UPLOAD_KEY_ALIAS"
           jarsigner -verify "$signed"
+          java -jar "$RUNNER_TEMP/bundletool.jar" validate --bundle="$signed"
+          test "$(java -jar "$RUNNER_TEMP/bundletool.jar" dump manifest --bundle="$signed" --xpath=/manifest/@package)" = de.kamilunavo.idlehandwerker
+          test "$(java -jar "$RUNNER_TEMP/bundletool.jar" dump manifest --bundle="$signed" --xpath=/manifest/@android:versionCode)" = 5
+          test "$(java -jar "$RUNNER_TEMP/bundletool.jar" dump manifest --bundle="$signed" --xpath=/manifest/@android:versionName)" = 1.5.0
           keytool -printcert -jarfile "$signed" > "$RUNNER_TEMP/signing-cert.txt"
           grep -F 'SHA1: BC:F2:33:7D:41:E6:17:C0:3B:CA:E6:98:C0:9D:15:23:65:4B:D7:90' "$RUNNER_TEMP/signing-cert.txt"
           grep -F 'SHA256: 79:85:BD:6B:33:71:1B:AC:A7:E6:BA:72:2C:2B:38:70:EB:BC:80:2F:7D:B4:A7:BC:12:06:BD:AE:51:C4:D5:D6' "$RUNNER_TEMP/signing-cert.txt"

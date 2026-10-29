@@ -1,0 +1,13 @@
+{
+  "component": "godot-iap",
+  "version": "1.2.9",
+  "repository": "https://github.com/hyochan/godot-iap",
+  "pinnedCommit": "4c3a15ddabeeb4d9d43f3879c6d5bbf7cd85624b",
+  "originalReadmeURL": "https://raw.githubusercontent.com/hyochan/godot-iap/4c3a15ddabeeb4d9d43f3879c6d5bbf7cd85624b/README.md",
+  "readmeSha256": "e5e4b82badb8bf3d3d7ae8f283edafbec42476e4d7b6b35500be326a5a07f87d",
+  "upstreamDeclaration": "MIT License - see [LICENSE](LICENSE) file for details.",
+  "exactLicenseTextStatus": "UNRESOLVED: complete pinned source tree/archive contains no licence/notice file, no embedded copyright/permission notice; linked LICENSE returns404.",
+  "notAnMITLicenseSubstitute": true,
+  "noNewerVersionLicenseUsed": true,
+  "sdkBehaviorOrVersionChanged": false
+}

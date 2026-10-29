@@ -1,0 +1,37 @@
+{
+  "schema": 1,
+  "app": "IdleHandwerker",
+  "package": "de.kamilunavo.idlehandwerker",
+  "androidVersionName": "1.5.0",
+  "androidVersionCode": 5,
+  "savedLiveMax": 4,
+  "providerEvidence": "production-preflight-40863704549.json",
+  "androidPresetNames": [
+    "Android Play",
+    "Android Screenshots"
+  ],
+  "normalAndroidPreset": "Android Play",
+  "preservedIOSPresetSha256": "f26a053fa72c63604235ca0824ee44ea0058a0fd19c7a0d8d7e6d07e63ccce3a",
+  "preservedSharedProjectVersion": "1.4.0",
+  "preservedProjectGodotSha256": "9be238875bcf96fdf571a4ad9141277f9d4ae79dd3fef663a00bdd057cba91b5",
+  "sourceWorkflow": "../../.github/workflows/idle-handwerker-android.yml",
+  "rawAttributionFiles": {
+    "licenses/godot-iap-1.2.9/UPSTREAM-README.md": "e5e4b82badb8bf3d3d7ae8f283edafbec42476e4d7b6b35500be326a5a07f87d",
+    "licenses/godot-admob-v5.0.0/LICENSE.txt": "5eb8fed3c9765be2c902791e19517025cc9e871f171e70f48213ad8999560675"
+  },
+  "requiredRawCreditFiles": [
+    "licenses/godot-iap-1.2.9/PROVENANCE.json",
+    "licenses/godot-admob-v5.0.0/PROVENANCE.json"
+  ],
+  "excludeUnusedAdmobDemoPathsFromNormalAndroidOnly": [
+    "addons/admob/assets/music.ogg",
+    "addons/admob/assets/fonts/NotoSansSC-Regular.otf",
+    "addons/admob/assets/donate/Ko-fi_Logo_RGB_ColorBg.png",
+    "addons/admob/assets/donate/Patreon_logo_with_wordmark.svg",
+    "addons/admob/assets/donate/PayPal.svg"
+  ],
+  "iapSDKVersionUnchanged": "1.2.9",
+  "iapPinnedSourceCommit": "4c3a15ddabeeb4d9d43f3879c6d5bbf7cd85624b",
+  "iapExactLicenseTextStatus": "UNRESOLVED at pinned commit; original MIT declaration preserved as evidence, not invented full notice",
+  "admobSDKVersionUnchanged": "v5.0.0"
+}
