@@ -27,6 +27,12 @@ private val Scheme = lightColorScheme(
     background = Color(0xFFF4EFE3),
     onBackground = Navy,
     surface = Surface,
+    surfaceContainerLowest = Surface,
+    surfaceContainerLow = Surface,
+    surfaceContainer = Surface,
+    surfaceContainerHigh = Surface,
+    surfaceContainerHighest = Raised,
+    surfaceTint = Color.Transparent,
     onSurface = Navy,
     surfaceVariant = Raised,
     onSurfaceVariant = Muted,
@@ -39,5 +45,5 @@ private val Scheme = lightColorScheme(
 
 @Composable
 fun RapportTheme(content: @Composable () -> Unit) {
-    MaterialTheme(colorScheme = Scheme, typography = brandedTypography(), shapes = Shapes(small = RoundedCornerShape(4.dp), medium = RoundedCornerShape(4.dp), large = RoundedCornerShape(6.dp)), content = content)
+    MaterialTheme(colorScheme = Scheme, typography = brandedTypography(), shapes = Shapes(small = RoundedCornerShape(4.dp), medium = RoundedCornerShape(4.dp), large = RoundedCornerShape(6.dp), extraLarge = RoundedCornerShape(8.dp)), content = content)
 }

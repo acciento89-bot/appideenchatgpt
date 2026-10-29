@@ -19,10 +19,13 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -136,6 +139,9 @@ class MainActivity : ComponentActivity() {
                 val message = state.message ?: billingState.message
                 if (message != null) {
                     AlertDialog(
+                        containerColor = MaterialTheme.colorScheme.surface,
+                        titleContentColor = Navy,
+                        textContentColor = Navy,
                         onDismissRequest = { viewModel.clearMessage(); billing.clearMessage() },
                         confirmButton = { TextButton(onClick = { viewModel.clearMessage(); billing.clearMessage() }) { Text("OK") } },
                         title = { Text("Hinweis") },
@@ -332,6 +338,7 @@ private fun CreateScreen(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ContextCard(draft: Rapport, update: ((Rapport) -> Rapport) -> Unit) {
     CraftCard {
@@ -344,8 +351,8 @@ private fun ContextCard(draft: Rapport, update: ((Rapport) -> Rapport) -> Unit) 
         OutlinedTextField(draft.location, { text -> update { it.copy(location = text) } }, Modifier.fillMaxWidth(), label = { Text("Einsatzort") }, singleLine = true)
         OutlinedTextField(draft.system, { text -> update { it.copy(system = text) } }, Modifier.fillMaxWidth(), label = { Text("Objekt / Anlage / Bauteil") }, singleLine = true)
         Text("Stil", color = Muted, style = MaterialTheme.typography.labelMedium, modifier = Modifier.padding(top = 10.dp))
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            Tone.entries.forEach { tone -> FilterChip(selected = draft.tone == tone, onClick = { update { it.copy(tone = tone) } }, label = { Text(tone.title, maxLines = 1) }) }
+        FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Tone.entries.forEach { tone -> FilterChip(selected = draft.tone == tone, onClick = { update { it.copy(tone = tone) } }, label = { Text(tone.title) }, modifier = Modifier.heightIn(min = 48.dp)) }
         }
     }
 }
