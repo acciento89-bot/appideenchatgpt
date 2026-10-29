@@ -49,6 +49,7 @@ jobs:
           persist-credentials: false
       - name: Validate release and screenshot contract
         run: |
+          ruby .github/scripts/check_workflow_yaml.rb
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           bash "$PROJECT_DIR/ci/test_android_release_contract.sh"
           python3 .github/scripts/test_godot_release_payload.py -v
@@ -264,9 +265,6 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v5
-        with:
-          ref: ${{ github.sha }}
-          persist-credentials: false
         with:
           ref: main
       - uses: actions/download-artifact@v5
