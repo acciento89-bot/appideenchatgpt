@@ -192,7 +192,7 @@ private fun RapportApp(
         topBar = {
             TopAppBar(
                 title = { Text(if (tab == AppTab.CREATE) "Neuer Rapport" else tab.title, fontWeight = FontWeight.Bold) },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Navy, titleContentColor = Color.White),
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Navy, titleContentColor = Color.White, actionIconContentColor = Color.White, navigationIconContentColor = Color.White),
                 actions = {
                     if (tab == AppTab.CREATE && (state.draft.rawText.isNotBlank() || state.draft.reportText.isNotBlank() || state.draft.workItems.isNotEmpty())) {
                         IconButton(onClick = { viewModel.newDraft(); workOpen = false }) { Icon(Icons.Default.Add, "Neuen Rapport beginnen") }
@@ -273,7 +273,7 @@ private fun CreateScreen(
                     Icon(Icons.Default.Description, null, tint = Cyan)
                     Spacer(Modifier.width(8.dp))
                     Text("01 · Einsatznotiz", fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-                    if (state.isRecording) Text("AUFNAHME", color = Color(0xFFFF6B6B), fontWeight = FontWeight.Bold)
+                    if (state.isRecording) Text("AUFNAHME", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
                 }
                 Spacer(Modifier.height(12.dp))
                 OutlinedTextField(

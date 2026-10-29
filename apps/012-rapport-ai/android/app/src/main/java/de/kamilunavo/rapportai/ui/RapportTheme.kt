@@ -17,8 +17,12 @@ val Muted = Color(0xFF5B625F)
 
 private val Scheme = lightColorScheme(
     primary = Orange,
+    primaryContainer = Color(0xFFF4DCCA),
+    onPrimaryContainer = Navy,
     onPrimary = Color.White,
     secondary = Cyan,
+    secondaryContainer = Color(0xFFDCEBE7),
+    onSecondaryContainer = Color(0xFF153F42),
     onSecondary = Color.White,
     background = Color(0xFFF4EFE3),
     onBackground = Navy,
@@ -27,6 +31,9 @@ private val Scheme = lightColorScheme(
     surfaceVariant = Raised,
     onSurfaceVariant = Muted,
     outline = Color(0xFFCEC6B7),
+    onError = Color.White,
+    errorContainer = Color(0xFFFCE5DF),
+    onErrorContainer = Color(0xFF6F1D19),
     error = Color(0xFFB92E27)
 )
 
