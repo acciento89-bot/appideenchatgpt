@@ -31,7 +31,7 @@ env:
 
   RELEASE_WORKFLOW: .github/workflows/idle-handwerker-android.yml
   PACKAGE_NAME: de.kamilunavo.idlehandwerker
-  EXPECTED_VERSION_CODE: '5'
+  EXPECTED_VERSION_CODE: '6'
   EXPECTED_VERSION_NAME: 1.5.0
   CENTRAL_SHA1: BCF2337D41E617C03BCAE698C09D1523654BD790
   CENTRAL_SHA256: 7985BD6B33711BACA7E6BA722C2B3870EBBC802F7DB4A7BC1206BDAE51C4D5D6
@@ -182,10 +182,10 @@ jobs:
           set -euo pipefail
           AAB="$PROJECT_DIR/builds/android/idle-handwerker-unsigned.aab"
           java -jar "$RUNNER_TEMP/bundletool.jar" dump manifest --bundle="$AAB" > "$RUNNER_TEMP/manifest.xml"
-          expected_manifest='package=de.kamilunavo.idlehandwerker versionCode=5 versionName=1.5.0'
+          expected_manifest='package=de.kamilunavo.idlehandwerker versionCode=6 versionName=1.5.0'
           echo "$expected_manifest"
           grep -F 'package="de.kamilunavo.idlehandwerker"' "$RUNNER_TEMP/manifest.xml"
-          grep -F 'android:versionCode="5"' "$RUNNER_TEMP/manifest.xml"
+          grep -F 'android:versionCode="6"' "$RUNNER_TEMP/manifest.xml"
           grep -F 'android:versionName="1.5.0"' "$RUNNER_TEMP/manifest.xml"
           python3 - "$RUNNER_TEMP/manifest.xml" <<'PY'
           import sys, xml.etree.ElementTree as ET
@@ -332,7 +332,7 @@ jobs:
           echo "${BUNDLETOOL_SHA256}  $RUNNER_TEMP/bundletool.jar" | sha256sum --check -
           java -jar "$RUNNER_TEMP/bundletool.jar" validate --bundle="$unsigned"
           test "$(java -jar "$RUNNER_TEMP/bundletool.jar" dump manifest --bundle="$unsigned" --xpath=/manifest/@package)" = de.kamilunavo.idlehandwerker
-          test "$(java -jar "$RUNNER_TEMP/bundletool.jar" dump manifest --bundle="$unsigned" --xpath=/manifest/@android:versionCode)" = 5
+          test "$(java -jar "$RUNNER_TEMP/bundletool.jar" dump manifest --bundle="$unsigned" --xpath=/manifest/@android:versionCode)" = 6
           test "$(java -jar "$RUNNER_TEMP/bundletool.jar" dump manifest --bundle="$unsigned" --xpath=/manifest/@android:versionName)" = 1.5.0
 
           java -jar "$RUNNER_TEMP/bundletool.jar" dump manifest --bundle="$unsigned" --module=assetPackInstallTime > "$RUNNER_TEMP/install-time.xml"
@@ -357,7 +357,7 @@ jobs:
           jarsigner -verify "$signed"
           java -jar "$RUNNER_TEMP/bundletool.jar" validate --bundle="$signed"
           test "$(java -jar "$RUNNER_TEMP/bundletool.jar" dump manifest --bundle="$signed" --xpath=/manifest/@package)" = de.kamilunavo.idlehandwerker
-          test "$(java -jar "$RUNNER_TEMP/bundletool.jar" dump manifest --bundle="$signed" --xpath=/manifest/@android:versionCode)" = 5
+          test "$(java -jar "$RUNNER_TEMP/bundletool.jar" dump manifest --bundle="$signed" --xpath=/manifest/@android:versionCode)" = 6
           test "$(java -jar "$RUNNER_TEMP/bundletool.jar" dump manifest --bundle="$signed" --xpath=/manifest/@android:versionName)" = 1.5.0
           keytool -J-Duser.language=en -printcert -jarfile "$signed" > "$RUNNER_TEMP/signing-cert.txt"
           grep -F 'SHA1: BC:F2:33:7D:41:E6:17:C0:3B:CA:E6:98:C0:9D:15:23:65:4B:D7:90' "$RUNNER_TEMP/signing-cert.txt"

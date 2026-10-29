@@ -23,7 +23,10 @@ class AndroidReleaseSourceTests(unittest.TestCase):
                 self.assertEqual(options["version/name"].strip('"'), META["androidVersionName"])
                 self.assertEqual(options["package/unique_name"].strip('"'), META["package"])
         self.assertEqual(names, META["androidPresetNames"])
-        self.assertEqual(META["androidVersionCode"], META["savedLiveMax"] + 1)
+        self.assertEqual(META["savedLiveMax"], 4)  # Retained actual provider proof.
+        self.assertEqual(META.get("reservedUnpublishedVersionCodes"), [5])
+        self.assertEqual(META["androidVersionCode"], max([META["savedLiveMax"]] + META["reservedUnpublishedVersionCodes"]) + 1)
+        self.assertEqual(META["androidVersionCode"], 6)
 
     def test_ios_and_shared_project_bytes_preserved(self):
         ios = (ROOT / "export_presets.cfg").read_bytes().split(b"[preset.1]", 1)[0]
@@ -79,9 +82,46 @@ class AndroidReleaseSourceTests(unittest.TestCase):
             def run(package, code, name):
                 pathlib.Path(directory, 'manifest.xml').write_text('<manifest package="'+package+'" android:versionCode="'+code+'" android:versionName="'+name+'"/>')
                 return subprocess.run(['bash'], input='set -euo pipefail\n'+'\n'.join(checks), text=True, env=env, capture_output=True).returncode
-            self.assertEqual(run(META['package'], str(META['androidVersionCode']), META['androidVersionName']), 0)
-            for values in [('de.example.other','5','1.5.0'),(META['package'],'4','1.5.0'),(META['package'],'50','1.5.0'),(META['package'],'5','1.4.0'),(META['package'],'5','1.5.0-beta')]:
+            self.assertEqual(run(META['package'], '6', '1.5.0'), 0)
+            for values in [('de.example.other','6','1.5.0'),(META['package'],'4','1.5.0'),(META['package'],'5','1.5.0'),(META['package'],'60','1.5.0'),(META['package'],'6','1.4.0'),(META['package'],'6','1.5.0-beta')]:
                 with self.subTest(values=values): self.assertNotEqual(run(*values), 0)
+
+    def test_workflow_environment_and_manifest_summary_bind_successor(self):
+        workflow = (ROOT / META['sourceWorkflow']).read_text()
+        self.assertEqual(re.findall(r"EXPECTED_VERSION_CODE: '([0-9]+)'", workflow), ['6'])
+        self.assertEqual(re.findall(r'EXPECTED_VERSION_NAME: ([0-9.]+)', workflow), ['1.5.0'])
+        self.assertIn('expected_manifest=\'package=de.kamilunavo.idlehandwerker versionCode=6 versionName=1.5.0\'', workflow)
+
+    def test_actual_pre_and_post_sign_checks_reject_unpublished_predecessor(self):
+        # Execute the actual workflow predicates, replacing only the external
+        # manifest reader with a local, strictly bounded fake executable.
+        import tempfile
+        workflow = (ROOT / META['sourceWorkflow']).read_text()
+        before = workflow.index('      - name: Validate exact release identity before restoring signing material')
+        restore = workflow.index('      - name: Restore central upload identity')
+        stages = {'before_key_restore': workflow[before:restore], 'after_signing': workflow[restore:]}
+        with tempfile.TemporaryDirectory() as directory:
+            java = pathlib.Path(directory, 'java')
+            java.write_text('''#!/usr/bin/env python3
+import os, sys
+fields = {'--xpath=/manifest/@package': 'TEST_PACKAGE', '--xpath=/manifest/@android:versionCode': 'TEST_CODE', '--xpath=/manifest/@android:versionName': 'TEST_NAME'}
+if len(sys.argv) != 7 or sys.argv[1] != '-jar' or sys.argv[3:5] != ['dump', 'manifest'] or not sys.argv[5].startswith('--bundle=') or sys.argv[6] not in fields:
+    raise SystemExit(97)
+print(os.environ[fields[sys.argv[6]]])
+''')
+            java.chmod(0o700)
+            env = {**os.environ, 'PATH': directory + os.pathsep + os.environ['PATH'], 'RUNNER_TEMP': directory,
+                   'unsigned': directory + '/unsigned.aab', 'signed': directory + '/signed.aab'}
+            for stage, block in stages.items():
+                checks = [line.strip() for line in block.splitlines() if line.strip().startswith('test "$(java -jar "$RUNNER_TEMP/bundletool.jar" dump manifest --bundle=')]
+                self.assertEqual(len(checks), 3, stage)
+                def run(package, code, name):
+                    return subprocess.run(['bash'], input='set -euo pipefail\n' + '\n'.join(checks), text=True,
+                                          env={**env, 'TEST_PACKAGE': package, 'TEST_CODE': code, 'TEST_NAME': name}, capture_output=True).returncode
+                with self.subTest(stage=stage, valid=True):
+                    self.assertEqual(run(META['package'], '6', '1.5.0'), 0)
+                for values in [('de.example.other','6','1.5.0'),(META['package'],'4','1.5.0'),(META['package'],'5','1.5.0'),(META['package'],'60','1.5.0'),(META['package'],'6','1.4.0'),(META['package'],'6','1.5.0-beta')]:
+                    with self.subTest(stage=stage, values=values): self.assertNotEqual(run(*values), 0)
 
     def test_signer_checks_exact_identity_before_key_restore_and_after_signing(self):
         workflow = (ROOT / META['sourceWorkflow']).read_text()

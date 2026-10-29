@@ -3,8 +3,10 @@
   "app": "IdleHandwerker",
   "package": "de.kamilunavo.idlehandwerker",
   "androidVersionName": "1.5.0",
-  "androidVersionCode": 5,
+  "androidVersionCode": 6,
   "savedLiveMax": 4,
+  "reservedUnpublishedVersionCodes": [5],
+  "versionDecision": "Owner reserved code 6 for the original-workshop-music successor. Code 5 at 2e03e4feabd14fa436d651dbd56f3c0f0e6ef97c was built and QA-tested but never uploaded, per Root instruction. Historical provider maximum remains 4; a fresh all-track check is required before delivery.",
   "providerEvidence": "production-preflight-40863704549.json",
   "androidPresetNames": [
     "Android Play",
