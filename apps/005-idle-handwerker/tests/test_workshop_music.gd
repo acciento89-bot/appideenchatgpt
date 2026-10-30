@@ -34,7 +34,7 @@ func run() -> void:
 	check(pcm.decode_s16(0) == 0 and pcm.decode_s16(pcm.size() - 2) == 0 and jump < 3000, "loop seam is zero and no hard per-note sample jumps")
 	var loop: AudioStreamWAV = score.create_loop()
 	check(loop.data == pcm and loop.format == AudioStreamWAV.FORMAT_16_BITS and loop.mix_rate == 22050 and not loop.stereo, "WAV uses exact generated mono PCM")
-	check(loop.loop_mode == AudioStreamWAV.LOOP_FORWARD and loop.loop_begin == 0 and loop.loop_end == 22050 * 20 and is_equal_approx(loop.get_length(), 20.0), "actual WAV loops over the complete valid sample interval")
+	check(loop.loop_mode == AudioStreamWAV.LOOP_FORWARD and loop.loop_begin == 0 and loop.loop_end == 22050 * 20 - 1 and is_equal_approx(loop.get_length(), 20.0), "actual WAV uses the inclusive last valid sample index of the unchanged20s PCM")
 	check(loop == score.create_loop(), "cached loop is reused without repeated synthesis")
 	var music = score.new()
 	root.add_child(music)

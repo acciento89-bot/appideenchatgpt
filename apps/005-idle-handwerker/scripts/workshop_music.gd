@@ -70,7 +70,7 @@ static func create_loop() -> AudioStreamWAV:
 		_cached_loop.data = generate_pcm()
 		_cached_loop.loop_mode = AudioStreamWAV.LOOP_FORWARD
 		_cached_loop.loop_begin = 0
-		_cached_loop.loop_end = FRAME_COUNT
+		_cached_loop.loop_end = FRAME_COUNT - 1
 	return _cached_loop
 
 
